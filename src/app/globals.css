@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+:root {
+  --rvx-azure: #2277ff;
+  --rvx-black: #000000;
+  --rvx-lavender: #e3e7fc;
+  --rvx-white: #ffffff;
+  --rvx-royal: #0056ff;
+  --rvx-midnight: #191970;
+}
+
+body {
+  background: var(--rvx-white);
+  color: var(--rvx-black);
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
