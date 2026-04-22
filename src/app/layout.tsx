@@ -1,7 +1,8 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { ReactNode } from "react";
-import { AppProviders } from "@/components/providers/app-providers";
+import { AppProvider } from "@/providers/app-provider";
+import { AuthProvider } from "@/providers/auth-provider";
 
 export const metadata: Metadata = {
   title: "Rivexaflow",
@@ -12,7 +13,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <AppProviders>{children}</AppProviders>
+        <AppProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </AppProvider>
       </body>
     </html>
   );

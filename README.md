@@ -46,10 +46,10 @@ Can:
 Cannot:
 - Access internal business records of a tenant as a regular user
 
-Routes:
+Routes (platform lane):
 - `/super-admin`
-- `/super-admin/tenants`
-- `/super-admin/audit`
+- `/super-admin/tenants` and `/super-admin/tenants/[tenantId]`
+- `/super-admin/audit`, `/super-admin/billing`, `/super-admin/system-health`, `/super-admin/users`
 
 ### 2) Organization Admin (Workspace Owner)
 Purpose: run one company workspace.
@@ -64,14 +64,16 @@ Cannot:
 - Access other organizations
 - Access platform super-admin controls
 
-Routes:
-- `/dashboard`
-- `/dashboard/crm`
-- `/dashboard/team`
-- `/dashboard/kyc`
-- `/dashboard/invoices`
-- `/dashboard/ai-services`
-- `/dashboard/settings`
+Routes (workspace lane, slug-scoped):
+- `/{workspaceSlug}` (workspace home)
+- `/{workspaceSlug}/dashboard`
+- `/{workspaceSlug}/crm` (+ contacts, leads, pipelines)
+- `/{workspaceSlug}/team` (+ members, invites, activity)
+- `/{workspaceSlug}/kyc` (+ submissions, reviews, templates)
+- `/{workspaceSlug}/invoices` (+ create, `[invoiceId]`)
+- `/{workspaceSlug}/ai` (+ tools, history)
+- `/{workspaceSlug}/settings` (+ workspace, branding, billing, modules, api-keys)
+- `/{workspaceSlug}/reports`, `/{workspaceSlug}/notifications`
 
 ### 3) User (Agent)
 Purpose: execute assigned operational tasks.
@@ -86,30 +88,26 @@ Cannot:
 - Access billing/admin controls
 - Access other users' restricted controls
 
-Routes:
-- `/agent`
-- `/agent/contacts`
-- `/agent/kyc`
-- `/agent/ai-tools`
+Routes (same workspace lane, restricted navigation for `USER`):
+- Users land on `/{workspaceSlug}/dashboard` with a reduced sidebar (CRM/KYC/AI subset).
 
 ## Public Website and Auth Flow
 
-Public marketing/entry routes:
-- `/` (website: vision, services, impact, testimonials, FAQ)
-- `/login` (workspace login for Organization Admin/User)
-- `/admin/login` (super admin login)
-- `/signup` (new workspace request flow)
-- `/forgot-password`
+Public marketing routes:
+- `/`, `/pricing`, `/about`, `/contact`
+
+Auth routes:
+- `/login`, `/signup`, `/forgot-password`, `/reset-password`
+- `/admin/login` (platform team)
 - `/invite/[token]`
 
-Post-login role redirection:
+Post-login redirects (middleware + client):
 - `SUPER_ADMIN` -> `/super-admin`
-- `ADMIN` -> `/dashboard`
-- `USER` -> `/agent`
+- `ADMIN` / `USER` -> `/{workspaceSlug}/dashboard` (demo slug `acme-corp` from `config/app.ts`)
 
 ## Security and Route Guards
 
-`middleware.ts` enforces:
+`src/middleware.ts` enforces:
 - AuthGuard: unauthenticated users redirected to login
 - RoleGuard: route-role mismatch redirected to forbidden page
 - WorkspaceGuard: tenant context required for workspace routes
@@ -121,11 +119,11 @@ Other security-oriented conventions:
 
 ## State Management Design
 
-Zustand stores:
-- `authStore`: current user, role, token, login/logout state
-- `workspaceStore`: workspace context data
-- `socketStore`: real-time presence + activity feed
-- `uiStore`: notifications and modal states
+Zustand stores (`src/stores/`):
+- `auth.store.ts`: current user, role, token, login/logout state (+ session cookie sync)
+- `workspace.store.ts`: workspace id/name/slug/plan
+- `socket.store.ts`: real-time presence + activity feed
+- `ui.store.ts`: notifications and modal states
 
 ## Module Coverage in POC
 
@@ -141,36 +139,28 @@ Zustand stores:
 ```txt
 src/
   app/
-    page.tsx
-    (auth)/
-      login/
-      signup/
-      forgot-password/
-    admin/login/
-    (super-admin)/super-admin/
-      page.tsx
-      tenants/
-      audit/
-    (admin)/dashboard/
-      page.tsx
-      crm/
-      team/
-      kyc/
-      invoices/
-      ai-services/
-      settings/
-    (agent)/agent/
-      page.tsx
-      contacts/
-      kyc/
-      ai-tools/
-    invite/[token]/
+    (public)/          # marketing site
+    (auth)/            # auth flows + invite + platform login
+    (platform)/super-admin/
+    (workspace)/[workspaceSlug]/...
+    layout.tsx
+    loading.tsx
+    error.tsx
+    not-found.tsx
+    globals.css
+  features/            # domain modules (components/hooks/services/schemas/types)
   components/
+    ui/
+    shared/
     layout/
-    providers/
+  lib/                 # api, auth, workspace, socket, constants, utils
+  hooks/
   stores/
-  lib/
-middleware.ts
+  providers/
+  schemas/
+  types/
+  config/
+  middleware.ts
 ```
 
 ## Environment
