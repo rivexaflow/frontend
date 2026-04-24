@@ -15,12 +15,18 @@
   "type": "module",
   "private": true,
   "dependencies": {
+    "@radix-ui/react-slot": "^1.2.4",
     "@splinetool/react-spline": "^4.1.0",
+    "@tabler/icons-react": "^3.41.1",
     "@tanstack/react-query": "^5.99.2",
+    "@untitledui/icons": "^0.0.22",
     "axios": "^1.15.1",
+    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "framer-motion": "^12.38.0",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^1.8.0",
+    "motion": "^12.38.0",
     "next": "^16.2.4",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
@@ -36,6 +42,7 @@
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.4",
+    "shadcn": "^4.4.0",
     "tailwindcss": "^4.2.4",
     "typescript": "^6.0.3"
   }

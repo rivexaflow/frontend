@@ -2,6 +2,14 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { DottedGlowBackground } from "@/components/ui/dotted-glow-background";
+import { Button } from "@/components/ui/button";
+import { StatefulButton } from "@/components/ui/stateful-button";
+
+import { Button as MovingBorderButton } from "@/components/ui/moving-border";
+import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
+
+import * as motion from "framer-motion/client";
 
 const Spline = dynamic(() => import("@splinetool/react-spline"), { ssr: false });
 
@@ -10,56 +18,67 @@ const SPLINE_SCENE = "https://prod.spline.design/paGYmJpQ8G2Ybo5x/scene.splineco
 
 export function MarketingHero() {
   return (
-    <section className="relative min-h-0 flex-1 overflow-hidden bg-black text-white">
-      {/* Full-hero scene: same framing as Spline (black band + geometry); letterbox on canvas stays on black */}
-      <div className="absolute inset-0 z-0 bg-black">
+    <section className="relative min-h-0 flex-1 overflow-hidden bg-slate-950 text-white">
+      {/* Full-hero scene: deep navy to midnight gradient for a premium "Royal" feel */}
+      <div className="absolute inset-0 z-0 bg-gradient-to-b from-[#001a4d] via-slate-950 to-slate-950">
         <div className="flex h-full w-full items-center justify-center">
-          <Spline
-            scene={SPLINE_SCENE}
-            className="h-full w-full [&>canvas]:h-full [&>canvas]:w-full [&>canvas]:object-contain"
+          <DottedGlowBackground 
+            className="opacity-50" 
+            color="rgba(0, 86, 255, 0.2)"
+            glowColor="rgba(0, 86, 255, 0.8)"
+            gap={24}
+            radius={1.2}
           />
         </div>
       </div>
 
-      {/* Copy sits over the scene’s natural top black area — not a separate “panel” above the 3D */}
-      <div className="pointer-events-none relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center px-4 pb-8 pt-6 text-center sm:px-6 sm:pt-8 md:max-w-4xl md:pt-10">
-        <div className="pointer-events-auto mb-5 inline-flex overflow-hidden rounded-full border border-white/12 bg-white/[0.05] text-[10px] shadow-[0_0_28px_rgba(34,119,255,0.12)] backdrop-blur sm:text-[11px] md:mb-6 md:text-xs">
-          <span className="bg-gradient-to-r from-[#0056ff] to-[#2277ff] px-3 py-1.5 font-semibold text-white sm:px-3.5">
-            Start your workspace
+      {/* Content */}
+      <motion.div 
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="pointer-events-none relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center px-4 pb-16 pt-12 text-center sm:px-6 sm:pt-16 md:max-w-4xl md:pt-20"
+      >
+        <div className="pointer-events-auto mb-6 inline-flex overflow-hidden rounded-full border border-white/10 bg-white/[0.05] text-[10px] shadow-[0_0_28px_rgba(34,119,255,0.1)] backdrop-blur-sm sm:text-[11px] md:mb-8 md:text-xs">
+          <span className="bg-gradient-to-r from-blue-600 to-blue-400 px-4 py-2 font-semibold text-white">
+            NEXT-GEN WORKSPACE
           </span>
-          <span className="px-3 py-1.5 text-white/70 sm:px-3.5">Multi-tenant SaaS</span>
+          <span className="px-4 py-2 text-white/80">Multi-tenant AI Platform</span>
         </div>
 
-        <h1 className="pointer-events-auto text-balance text-[1.65rem] font-semibold leading-[1.15] tracking-tight sm:text-3xl md:text-[2.15rem] md:leading-[1.12] lg:text-4xl">
-          Meet <span className="bg-gradient-to-r from-[#2277ff] to-[#7eb6ff] bg-clip-text text-transparent">Rivexaflow</span>
-          <span className="mt-2 block text-white sm:mt-2.5">Built for secure, AI-ready B2B operations.</span>
+        <h1 className="pointer-events-auto text-balance text-4xl font-bold leading-[1.1] tracking-tight sm:text-6xl md:text-7xl">
+          Meet <span className="bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(34,119,255,0.3)]">Rivexaflow</span>
+          <span className="mt-4 block text-white/90">Built for secure, AI-ready B2B operations.</span>
         </h1>
 
-        <p className="pointer-events-auto mt-4 max-w-xl text-pretty text-xs leading-relaxed text-white/65 sm:max-w-2xl sm:text-[13px] md:mt-5 md:text-sm">
-          Unify CRM, KYC, invoicing, and AI-powered automation in one workspace—live team monitoring, role-based access,
-          and enterprise-grade scale from day one.
-        </p>
+        <TextGenerateEffect 
+          words="Unify CRM, KYC, invoicing, and AI-powered automation in one workspace. Build trust with role-based access and scale your enterprise operations from day one with intelligent workforce management."
+          className="mt-8 max-w-2xl text-sm leading-relaxed text-blue-100 sm:text-base md:mt-10"
+        />
 
-        <div className="pointer-events-auto mt-6 flex flex-wrap items-center justify-center gap-2.5 sm:mt-7 sm:gap-3 md:mt-8">
-          <Link
-            href="/login"
-            className="rounded-full bg-white px-5 py-2 text-xs font-semibold text-black shadow-[0_8px_28px_rgba(255,255,255,0.1)] transition hover:bg-white/90 sm:px-6 sm:text-[13px] sm:py-2.5"
+        <div className="pointer-events-auto mt-10 flex flex-wrap items-center justify-center gap-4 sm:mt-12">
+          <MovingBorderButton
+            borderRadius="1.75rem"
+            className="bg-white dark:bg-slate-900 text-black dark:text-white border-neutral-200 dark:border-slate-800 font-bold"
+            containerClassName="h-12 w-48"
+            onClick={() => window.location.href = '/login'}
           >
-            Start demo
-          </Link>
-          <Link
-            href="#vision"
-            className="rounded-full border border-white/22 bg-white/[0.03] px-5 py-2 text-xs font-semibold text-white backdrop-blur transition hover:border-white/35 hover:bg-white/[0.07] sm:px-6 sm:text-[13px] sm:py-2.5"
+            Start Digital Demo
+          </MovingBorderButton>
+          <Button 
+            variant="outline"
+            className="h-12 rounded-full border-white/20 bg-white/5 px-8 text-sm font-bold text-white backdrop-blur-md transition-all hover:border-white/40 hover:bg-white/10 sm:px-10"
+            asChild
           >
-            Learn more
-          </Link>
+            <Link href="#vision">How it works</Link>
+          </Button>
         </div>
 
-        <div className="pointer-events-auto mt-5 flex items-center gap-1.5 text-[9px] font-medium uppercase tracking-[0.28em] text-white/30 sm:mt-6 sm:text-[10px] sm:tracking-[0.32em]">
-          <span className="h-1 w-1 shrink-0 rounded-full bg-[#2277ff] shadow-[0_0_8px_#2277ff]" />
-          Live workspace hub
+        <div className="pointer-events-auto mt-12 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 sm:mt-16 sm:text-xs">
+          <span className="h-1.5 w-1.5 rounded-full bg-blue-500 shadow-[0_0_12px_#3b82f6]" />
+          Infrastructure active in 4 regions
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }
