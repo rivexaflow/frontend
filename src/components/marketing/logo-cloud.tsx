@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import * as motion from "framer-motion/client";
+import { motion } from "framer-motion";
 
 export function LogoCloud() {
   const logos = [

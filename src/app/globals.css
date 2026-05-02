@@ -1,10 +1,39 @@
 @import "tailwindcss";
 
+/* ── Landing / marketing typography (files in /public/reckoner, /public/gebuk-font) */
+@font-face {
+  font-family: "Reckoner";
+  src: url("/reckoner/Reckoner.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Reckoner";
+  src: url("/reckoner/Reckoner_Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Gebuk";
+  src: url("/gebuk-font/gebuk-regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
   --font-inter: "Inter", "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif";
 }
 
 :root {
+  /* Marketing display fonts */
+  --font-heading: "Reckoner", ui-sans-serif, system-ui, sans-serif;
+  --font-subheading: "Gebuk", ui-sans-serif, system-ui, sans-serif;
+
   /* Brand Colors */
   --rvx-azure: 217 100% 56%; /* #2277ff */
   --rvx-royal: 219 100% 50%; /* #0056ff */
@@ -74,6 +103,16 @@
 }
 
 @layer utilities {
+  /** Use on section titles / hero wordmark / display headings (Reckoner) */
+  .font-heading {
+    font-family: var(--font-heading);
+  }
+
+  /** Use on subtitles, eyebrows, paragraphs, UI labels on landing (Gebuk) */
+  .font-subheading {
+    font-family: var(--font-subheading);
+  }
+
   .glass {
     background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(12px);

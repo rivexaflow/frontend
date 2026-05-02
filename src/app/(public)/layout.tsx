@@ -1,5 +1,9 @@
 import { ReactNode } from "react";
 
 export default function PublicLayout({ children }: { children: ReactNode }) {
-  return <div className="min-h-screen bg-[var(--rvx-white)]">{children}</div>;
+  return (
+    <div className="min-h-screen bg-[var(--rvx-white)] font-subheading antialiased">
+      {children}
+    </div>
+  );
 }

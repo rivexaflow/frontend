@@ -1,98 +1,144 @@
 "use client";
 
+import Link from "next/link";
+import { useRef, useState } from "react";
 import { DottedGlowBackground } from "@/components/ui/dotted-glow-background";
-import { StatefulButton } from "@/components/ui/stateful-button";
-import { Button as MovingBorderButton } from "@/components/ui/moving-border";
-import { Sparkles, ArrowRight } from "lucide-react";
-import * as motion from "framer-motion/client";
+
+const DEFAULT_LOOP_DISTANCE_PX = 864;
+
+const IMAGES = [
+  "/Ctaimage/ctaIMG10.jpeg",
+  "/Ctaimage/ctaIMG11.jpeg",
+  "/Ctaimage/ctaIMG12.jpeg",
+  "/Ctaimage/ctaIMG13.jpeg",
+  "/Ctaimage/ctaIMG14.jpeg",
+  "/Ctaimage/ctaIMG6.jpeg",
+];
+
+const albumColumns: Array<{ direction: "up" | "down"; images: string[] }> = [
+  { direction: "up", images: IMAGES.slice(0, 4) },
+  { direction: "down", images: IMAGES.slice(1, 5) },
+  { direction: "up", images: IMAGES.slice(2, 6) },
+  { direction: "down", images: IMAGES.slice(0, 4) },
+  { direction: "up", images: IMAGES.slice(1, 5) },
+];
+
+function CTAButton({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center justify-center rounded-full bg-[#2277FF] px-6 py-3 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(34,119,255,0.4)] transition hover:bg-[#0056FF]">
+      {children}
+    </span>
+  );
+}
 
 export function CTASection() {
+  const columnRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const [loopDistances, setLoopDistances] = useState<number[]>([]);
+
   return (
-    <section className="relative py-24 sm:py-32 overflow-hidden bg-blue-600">
-      <DottedGlowBackground 
-        className="opacity-30" 
-        color="rgba(255, 255, 255, 0.1)"
-        glowColor="rgba(255, 255, 255, 0.4)"
-        gap={20}
-        radius={1.2}
+    <section className="relative mb-0 mt-14 ml-[calc(50%-50vw)] mr-[calc(50%-50vw)] w-screen overflow-hidden bg-[#020205] px-6 py-8 text-white md:px-10 md:py-8">
+      <DottedGlowBackground
+        className="opacity-20"
+        color="rgba(227,231,252,0.18)"
+        glowColor="rgba(34,119,255,0.35)"
+        gap={24}
+        radius={1.1}
       />
-      
-      <div className="relative z-10 mx-auto max-w-5xl px-6 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold text-white ring-1 ring-inset ring-white/20 mb-8"
-        >
-          <Sparkles className="h-4 w-4" />
-          <span>Instant Onboarding</span>
-        </motion.div>
-        
-        <motion.h2 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.1 }}
-          className="text-5xl font-bold tracking-tight text-white sm:text-7xl mb-8"
-        >
-          Ready to <span className="text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.4)]">transform</span> your business?
-        </motion.h2>
-        
-        <motion.p 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.2 }}
-          className="text-xl text-blue-100 mb-12 max-w-2xl mx-auto leading-relaxed"
-        >
-          Join hundreds of companies already using Rivexaflow to streamline operations, boost productivity, and scale faster.
-        </motion.p>
-        
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.3 }}
-          className="flex flex-col sm:flex-row gap-6 justify-center items-center"
-        >
-          <MovingBorderButton
-            borderRadius="1.75rem"
-            className="bg-white text-blue-600 font-bold border-transparent"
-            containerClassName="h-14 w-64"
-            borderClassName="bg-[radial-gradient(#ffffff_40%,transparent_60%)]"
-            onClick={() => window.location.href = '/login'}
-          >
-            Start 14-Day Free Trial
-          </MovingBorderButton>
-          
-          <button
-            onClick={() => window.location.href = '/contact'}
-            className="group flex items-center gap-2 text-lg font-bold text-white transition-all hover:text-blue-100"
-          >
-            Book a personalized demo <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-          </button>
-        </motion.div>
-        
-        <motion.div 
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.5 }}
-          className="mt-20 grid grid-cols-2 gap-8 md:grid-cols-4 border-t border-white/10 pt-12"
-        >
-          {[
-            { label: "Active Users", value: "10K+" },
-            { label: "Daily Tasks", value: "250K+" },
-            { label: "Uptime SLA", value: "99.99%" },
-            { label: "Customer Rating", value: "4.9/5" }
-          ].map((stat, i) => (
-            <div key={i} className="text-center">
-              <div className="text-3xl font-bold text-white">{stat.value}</div>
-              <div className="text-sm text-blue-100 uppercase tracking-widest mt-1">{stat.label}</div>
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_320px_at_20%_0%,rgba(34,119,255,0.28),transparent_60%),radial-gradient(800px_300px_at_85%_15%,rgba(25,25,112,0.3),transparent_60%)]" />
+
+      <div className="relative mx-auto grid w-full max-w-[1500px] grid-cols-1 gap-8 md:grid-cols-[1fr_1fr] md:items-stretch">
+        <div>
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#E3E7FC]">Early Access</span>
+          <h3 className="font-heading text-[clamp(2.6rem,5vw,5rem)] font-extrabold leading-[1.02]">
+            Your Transactions Deserve Better
+            <br />
+            Infrastructure
+          </h3>
+          <p className="mt-5 max-w-xl text-lg leading-8 text-white/70">
+            Join the early access program. We&apos;re onboarding select banks, NBFCs, and payment
+            aggregators to pilot the full Rivexaflow suite.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link href="/contact" className="inline-flex">
+              <CTAButton>Request for Early Access</CTAButton>
+            </Link>
+          </div>
+        </div>
+
+        <div className="relative -my-8 -mr-6 h-[340px] overflow-hidden md:-mr-10 md:h-auto md:min-h-[380px]">
+          <div className="absolute inset-0 [perspective:1000px]">
+            <div className="absolute -right-64 top-1/2 -translate-y-1/2 grid w-[195%] grid-cols-5 gap-1 [transform:rotateX(45deg)_rotateY(20deg)_rotate(-25deg)_translate3d(-2em,7.2em,8em)] [transform-style:preserve-3d] [mask-image:linear-gradient(transparent_0%,rgba(0,0,0,0.03)_4%,rgba(0,0,0,0.18)_10%,rgba(0,0,0,0.42)_18%,#000_28%)]">
+              {albumColumns.map((col, colIdx) => (
+                <div
+                  key={`${col.direction}-${colIdx}`}
+                  ref={(el) => {
+                    columnRefs.current[colIdx] = el;
+                  }}
+                  className={[
+                    "mx-[2px] flex w-[270px] flex-col gap-1 will-change-transform [backface-visibility:hidden]",
+                    colIdx === 0 || colIdx === 3 ? "pt-20" : "",
+                    colIdx === 1 || colIdx === 4 ? "pt-10" : "",
+                  ].join(" ")}
+                  style={{
+                    animation:
+                      col.direction === "up"
+                        ? "imageScrollingUp 16s linear infinite"
+                        : "imageScrollingDown 16s linear infinite",
+                    animationPlayState: "running",
+                    ["--loop-distance" as string]: `${loopDistances[colIdx] ?? DEFAULT_LOOP_DISTANCE_PX}px`,
+                  }}
+                >
+                  {[...col.images, ...col.images].map((img, imgIdx) => (
+                    <img
+                      key={`${img}-${imgIdx}`}
+                      src={img}
+                      alt="Automation module visual"
+                      className="block h-[200px] w-[280px] rounded-sm object-cover"
+                      loading="lazy"
+                      decoding="async"
+                      onError={(event) => {
+                        const target = event.currentTarget;
+                        if (target.src.includes("/Ctaimage/ctaIMG.jpeg")) return;
+                        target.src = "/Ctaimage/ctaIMG.jpeg";
+                      }}
+                      onLoad={() => {
+                        const el = columnRefs.current[colIdx];
+                        if (!el) return;
+                        const measured = Math.max(1, Math.round(el.scrollHeight / 2));
+                        setLoopDistances((prev) => {
+                          if ((prev[colIdx] ?? DEFAULT_LOOP_DISTANCE_PX) === measured) return prev;
+                          const next = [...prev];
+                          next[colIdx] = measured || DEFAULT_LOOP_DISTANCE_PX;
+                          return next;
+                        });
+                      }}
+                    />
+                  ))}
+                </div>
+              ))}
             </div>
-          ))}
-        </motion.div>
+          </div>
+        </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes imageScrollingUp {
+          0% {
+            transform: translate3d(0, 0, 0);
+          }
+          100% {
+            transform: translate3d(0, calc(-1 * var(--loop-distance, 864px)), 0);
+          }
+        }
+        @keyframes imageScrollingDown {
+          0% {
+            transform: translate3d(0, calc(-1 * var(--loop-distance, 864px)), 0);
+          }
+          100% {
+            transform: translate3d(0, 0, 0);
+          }
+        }
+      `}</style>
     </section>
   );
 }

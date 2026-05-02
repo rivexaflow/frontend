@@ -49,7 +49,7 @@ export default function PricingPage() {
       <div className="relative z-10 mx-auto max-w-7xl px-6 py-24 sm:py-32 lg:px-8">
         <div className="text-center">
           <h2 className="text-base font-semibold leading-7 text-blue-600">Pricing</h2>
-          <p className="mt-2 text-4xl font-bold tracking-tight text-slate-900 sm:text-6xl dark:text-white">
+          <p className="mt-2 font-heading text-4xl font-bold tracking-tight text-slate-900 sm:text-6xl dark:text-white">
             Plans that scale with your <span className="text-gradient">workspace</span>
           </p>
           <p className="mt-6 text-lg leading-8 text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
@@ -75,7 +75,7 @@ export default function PricingPage() {
               
               <div>
                 <div className="flex items-center justify-between gap-x-4">
-                  <h3 className={`text-lg font-semibold leading-8 ${tier.popular ? "text-white" : "text-slate-900 dark:text-white"}`}>
+                  <h3 className={`font-heading text-lg font-semibold leading-8 ${tier.popular ? "text-white" : "text-slate-900 dark:text-white"}`}>
                     {tier.name}
                   </h3>
                   <div className={`p-2 rounded-xl ${tier.popular ? "bg-white/10" : "bg-slate-100 dark:bg-slate-800"}`}>
@@ -83,7 +83,7 @@ export default function PricingPage() {
                   </div>
                 </div>
                 <p className="mt-4 flex items-baseline gap-x-1">
-                  <span className={`text-4xl font-bold tracking-tight ${tier.popular ? "text-white" : "text-slate-900 dark:text-white"}`}>
+                  <span className={`font-heading text-4xl font-bold tracking-tight ${tier.popular ? "text-white" : "text-slate-900 dark:text-white"}`}>
                     {tier.price}
                   </span>
                   <span className={`text-sm font-semibold leading-6 ${tier.popular ? "text-blue-100" : "text-slate-600 dark:text-slate-400"}`}>

@@ -3,7 +3,7 @@
 import { DottedGlowBackground } from "@/components/ui/dotted-glow-background";
 import { Mail, MessageSquare, MapPin, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import * as motion from "framer-motion/client";
+import { motion } from "framer-motion";
 
 export default function ContactPage() {
   return (
@@ -23,7 +23,7 @@ export default function ContactPage() {
             className="flex flex-col justify-center"
           >
             <h2 className="text-base font-semibold leading-7 text-blue-600">Get in touch</h2>
-            <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-900 sm:text-6xl dark:text-white">
+            <h1 className="mt-2 font-heading text-4xl font-bold tracking-tight text-slate-900 sm:text-6xl dark:text-white">
               Let's build your <span className="text-gradient">future workspace</span>
             </h1>
             <p className="mt-6 text-lg leading-8 text-slate-600 dark:text-slate-400">

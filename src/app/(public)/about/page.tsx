@@ -1,6 +1,8 @@
+"use client";
+
 import { DottedGlowBackground } from "@/components/ui/dotted-glow-background";
 import { Shield, Sparkles, Rocket, Heart } from "lucide-react";
-import * as motion from "framer-motion/client";
+import { motion } from "framer-motion";
 
 export default function AboutPage() {
   return (
@@ -19,7 +21,7 @@ export default function AboutPage() {
           className="text-center"
         >
           <h2 className="text-base font-semibold leading-7 text-blue-600">Our Story</h2>
-          <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-900 sm:text-6xl dark:text-white">
+          <h1 className="mt-2 font-heading text-4xl font-bold tracking-tight text-slate-900 sm:text-6xl dark:text-white">
             Pioneering the <span className="text-gradient">intelligent workspace</span>
           </h1>
           <p className="mt-6 text-lg leading-8 text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
@@ -37,7 +39,7 @@ export default function AboutPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg">
               <Shield className="h-6 w-6" />
             </div>
-            <h2 className="text-2xl font-bold">Enterprise Reliability</h2>
+            <h2 className="font-heading text-2xl font-bold">Enterprise Reliability</h2>
             <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
               We combine enterprise-grade security and reliability with the speed of a modern startup. Our platform is built to handle the most demanding B2B operations with role-safe access and real-time monitoring.
             </p>
@@ -52,7 +54,7 @@ export default function AboutPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg">
               <Sparkles className="h-6 w-6" />
             </div>
-            <h2 className="text-2xl font-bold">AI Native</h2>
+            <h2 className="font-heading text-2xl font-bold">AI Native</h2>
             <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
               Intelligence isn't an afterthought—it's at our core. From KYC automation to predictive CRM insights, we leverage AI to reduce manual repetitive work and let teams focus on high-value impact.
             </p>
@@ -67,7 +69,7 @@ export default function AboutPage() {
         >
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
             <div>
-              <h2 className="text-3xl font-bold tracking-tight">Obsessed with Outcomes</h2>
+              <h2 className="font-heading text-3xl font-bold tracking-tight">Obsessed with Outcomes</h2>
               <p className="mt-4 text-lg text-blue-100 leading-relaxed">
                 Our team obsesses over reliability, clarity, and measurable business outcomes. This POC demonstrates the seamless experience your stakeholders will see from day one.
               </p>
