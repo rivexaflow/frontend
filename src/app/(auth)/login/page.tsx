@@ -191,7 +191,9 @@ export default function LoginPage() {
         });
       }
 
+      console.log("Login result:", { redirectTo: result.redirectTo, user: result.user });
       const destination = result.redirectTo || postLoginPath(result.user.role, slug);
+      console.log("Redirecting to:", destination);
       router.push(destination);
     } catch (err) {
       setError(err instanceof Error ? err.message : "We couldn't sign you in. Please try again.");

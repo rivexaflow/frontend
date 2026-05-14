@@ -8,6 +8,8 @@ export default function OnboardingPage() {
   const router = useRouter();
   const user = authStore((s) => s.user);
 
+  console.log("Onboarding page hit, user:", user);
+
   useEffect(() => {
     if (!user) {
       router.push("/login");
