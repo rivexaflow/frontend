@@ -31,7 +31,8 @@ export function EnterpriseVisual({ accent = "azure", drift = 0 }: EnterpriseVisu
       alpha: true,
       powerPreference: "high-performance",
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
+    // FIX: lower pixel ratio cap 1.8→1.5 — reduces GPU fill cost ~30%
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.setClearColor(0x000000, 0);
     mountEl.appendChild(renderer.domElement);
@@ -55,13 +56,14 @@ export function EnterpriseVisual({ accent = "azure", drift = 0 }: EnterpriseVisu
     hole.absarc(0, 0, 4.1, 0, Math.PI * 2, true);
     ringShape.holes.push(hole);
 
+    // FIX: reduce curveSegments 18→12 — fewer triangles, same visual quality from this camera angle
     const tubeGeometry = new THREE.ExtrudeGeometry(ringShape, {
       depth: 13,
       bevelEnabled: true,
       bevelThickness: 0.32,
       bevelSize: 0.18,
       bevelSegments: 2,
-      curveSegments: 18,
+      curveSegments: 12,
     });
     tubeGeometry.center();
     tubeGeometry.rotateX(Math.PI * 0.5);
@@ -111,11 +113,13 @@ export function EnterpriseVisual({ accent = "azure", drift = 0 }: EnterpriseVisu
       return target;
     };
 
-    const lightOrbs = Array.from({ length: 14 }).map((_, idx) => {
+    // FIX: reduce light orbs 14→10 — fewer PointLights = major GPU savings
+    const lightOrbs = Array.from({ length: 10 }).map((_, idx) => {
       const group = new THREE.Group();
       const point = new THREE.PointLight(tint, 6.2, 190, 1);
+      // FIX: reduce sphere segments 22→14
       const orb = new THREE.Mesh(
-        new THREE.SphereGeometry(3.2, 22, 22),
+        new THREE.SphereGeometry(3.2, 14, 14),
         new THREE.MeshBasicMaterial({ color: tint }),
       );
       group.add(point);
@@ -147,12 +151,14 @@ export function EnterpriseVisual({ accent = "azure", drift = 0 }: EnterpriseVisu
     };
 
     resize();
-    const observer = new ResizeObserver(resize);
-    observer.observe(mountEl);
+    const resizeObs = new ResizeObserver(resize);
+    resizeObs.observe(mountEl);
 
     let frameId = 0;
+    let isVisible = false;
     const timer = new THREE.Timer();
     timer.connect(document);
+
     const animate = () => {
       timer.update();
       const t = timer.getElapsed();
@@ -184,17 +190,33 @@ export function EnterpriseVisual({ accent = "azure", drift = 0 }: EnterpriseVisu
 
       camera.lookAt(new THREE.Vector3(drift * 0.6, 0, 0));
       renderer.render(scene, camera);
-      frameId = window.requestAnimationFrame(animate);
+      // FIX: only schedule next frame when visible — saves 100% GPU when scrolled away
+      if (isVisible) {
+        frameId = window.requestAnimationFrame(animate);
+      }
     };
-    animate();
+
+    // FIX: IntersectionObserver — pause loop when off-screen, resume when visible
+    const visObs = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = !!entry?.isIntersecting;
+        if (isVisible) {
+          frameId = window.requestAnimationFrame(animate);
+        } else {
+          window.cancelAnimationFrame(frameId);
+        }
+      },
+      { threshold: 0.01 },
+    );
+    visObs.observe(mountEl);
 
     return () => {
       window.cancelAnimationFrame(frameId);
-      observer.disconnect();
+      resizeObs.disconnect();
+      visObs.disconnect();
       timer.dispose();
 
       lightOrbs.forEach((group) => {
-        const point = group.children[0] as THREE.PointLight | undefined;
         const orb = group.children[1] as THREE.Mesh | undefined;
         if (orb) {
           (orb.geometry as THREE.BufferGeometry).dispose();
@@ -205,7 +227,9 @@ export function EnterpriseVisual({ accent = "azure", drift = 0 }: EnterpriseVisu
       tubeMaterial.dispose();
       renderer.dispose();
       scene.clear();
-      mountEl.removeChild(renderer.domElement);
+      if (mountEl.contains(renderer.domElement)) {
+        mountEl.removeChild(renderer.domElement);
+      }
     };
   }, [accent, drift]);
 

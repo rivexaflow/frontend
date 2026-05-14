@@ -64,7 +64,7 @@ function AnimatedMetricFigure({
   className?: string;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: false, amount: 0.6, margin: "-10% 0px" });
+  const inView = useInView(ref, { once: true, amount: 0.6, margin: "-10% 0px" });
   const [display, setDisplay] = useState(0);
 
   useEffect(() => {
@@ -95,27 +95,17 @@ function AnimatedMetricFigure({
 }
 
 function FloatingMetricIcon({ icon: Icon, delay }: { icon: LucideIcon; delay: number }) {
-  const floatDuration = 3.2 + delay * 0.4;
-  const swayDuration = 5 + delay * 0.45;
   return (
     <motion.div
       className="relative z-[2]"
-      animate={{ y: [0, -6, 0] }}
-      transition={{ repeat: Infinity, duration: floatDuration, ease: "easeInOut" }}
+      initial={{ opacity: 0, scale: 0.5, rotate: -22 }}
+      whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
+      viewport={{ once: true, amount: 0.4 }}
+      transition={{ type: "spring", stiffness: 420, damping: 22, delay }}
+      // FIX: CSS float animation instead of nested motion.div infinite loops
+      style={{ animation: `floatY ${3.2 + delay * 0.4}s ease-in-out ${delay}s infinite alternate` }}
     >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.5, rotate: -22 }}
-        whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
-        viewport={{ once: true, amount: 0.4 }}
-        transition={{ type: "spring", stiffness: 420, damping: 22, delay }}
-      >
-        <motion.div
-          animate={{ rotate: [0, -5, 4, 0] }}
-          transition={{ repeat: Infinity, duration: swayDuration, ease: "easeInOut", delay }}
-        >
-          <Icon className="h-6 w-6 text-[#2277FF] dark:text-[#93c5fd]" aria-hidden />
-        </motion.div>
-      </motion.div>
+      <Icon className="h-6 w-6 text-[#2277FF] dark:text-[#93c5fd]" aria-hidden />
     </motion.div>
   );
 }
@@ -129,7 +119,7 @@ function ImpactCommandCenterMock({ gid }: { gid: string }) {
       className="pointer-events-none relative mt-10 w-full max-w-[296px] select-none sm:max-w-[320px] lg:mt-0 lg:flex-1"
       initial={{ opacity: 0, x: 36, skewY: 1 }}
       whileInView={{ opacity: 1, x: 0, skewY: 0 }}
-      viewport={{ once: false, amount: 0.25 }}
+      viewport={{ once: true, amount: 0.25 }}
       transition={{ type: "spring", stiffness: 220, damping: 24 }}
     >
       <div className="relative rounded-2xl border border-white/[0.17] bg-gradient-to-br from-white/[0.1] via-white/[0.04] to-transparent p-4 pb-5 shadow-[0_28px_60px_rgba(0,0,0,0.5)]">
@@ -146,11 +136,10 @@ function ImpactCommandCenterMock({ gid }: { gid: string }) {
           <div className="flex items-center justify-between gap-2">
             <div className="flex gap-1.5">
               {["bg-[#2277FF]", "bg-[#93c5fd]/80", "bg-white/40"].map((c, i) => (
-                <motion.span
+                <span
                   key={i}
                   className={cn("h-2 w-2 rounded-full", c)}
-                  animate={{ opacity: [0.45, 1, 0.45] }}
-                  transition={{ repeat: Infinity, duration: 2 + i * 0.25, delay: i * 0.15 }}
+                  style={{ animation: `pulse ${2 + i * 0.25}s ease-in-out ${i * 0.15}s infinite alternate`, opacity: 0.7 }}
                 />
               ))}
             </div>
@@ -171,7 +160,7 @@ function ImpactCommandCenterMock({ gid }: { gid: string }) {
               d="M0 72 L32 64 L72 74 L114 42 L152 54 L182 38 L226 50 L260 42 L260 90 L0 90 Z"
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
-              viewport={{ once: false }}
+              viewport={{ once: true }}
               transition={{ duration: 0.5 }}
             />
             <motion.path
@@ -183,7 +172,7 @@ function ImpactCommandCenterMock({ gid }: { gid: string }) {
               d="M0 72 C28 62 54 74 74 71 C106 62 138 54 156 53 C178 53 206 53 226 50 C246 47 258 52 268 50"
               initial={{ pathLength: 0 }}
               whileInView={{ pathLength: 1 }}
-              viewport={{ once: false }}
+              viewport={{ once: true }}
               transition={{ duration: 1.55, ease: [0.22, 0.61, 0.36, 1] }}
             />
             {[34, 72, 114, 154, 196].map((x, idx) => (
@@ -198,7 +187,7 @@ function ImpactCommandCenterMock({ gid }: { gid: string }) {
                 strokeWidth={1}
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
-                viewport={{ once: false }}
+                viewport={{ once: true }}
                 transition={{ delay: 0.08 + idx * 0.04 }}
               />
             ))}
@@ -210,7 +199,7 @@ function ImpactCommandCenterMock({ gid }: { gid: string }) {
                 className="flex-1 rounded-t-[5px] bg-gradient-to-t from-[#191970]/95 to-[#2277FF]"
                 initial={{ height: 6 }}
                 whileInView={{ height: Math.max(12, Math.round(h * 52)) }}
-                viewport={{ once: false }}
+                viewport={{ once: true }}
                 transition={{
                   type: "spring",
                   stiffness: 300,
@@ -240,7 +229,7 @@ function HeroVelocityGraphic({ gid, sparkId }: { gid: string; sparkId: string })
         className="relative flex h-full w-full gap-4"
         initial={{ opacity: 0, scale: 0.93 }}
         whileInView={{ opacity: 1, scale: 1 }}
-        viewport={{ once: false }}
+        viewport={{ once: true }}
         transition={{ type: "spring", stiffness: 260, damping: 24 }}
       >
         <div className="flex w-[76px] flex-col justify-end gap-[5px] sm:w-[92px]">
@@ -250,7 +239,7 @@ function HeroVelocityGraphic({ gid, sparkId }: { gid: string; sparkId: string })
               className="rounded-sm bg-[#2277FF]/18 dark:bg-[#2277FF]/35"
               initial={{ width: "0%", opacity: 0 }}
               whileInView={{ width: `${pct}%`, opacity: 1 }}
-              viewport={{ once: false }}
+              viewport={{ once: true }}
               transition={{
                 duration: 0.65,
                 delay: 0.08 + idx * 0.07,
@@ -285,7 +274,7 @@ function HeroVelocityGraphic({ gid, sparkId }: { gid: string; sparkId: string })
                 strokeDasharray="3 7"
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
-                viewport={{ once: false }}
+                viewport={{ once: true }}
                 transition={{ delay: gi * 0.04 }}
               />
             ))}
@@ -294,7 +283,7 @@ function HeroVelocityGraphic({ gid, sparkId }: { gid: string; sparkId: string })
               fill={`url(#${gid}-fill)`}
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
-              viewport={{ once: false }}
+              viewport={{ once: true }}
               transition={{ duration: 0.55, delay: 0.06 }}
             />
             <motion.g animate={{ y: [0, -3, 0] }} transition={{ repeat: Infinity, duration: 2.8 }}>
@@ -306,7 +295,7 @@ function HeroVelocityGraphic({ gid, sparkId }: { gid: string; sparkId: string })
                 strokeLinecap="round"
                 initial={{ pathLength: 0 }}
                 whileInView={{ pathLength: 1 }}
-                viewport={{ once: false }}
+                viewport={{ once: true }}
                 transition={{ duration: 1.35, ease: [0.22, 0.61, 0.36, 1], delay: 0.1 }}
               />
               <motion.circle
@@ -316,7 +305,7 @@ function HeroVelocityGraphic({ gid, sparkId }: { gid: string; sparkId: string })
                 className="fill-[#2277FF]"
                 initial={{ scale: 0 }}
                 whileInView={{ scale: 1 }}
-                viewport={{ once: false }}
+                viewport={{ once: true }}
                 transition={{ delay: 1.05, type: "spring", stiffness: 440, damping: 17 }}
               />
             </motion.g>
@@ -356,7 +345,7 @@ function ManualWorkTrendGraphic({ gid }: { gid: string }) {
       aria-hidden
       initial={{ opacity: 0, y: 12 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: false }}
+      viewport={{ once: true }}
     >
       <defs>
         <linearGradient id={`${gid}-mt-fill`} x1="0" y1="0" x2="0" y2="1">
@@ -369,7 +358,7 @@ function ManualWorkTrendGraphic({ gid }: { gid: string }) {
         fill={`url(#${gid}-mt-fill)`}
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
-        viewport={{ once: false }}
+        viewport={{ once: true }}
       />
       <motion.path
         d={lineD}
@@ -380,7 +369,7 @@ function ManualWorkTrendGraphic({ gid }: { gid: string }) {
         strokeLinejoin="round"
         initial={{ pathLength: 0 }}
         whileInView={{ pathLength: 1 }}
-        viewport={{ once: false }}
+        viewport={{ once: true }}
         transition={{ duration: 1.5, ease: [0.22, 0.61, 0.36, 1] }}
       />
       {[1, 3, 5, 7].map((idx, mi) => {
@@ -396,7 +385,7 @@ function ManualWorkTrendGraphic({ gid }: { gid: string }) {
             fill="#2277FF"
             initial={{ scale: 0 }}
             whileInView={{ scale: 1 }}
-            viewport={{ once: false }}
+            viewport={{ once: true }}
             transition={{ delay: 0.85 + mi * 0.1, type: "spring", stiffness: 400, damping: 15 }}
           />
         );
@@ -427,7 +416,7 @@ function VisibilityConstellationGraphic({ gid }: { gid: string }) {
           strokeWidth={i === 2 ? 1.75 : 1.25}
           initial={{ pathLength: 0, opacity: 0 }}
           whileInView={{ pathLength: 1, opacity: 1 }}
-          viewport={{ once: false }}
+          viewport={{ once: true }}
           transition={{ duration: 1.3 + i * 0.12, ease: [0.22, 0.61, 0.36, 1] }}
         />
       ))}
@@ -443,7 +432,7 @@ function VisibilityConstellationGraphic({ gid }: { gid: string }) {
           strokeWidth={1}
           initial={{ scale: 0, opacity: 0 }}
           whileInView={{ scale: 1, opacity: 1 }}
-          viewport={{ once: false }}
+          viewport={{ once: true }}
           transition={{ type: "spring", stiffness: 380, damping: 18, delay: 0.4 + i * 0.1 }}
         />
       ))}
@@ -457,7 +446,7 @@ function VisibilityConstellationGraphic({ gid }: { gid: string }) {
         strokeWidth={1.5}
         initial={{ pathLength: 0 }}
         whileInView={{ pathLength: 1 }}
-        viewport={{ once: false }}
+        viewport={{ once: true }}
         transition={{ duration: 0.75, delay: 0.9 }}
       />
       <motion.line
@@ -470,7 +459,7 @@ function VisibilityConstellationGraphic({ gid }: { gid: string }) {
         strokeWidth={1.5}
         initial={{ pathLength: 0 }}
         whileInView={{ pathLength: 1 }}
-        viewport={{ once: false }}
+        viewport={{ once: true }}
         transition={{ duration: 0.65, delay: 1.05 }}
       />
     </motion.svg>
@@ -479,7 +468,7 @@ function VisibilityConstellationGraphic({ gid }: { gid: string }) {
 
 function UptimeRingGraphic({ gid, progress = 0.999 }: { gid: string; progress?: number }) {
   const ref = useRef(null);
-  const inView = useInView(ref, { once: false, amount: 0.55 });
+  const inView = useInView(ref, { once: true, amount: 0.55 });
   const r = 36;
   const c = 2 * Math.PI * r;
   const targetOffset = c * (1 - progress);
@@ -531,7 +520,7 @@ function OutcomesFlowRibbon() {
       className="pointer-events-none absolute bottom-20 left-[4%] right-[4%] z-0 hidden h-16 lg:block"
       initial={{ opacity: 0 }}
       whileInView={{ opacity: 0.42 }}
-      viewport={{ once: false }}
+      viewport={{ once: true }}
       transition={{ duration: 0.6 }}
     >
       <svg viewBox="0 0 1200 72" preserveAspectRatio="none" className="h-full w-full">
@@ -616,31 +605,23 @@ function BentoCell({ className, children, spotlight }: BentoCellProps) {
       )}
     >
       {spotlight ? (
-        <motion.div
+        <div
           aria-hidden
-          className="pointer-events-none absolute inset-[-40%] opacity-[0.12]"
+          className="pointer-events-none absolute inset-[-40%] opacity-[0.10]"
           style={{
             background:
-              "conic-gradient(from 0deg at 50% 50%, transparent 0deg, rgba(34,119,255,0.9) 60deg, transparent 140deg, rgba(227,231,252,0.5) 220deg, transparent 280deg)",
+              "conic-gradient(from 30deg at 50% 50%, transparent 0deg, rgba(34,119,255,0.9) 60deg, transparent 140deg, rgba(227,231,252,0.5) 220deg, transparent 280deg)",
           }}
-          animate={{ rotate: [0, 360] }}
-          transition={{ repeat: Infinity, duration: 22, ease: "linear" }}
         />
       ) : null}
-      <motion.div
+      <div
         aria-hidden
         className={cn(
-          "pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full blur-3xl transition-opacity duration-500",
+          "pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full blur-3xl transition-opacity duration-700",
           spotlight
-            ? "bg-[#2277FF]/35 opacity-80 group-hover:opacity-100"
+            ? "bg-[#2277FF]/35 opacity-60 group-hover:opacity-95"
             : "bg-[#2277FF]/22 opacity-0 group-hover:opacity-100",
         )}
-        animate={
-          spotlight
-            ? { scale: [1, 1.12, 1], opacity: [0.55, 0.88, 0.55] }
-            : { scale: [1, 1.08, 1], opacity: [0.4, 0.75, 0.4] }
-        }
-        transition={{ repeat: Infinity, duration: spotlight ? 3.8 : 4.8, ease: "easeInOut" }}
       />
       {children}
     </motion.div>
@@ -669,7 +650,7 @@ export function BusinessImpactBento() {
           variants={container}
           initial="hidden"
           whileInView="show"
-          viewport={{ once: false, amount: 0.1, margin: "0px 0px -5% 0px" }}
+          viewport={{ once: true, amount: 0.1, margin: "0px 0px -5% 0px" }}
         >
           <BentoCell
             spotlight
@@ -680,7 +661,7 @@ export function BusinessImpactBento() {
                 className="flex min-w-0 flex-1 flex-col gap-5"
                 initial="hidden"
                 whileInView="show"
-                viewport={{ once: false, amount: 0.35 }}
+                viewport={{ once: true, amount: 0.35 }}
                 variants={{
                   hidden: {},
                   show: { transition: { staggerChildren: 0.11, delayChildren: 0.06 } },
@@ -737,7 +718,7 @@ export function BusinessImpactBento() {
                 className="font-subheading text-[11px] font-bold uppercase tracking-[0.22em] text-[#2277FF] dark:text-[#93c5fd]"
                 initial={{ opacity: 0, x: -16 }}
                 whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: false }}
+                viewport={{ once: true }}
                 transition={{ type: "spring", stiffness: 400, damping: 28 }}
               >
                 {first.label}
@@ -749,7 +730,7 @@ export function BusinessImpactBento() {
                 className="mt-2 max-w-[16rem] text-sm leading-snug text-[#191970]/68 dark:text-slate-400"
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
-                viewport={{ once: false }}
+                viewport={{ once: true }}
                 transition={{ delay: 0.3, duration: 0.45 }}
               >
                 {first.sub}
@@ -790,7 +771,7 @@ export function BusinessImpactBento() {
                   className="mt-2 text-xs font-bold uppercase tracking-wider text-[#2277FF]/85 dark:text-[#93c5fd]"
                   initial={{ opacity: 0, y: 8 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: false }}
+                  viewport={{ once: true }}
                   transition={{ delay: 0.15 + index * 0.07, type: "spring", damping: 24 }}
                 >
                   {m.label}
@@ -799,7 +780,7 @@ export function BusinessImpactBento() {
                   className="mt-1 text-[13px] leading-snug text-[#191970]/65 dark:text-slate-400"
                   initial={{ opacity: 0 }}
                   whileInView={{ opacity: 1 }}
-                  viewport={{ once: false }}
+                  viewport={{ once: true }}
                   transition={{ delay: 0.26 + index * 0.08 }}
                 >
                   {m.sub}
@@ -831,7 +812,7 @@ export function BusinessImpactBento() {
               className="relative z-[2] flex flex-wrap items-center gap-2 pb-5"
               initial={{ opacity: 0, x: -10 }}
               whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: false }}
+              viewport={{ once: true }}
             >
               <p className="font-subheading text-[11px] font-bold uppercase tracking-[0.2em] text-[#2277FF] dark:text-[#93c5fd]">
                 Operational outcomes
@@ -841,7 +822,7 @@ export function BusinessImpactBento() {
               className="relative z-[2] grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
               initial="hidden"
               whileInView="show"
-              viewport={{ once: false, amount: 0.12 }}
+              viewport={{ once: true, amount: 0.12 }}
               variants={{
                 hidden: {},
                 show: { transition: { staggerChildren: 0.1, delayChildren: 0.04 } },
@@ -888,7 +869,7 @@ export function BusinessImpactBento() {
                       strokeWidth="2"
                       initial={{ pathLength: 0 }}
                       whileInView={{ pathLength: 1 }}
-                      viewport={{ once: false }}
+                      viewport={{ once: true }}
                       transition={{ duration: 1.05, delay: 0.06 * bi }}
                     />
                   </svg>

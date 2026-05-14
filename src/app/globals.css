@@ -165,3 +165,14 @@
   80% { transform: translate(-5%, -5%); }
   90% { transform: translate(5%, -10%); }
 }
+
+/* Performance-friendly CSS animations replacing JS-driven infinite motion.div loops */
+@keyframes floatY {
+  from { transform: translateY(0px); }
+  to   { transform: translateY(-7px); }
+}
+
+@keyframes pulse {
+  from { opacity: 0.45; }
+  to   { opacity: 1; }
+}

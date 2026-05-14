@@ -38,6 +38,11 @@ export function VisionKineticSection() {
     let scrollProgress = 0;
     const scrollSpeed = 0.6;
     const easing = 0.16;
+    // FIX: track previous rendered values to skip redundant DOM writes
+    const prevWeight: number[] = chars.map(() => 360);
+    const prevSize: number[] = chars.map(() => BASE_SIZE);
+    const WEIGHT_THRESHOLD = 1.5;
+    const SIZE_THRESHOLD = 0.15;
 
     rowEls.forEach((row) => {
       row.innerHTML = "";
@@ -119,6 +124,8 @@ export function VisionKineticSection() {
     window.addEventListener("resize", calculateOffsets);
 
     let rafId = 0;
+    let sectionVisible = false;
+
     const animate = () => {
       if (singleCopyWidth > 0) {
         scrollProgress = (scrollProgress + scrollSpeed) % singleCopyWidth;
@@ -133,19 +140,46 @@ export function VisionKineticSection() {
         const state = charStates[i];
         state.currentWeight += (state.targetWeight - state.currentWeight) * easing;
         state.currentSize += (state.targetSize - state.currentSize) * easing;
-        spanGroups[i].forEach((span) => {
-          span.style.fontWeight = String(state.currentWeight);
-          span.style.fontSize = `${state.currentSize}px`;
-        });
+        // FIX: only write to DOM when value changed meaningfully — prevents forced reflows every frame
+        const roundedWeight = Math.round(state.currentWeight);
+        const roundedSize = Math.round(state.currentSize * 10) / 10;
+        const weightDirty = Math.abs(roundedWeight - prevWeight[i]) >= WEIGHT_THRESHOLD;
+        const sizeDirty = Math.abs(roundedSize - prevSize[i]) >= SIZE_THRESHOLD;
+        if (weightDirty || sizeDirty) {
+          prevWeight[i] = roundedWeight;
+          prevSize[i] = roundedSize;
+          spanGroups[i].forEach((span) => {
+            if (weightDirty) span.style.fontWeight = String(roundedWeight);
+            if (sizeDirty) span.style.fontSize = `${roundedSize}px`;
+          });
+        }
       }
 
-      rafId = window.requestAnimationFrame(animate);
+      // FIX: only schedule next frame when section is visible
+      if (sectionVisible) {
+        rafId = window.requestAnimationFrame(animate);
+      }
     };
-    animate();
+
+    // FIX: IntersectionObserver — pause rAF when section is off-screen
+    const sectionEl = panelEl.closest("section") ?? panelEl;
+    const visObs = new IntersectionObserver(
+      ([entry]) => {
+        sectionVisible = !!entry?.isIntersecting;
+        if (sectionVisible) {
+          rafId = window.requestAnimationFrame(animate);
+        } else {
+          window.cancelAnimationFrame(rafId);
+        }
+      },
+      { threshold: 0.01, rootMargin: "200px" },
+    );
+    visObs.observe(sectionEl);
 
     return () => {
       window.cancelAnimationFrame(rafId);
       resizeObserver.disconnect();
+      visObs.disconnect();
       panelEl.removeEventListener("pointermove", handlePointerMove);
       panelEl.removeEventListener("pointerleave", resetTargets);
       window.removeEventListener("resize", calculateOffsets);
