@@ -89,7 +89,7 @@ export type RegisterResponse = RawAuthResponse;
  * rendering directly in the UI (extracted from the server's error payload
  * when possible, otherwise a stable fallback).
  */
-export async function registerUser(payload: RegisterPayload): Promise<RegisterResponse> {
+export async function registerUser(payload: RegisterPayload): Promise<RegisterResponse["data"]> {
   try {
     const { data } = await apiClient.post<RegisterResponse>(endpoints.auth.register, payload);
     return data.data ?? {};
