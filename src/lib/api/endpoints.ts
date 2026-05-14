@@ -2,7 +2,10 @@ export const endpoints = {
   auth: {
     login: "/auth/login",
     logout: "/auth/logout",
-    refresh: "/auth/refresh"
+    register: "/auth/register",
+    refresh: "/auth/refresh",
+    profile: "/auth/profile",
+    changePassword: "/auth/change-password",
   },
-  workspace: (slug: string) => `/workspaces/${slug}`
+  workspace: (slug: string) => `/workspaces/${slug}`,
 };

@@ -23,6 +23,12 @@ const NAV_SHELL_TAB =
 
 type NavItem = { href: string; label: string };
 
+/**
+ * Marketing nav is intentionally static.
+ * The trailing "Login" tab always points to the workspace login (`/login`).
+ * Platform admin sign-in lives at its own URL (`/admin/login`) and is not
+ * surfaced from the marketing site.
+ */
 const NAV: NavItem[] = [
   { href: "/", label: "Home" },
   { href: "/about", label: "About" },
@@ -43,8 +49,8 @@ function useMdUp(): boolean {
   );
 }
 
-function activeIndexForPath(pathname: string): number {
-  const hit = NAV.findIndex((item) => {
+function activeIndexForPath(pathname: string, items: ReadonlyArray<NavItem>): number {
+  const hit = items.findIndex((item) => {
     if (item.href === "/") return pathname === "/";
     return pathname === item.href || pathname.startsWith(`${item.href}/`);
   });
@@ -71,7 +77,7 @@ export function FloatingMarketingNav() {
 
   const [pill, setPill] = useState({ x: 0, y: 0, w: 0, h: 0, opacity: 0 });
 
-  const activeNavIndex = activeIndexForPath(pathname);
+  const activeNavIndex = activeIndexForPath(pathname, NAV);
 
   useEffect(() => {
     setHoveredIndex(null);
@@ -313,6 +319,7 @@ export function FloatingMarketingNav() {
                     item.href === "/" ? pathname === "/"
                     : pathname === item.href || pathname.startsWith(`${item.href}/`);
                   const pillHere = hoveredIndex !== null && hoveredIndex === i;
+                  const isAuthAccent = i === NAV.length - 1; // Login tab gets the accent ring
 
                   let labelClass: string;
                   if (pillHere) {
@@ -335,7 +342,7 @@ export function FloatingMarketingNav() {
                   } else {
                     dotClass = cn(
                       "bg-[#cfd6ff]/50",
-                      item.href === "/login" && "ring-2 ring-[#2277FF]/55 ring-offset-2 ring-offset-[#121036]",
+                      isAuthAccent && "ring-2 ring-[#2277FF]/55 ring-offset-2 ring-offset-[#121036]",
                     );
                   }
 

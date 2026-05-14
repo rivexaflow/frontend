@@ -151,9 +151,11 @@ export function EnterpriseVisual({ accent = "azure", drift = 0 }: EnterpriseVisu
     observer.observe(mountEl);
 
     let frameId = 0;
-    const clock = new THREE.Clock();
+    const timer = new THREE.Timer();
+    timer.connect(document);
     const animate = () => {
-      const t = clock.getElapsedTime();
+      timer.update();
+      const t = timer.getElapsed();
       gridGroup.rotation.y = t * 0.1;
       gridGroup.rotation.x = -0.08;
       gridGroup.position.x = drift * 0.55;
@@ -189,6 +191,7 @@ export function EnterpriseVisual({ accent = "azure", drift = 0 }: EnterpriseVisu
     return () => {
       window.cancelAnimationFrame(frameId);
       observer.disconnect();
+      timer.dispose();
 
       lightOrbs.forEach((group) => {
         const point = group.children[0] as THREE.PointLight | undefined;

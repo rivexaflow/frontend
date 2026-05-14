@@ -1,6 +1,7 @@
 import { MetricCard } from "@/components/shared/metric-card/metric-card";
 import { PageHeader } from "@/components/shared/page-header/page-header";
 import { StatusBadge } from "@/components/shared/status-badge/status-badge";
+import { ChangePasswordCard } from "@/components/auth/change-password-card";
 
 export default function SuperAdminHomePage() {
   return (
@@ -32,6 +33,7 @@ export default function SuperAdminHomePage() {
           </ul>
         </article>
       </section>
+      <ChangePasswordCard />
     </div>
   );
 }

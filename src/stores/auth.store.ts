@@ -9,7 +9,7 @@ type AuthState = {
   user: CurrentUser | null;
   token: string | null;
   role: Role | null;
-  setSession: (payload: { user: CurrentUser; token: string }) => void;
+  setSession: (payload: { user: CurrentUser; token: string; remember?: boolean }) => void;
   logout: () => void;
 };
 
@@ -19,8 +19,8 @@ export const authStore = create<AuthState>()(
       user: null,
       token: null,
       role: null,
-      setSession: ({ user, token }) => {
-        setSessionCookie(token);
+      setSession: ({ user, token, remember }) => {
+        setSessionCookie(token, { remember });
         set({ user, role: user.role, token });
       },
       logout: () => {
