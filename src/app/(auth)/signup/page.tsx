@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 
 import { registerUser } from "@/lib/api/auth";
 import { registerSchema } from "@/schemas/auth.schema";
+import { authStore } from "@/stores/auth.store";
+import { appConfig } from "@/config/app";
 import { cn } from "@/lib/utils";
 
 const TRUST_BADGES = ["SOC 2 Type II", "ISO 27001", "GDPR Ready"] as const;
@@ -193,12 +195,32 @@ export default function SignupPage() {
 
     setIsSubmitting(true);
     try {
-      await registerUser({
+      const result = await registerUser({
         fullName: parsed.data!.fullName,
         email: parsed.data!.email,
         password: parsed.data!.password,
       });
-      router.push("/login?registered=1");
+
+      if (result.token && result.user) {
+        // Auto-login after successful registration
+        authStore.getState().setSession({
+          token: result.token,
+          remember: true,
+          user: {
+            id: result.user.id || "unknown",
+            name: result.user.fullName || result.user.full_name || result.user.name || parsed.data!.fullName,
+            email: result.user.email || parsed.data!.email,
+            role: (result.user.role as any) || "USER",
+            workspaceId: result.user.workspaceId || result.user.workspace_id,
+            workspaceSlug: result.user.workspaceSlug || result.user.workspace_slug,
+          },
+        });
+
+        const destination = result.redirectTo || "/onboarding";
+        router.push(destination);
+      } else {
+        router.push("/login?registered=1");
+      }
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {

@@ -14,25 +14,30 @@ import type { Role } from "@/types/auth";
  * We type the union here and normalize in `loginUser`.
  */
 type RawAuthResponse = {
-  token?: string;
-  accessToken?: string;
-  access_token?: string;
-  user?: {
-    id?: string;
-    email?: string;
-    name?: string;
-    fullName?: string;
-    full_name?: string;
-    role?: string;
-    workspaceId?: string;
-    workspace_id?: string;
-    workspaceSlug?: string;
-    workspace_slug?: string;
-    workspaceName?: string;
-    workspace_name?: string;
-    plan?: string;
-  };
+  success: boolean;
   message?: string;
+  data: {
+    token?: string;
+    accessToken?: string;
+    access_token?: string;
+    user?: {
+      id?: string;
+      email?: string;
+      name?: string;
+      fullName?: string;
+      full_name?: string;
+      role?: string;
+      workspaceId?: string;
+      workspace_id?: string;
+      workspaceSlug?: string;
+      workspace_slug?: string;
+      workspaceName?: string;
+      workspace_name?: string;
+      plan?: string;
+    };
+    onboardingStep?: string;
+    redirectTo?: string;
+  };
 };
 
 /** Normalized response we hand back to the UI. */
@@ -48,6 +53,8 @@ export type AuthResult = {
     workspaceName?: string;
     plan?: string;
   };
+  onboardingStep?: string;
+  redirectTo?: string;
 };
 
 const ROLE_SET: ReadonlySet<Role> = new Set<Role>(["SUPER_ADMIN", "ADMIN", "USER"]);
@@ -56,10 +63,10 @@ const coerceRole = (raw: unknown): Role => {
   return "USER";
 };
 
-const pickToken = (raw: RawAuthResponse): string | null =>
+const pickToken = (raw: RawAuthResponse["data"]): string | null =>
   raw.token ?? raw.accessToken ?? raw.access_token ?? null;
 
-const normalizeUser = (raw: RawAuthResponse, fallbackEmail: string): AuthResult["user"] => {
+const normalizeUser = (raw: RawAuthResponse["data"], fallbackEmail: string): AuthResult["user"] => {
   const u = raw.user ?? {};
   return {
     id: u.id ?? "unknown",
@@ -85,7 +92,7 @@ export type RegisterResponse = RawAuthResponse;
 export async function registerUser(payload: RegisterPayload): Promise<RegisterResponse> {
   try {
     const { data } = await apiClient.post<RegisterResponse>(endpoints.auth.register, payload);
-    return data ?? {};
+    return data.data ?? {};
   } catch (err) {
     if (isAxiosError(err)) {
       const status = err.response?.status;
@@ -120,7 +127,8 @@ export async function registerUser(payload: RegisterPayload): Promise<RegisterRe
 export async function getProfile(): Promise<AuthResult["user"]> {
   try {
     const { data } = await apiClient.get<RawAuthResponse>(endpoints.auth.profile);
-    return normalizeUser(data ?? {}, data?.user?.email ?? "");
+    const raw = data.data ?? {};
+    return normalizeUser(raw, raw.user?.email ?? "");
   } catch (err) {
     if (isAxiosError(err)) {
       const status = err.response?.status;
@@ -200,7 +208,7 @@ export async function changePassword(payload: ChangePasswordPayload): Promise<vo
 export async function loginUser(payload: LoginPayload): Promise<AuthResult> {
   try {
     const { data } = await apiClient.post<RawAuthResponse>(endpoints.auth.login, payload);
-    const raw = data ?? {};
+    const raw = data.data ?? {};
     const token = pickToken(raw);
     if (!token) {
       throw new Error("Sign-in succeeded but no session token was returned. Please contact support.");
@@ -208,6 +216,8 @@ export async function loginUser(payload: LoginPayload): Promise<AuthResult> {
     return {
       token,
       user: normalizeUser(raw, payload.email),
+      onboardingStep: raw.onboardingStep,
+      redirectTo: raw.redirectTo,
     };
   } catch (err) {
     if (err instanceof Error && !isAxiosError(err)) {

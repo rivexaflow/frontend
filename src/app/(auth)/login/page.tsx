@@ -191,7 +191,8 @@ export default function LoginPage() {
         });
       }
 
-      router.push(postLoginPath(result.user.role, slug));
+      const destination = result.redirectTo || postLoginPath(result.user.role, slug);
+      router.push(destination);
     } catch (err) {
       setError(err instanceof Error ? err.message : "We couldn't sign you in. Please try again.");
     } finally {
