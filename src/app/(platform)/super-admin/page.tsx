@@ -104,14 +104,6 @@ export default function SuperAdminHomePage() {
           </div>
         </div>
 
-        {/* Security Section */}
-        <div className="rounded-[40px] border border-slate-200 bg-white p-10 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-           <div className="mb-8 flex items-center justify-between">
-              <h2 className="text-xl font-black uppercase text-slate-900 dark:text-white">Security & Access</h2>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-500">ADMIN ONLY</span>
-           </div>
-           <ChangePasswordForm />
-        </div>
       </div>
     </div>
   );
