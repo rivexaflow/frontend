@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils/cn";
 const items = [
   { href: "/super-admin", label: "Overview" },
   { href: "/super-admin/tenants", label: "Tenants" },
+  { href: "/super-admin/kyc", label: "KYC Submissions" },
+  { href: "/super-admin/support", label: "Support Tickets" },
   { href: "/super-admin/audit", label: "Audit" },
   { href: "/super-admin/billing", label: "Billing" },
   { href: "/super-admin/system-health", label: "System health" },
