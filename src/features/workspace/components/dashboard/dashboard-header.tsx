@@ -2,7 +2,6 @@
 
 import React from "react";
 import { authStore } from "@/stores/auth.store";
-import { format } from "date-fns";
 
 export function DashboardHeader() {
   const user = authStore((s) => s.user);
