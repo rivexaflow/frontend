@@ -19,7 +19,12 @@ import {
   Menu,
   Search,
   Zap,
-  HelpCircle
+  HelpCircle,
+  Building2,
+  Ticket,
+  Activity,
+  History,
+  CreditCard
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { authStore } from "@/stores/auth.store";
@@ -29,10 +34,10 @@ interface NavItem {
   href: string;
   icon: React.ElementType;
   badge?: string;
-  category: "General" | "Operations" | "Intelligence" | "System";
+  category: string;
 }
 
-const navItems: NavItem[] = [
+const workspaceNavItems: NavItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, category: "General" },
   { name: "Contacts", href: "/crm/contacts", icon: Users, category: "Operations" },
   { name: "Leads", href: "/crm/leads", icon: Target, category: "Operations" },
@@ -45,11 +50,25 @@ const navItems: NavItem[] = [
   { name: "Settings", href: "/settings", icon: Settings, category: "System" },
 ];
 
-export function ModernSidebar({ slug }: { slug?: string }) {
+const adminNavItems: NavItem[] = [
+  { name: "Overview", href: "/super-admin", icon: LayoutDashboard, category: "Platform" },
+  { name: "Tenants", href: "/super-admin/tenants", icon: Building2, category: "Platform" },
+  { name: "KYC Submissions", href: "/super-admin/kyc", icon: ShieldCheck, category: "Management" },
+  { name: "Support Tickets", href: "/super-admin/support", icon: Ticket, category: "Management" },
+  { name: "Users", href: "/super-admin/users", icon: Users, category: "Management" },
+  { name: "Audit Logs", href: "/super-admin/audit", icon: History, category: "System" },
+  { name: "Billing", href: "/super-admin/billing", icon: CreditCard, category: "System" },
+  { name: "System Health", href: "/super-admin/system-health", icon: Activity, category: "System" },
+];
+
+export function ModernSidebar({ slug, isAdmin = false }: { slug?: string; isAdmin?: boolean }) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const user = authStore((s) => s.user);
+
+  const items = isAdmin ? adminNavItems : workspaceNavItems;
+  const categories = Array.from(new Set(items.map(i => i.category)));
 
   // Auto-collapse on small screens
   useEffect(() => {
@@ -63,9 +82,10 @@ export function ModernSidebar({ slug }: { slug?: string }) {
 
   const effectiveCollapsed = isCollapsed && !isHovered;
 
-  const categories = ["General", "Operations", "Intelligence", "System"] as const;
-
-  const getHref = (baseHref: string) => slug ? `/${slug}${baseHref}` : baseHref;
+  const getHref = (baseHref: string) => {
+    if (isAdmin) return baseHref;
+    return slug ? `/${slug}${baseHref}` : baseHref;
+  };
 
   return (
     <motion.aside
@@ -105,8 +125,8 @@ export function ModernSidebar({ slug }: { slug?: string }) {
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto px-4 py-6 scrollbar-none">
         {categories.map((category) => {
-          const items = navItems.filter((item) => item.category === category);
-          if (items.length === 0) return null;
+          const categoryItems = items.filter((item) => item.category === category);
+          if (categoryItems.length === 0) return null;
 
           return (
             <div key={category} className="mb-8">
@@ -120,7 +140,7 @@ export function ModernSidebar({ slug }: { slug?: string }) {
                 </motion.h3>
               )}
               <div className="space-y-1">
-                {items.map((item) => {
+                {categoryItems.map((item) => {
                   const href = getHref(item.href);
                   const isActive = pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
                   return (
