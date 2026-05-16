@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Eye, EyeOff, Lock, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Eye, EyeOff, CheckCircle2, AlertCircle } from "lucide-react";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils/cn";
 import { changePassword } from "@/lib/api/auth";
 import { authStore } from "@/stores/auth.store";
@@ -104,7 +104,15 @@ export function ChangePasswordForm({ onSuccess, onCancel, isModal }: Props) {
   }
 
   return (
-    <div className={cn("w-full", isModal ? "max-w-md" : "max-w-2xl")}>
+    <div className={cn("w-full relative", isModal ? "max-w-md" : "max-w-full")}>
+      {!isModal && (
+        <div className="absolute top-0 right-0">
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            Security
+          </span>
+        </div>
+      )}
+      
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-slate-900">Change password</h2>
         <p className="mt-1 text-sm text-slate-500">Use at least 8 characters. A mix of letters, numbers and symbols is recommended.</p>
@@ -213,13 +221,6 @@ export function ChangePasswordForm({ onSuccess, onCancel, isModal }: Props) {
             className="rounded-xl bg-[#0f172a] px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70"
           >
             {isLoading ? "Updating..." : "Update password"}
-          </button>
-          <button
-            type="button"
-            onClick={onCancel}
-            className="text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors"
-          >
-            Cancel
           </button>
         </div>
       </form>
