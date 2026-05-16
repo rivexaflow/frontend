@@ -45,7 +45,7 @@ const navItems: NavItem[] = [
   { name: "Settings", href: "/settings", icon: Settings, category: "System" },
 ];
 
-export function ModernSidebar() {
+export function ModernSidebar({ slug }: { slug?: string }) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -65,6 +65,8 @@ export function ModernSidebar() {
 
   const categories = ["General", "Operations", "Intelligence", "System"] as const;
 
+  const getHref = (baseHref: string) => slug ? `/${slug}${baseHref}` : baseHref;
+
   return (
     <motion.aside
       initial={false}
@@ -81,7 +83,7 @@ export function ModernSidebar() {
     >
       {/* Logo Section */}
       <div className="flex h-20 items-center px-6">
-        <Link href="/dashboard" className="flex items-center gap-3">
+        <Link href={getHref("/dashboard")} className="flex items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 shadow-lg shadow-blue-500/30">
             <span className="text-xl font-black text-white">R</span>
           </div>
@@ -119,11 +121,12 @@ export function ModernSidebar() {
               )}
               <div className="space-y-1">
                 {items.map((item) => {
-                  const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                  const href = getHref(item.href);
+                  const isActive = pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
                   return (
                     <Link
                       key={item.name}
-                      href={item.href}
+                      href={href}
                       className={cn(
                         "group relative flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200",
                         isActive 
