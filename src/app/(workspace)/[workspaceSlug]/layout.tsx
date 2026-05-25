@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { WorkspaceRouteProvider } from "@/providers/workspace-provider";
 import { WorkspaceAppShell } from "@/features/workspace/components/workspace-app-shell";
+import { OnboardingGuard } from "@/components/auth/onboarding-guard";
 import { SessionHydrator } from "@/components/auth/session-hydrator";
 
 export default async function WorkspaceLayout({
@@ -14,7 +15,9 @@ export default async function WorkspaceLayout({
   return (
     <WorkspaceRouteProvider slug={workspaceSlug}>
       <SessionHydrator />
-      <WorkspaceAppShell slug={workspaceSlug}>{children}</WorkspaceAppShell>
+      <OnboardingGuard>
+        <WorkspaceAppShell slug={workspaceSlug}>{children}</WorkspaceAppShell>
+      </OnboardingGuard>
     </WorkspaceRouteProvider>
   );
 }

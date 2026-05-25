@@ -1,221 +1,91 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRef, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
+import { ArrowRight, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
 
-import { HeroCreativeWaveBackground } from "@/components/marketing/hero-creative-wave-background";
-import { HeroThreadGap, HeroThreadUnderlay } from "@/components/marketing/hero-scroll-thread";
+import { HeroGlassBrickGrid } from "@/components/marketing/hero-glass-brick-grid";
 
-type CarouselItem = {
-  id: number;
-  image: string;
-  alt: string;
-};
-
-/** Fewer drop-shadows = much cheaper paint; keeps depth + bottom falloff. */
-const HERO_METAL_FILTER = [
-  "drop-shadow(0 -1px 0 rgba(255,255,255,1))",
-  "drop-shadow(0 2px 0 #1e2b7a)",
-  "drop-shadow(0 5px 0 #3b1780)",
-  "drop-shadow(0 8px 3px rgba(8,4,26,0.3))",
-].join(" ");
-
-/** Narrow glass specular + deep cobalt→indigo→plum face (reads dark on bright bg). */
-const HERO_METAL_GRADIENTS = [
-  "linear-gradient(102deg,#ffffff 0%,#eaf0ff 4%,rgba(147,174,255,0.72) 8%,transparent 16%,transparent 100%)",
-  "linear-gradient(186deg,#4f6dff 4%,#3a45d4 22%,#2a2890 48%,#21155e 69%,#150536 89%,#050010 100%)",
-].join(", ");
-
-function Hero3DTitle({ title }: { title: string }) {
-  const sizeClass =
-    "font-heading select-none text-center text-[clamp(3.75rem,15vw,9.85rem)] font-bold uppercase leading-[0.94] tracking-[0.08em] antialiased";
-
-  return (
-    <>
-      <div className="mx-auto mt-2 flex w-full justify-center px-2 pb-6 pt-1 [contain:layout]" aria-hidden>
-        <div className="relative grid w-max shrink-0 origin-center place-items-center text-center [transform:scaleX(1.16)_translateZ(0)] sm:[transform:scaleX(1.2)_translateZ(0)]">
-          <span
-            className={`${sizeClass} col-start-1 row-start-1 translate-y-[9px]`}
-            style={{
-              color: "#03000e",
-              opacity: 0.38,
-            }}
-          >
-            {title}
-          </span>
-          <span
-            className={`${sizeClass} col-start-1 row-start-1 translate-y-[6px]`}
-            style={{
-              color: "#1a0a52",
-              opacity: 0.46,
-            }}
-          >
-            {title}
-          </span>
-          <span
-            className={`${sizeClass} col-start-1 row-start-1 translate-y-[3px]`}
-            style={{
-              color: "#2d2088",
-              opacity: 0.52,
-            }}
-          >
-            {title}
-          </span>
-          <span
-            className={`${sizeClass} col-start-1 row-start-1 z-[1]`}
-            style={{
-              backgroundImage: HERO_METAL_GRADIENTS,
-              backgroundSize: "100% 100%, 100% 100%",
-              WebkitBackgroundClip: "text",
-              backgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              color: "transparent",
-              WebkitTextStroke: "min(3px,0.048em) rgba(226,237,255,0.62)",
-              filter: HERO_METAL_FILTER,
-            }}
-          >
-            {title}
-          </span>
-        </div>
-      </div>
-    </>
-  );
-}
-
-/** Local hero strip images (`public/heroimage/`). Duplicated so the arc has enough slides. */
-const HERO_CAROUSEL_SOURCES = [
-  "/heroimage/heroimage1.jpeg",
-  "/heroimage/heroimage2.jpeg",
-  "/heroimage/heroimage3.jpeg",
-  "/heroimage/heroimage4.jpeg",
-  "/heroimage/heroimage5.jpeg",
-  "/heroimage/heroimage6.jpeg",
-  "/heroimage/heroimage7.jpeg",
-  "/heroimage/heroimage8.jpeg",
-  "/heroimage/heroimage9.jpeg",
+const HERO_CARDS = [
+  {
+    image: "/heroimage/heroimage1.jpeg",
+    alt: "Team collaboration in Rivexaflow workspace",
+    label: "Active workspaces",
+    stat: "10k+",
+    delta: "+8%",
+  },
+  {
+    image: "/heroimage/heroimage3.jpeg",
+    alt: "Governed payments and billing dashboard",
+    label: "Secure operations",
+    stat: "$3,050",
+    delta: "Verified",
+    featured: true,
+  },
+  {
+    image: "/heroimage/heroimage5.jpeg",
+    alt: "Executive overview and analytics",
+    label: "Leadership view",
+    stat: "24/7",
+    delta: "Live",
+  },
 ] as const;
 
-const CAROUSEL_ITEMS: CarouselItem[] = HERO_CAROUSEL_SOURCES.map((image, index) => ({
-  id: index + 1,
-  image,
-  alt: `Rivexaflow showcase ${index + 1}`,
-}));
-
-const CAROUSEL_ARC = {
-  visibleHalf: 4.9,
-  curveWidth: 1240,
-  curveDepth: 198,
-  baselineY: 8,
-  rotateMax: 19,
-  speed: 0.42,
-} as const;
-
-function HeroArcCarousel({
-  items,
-  paused,
+function HeroPreviewCard({
+  card,
+  index,
 }: {
-  items: readonly CarouselItem[];
-  paused: boolean;
+  card: (typeof HERO_CARDS)[number];
+  index: number;
 }) {
-  const phaseRef = useRef(0);
-  const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
-
-  useEffect(() => {
-    if (paused) return;
-
-    const total = items.length;
-    const reduceMotion =
-      typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const half = total / 2;
-    const { visibleHalf, curveWidth, curveDepth, baselineY, rotateMax, speed } = CAROUSEL_ARC;
-
-    const applyTransforms = () => {
-      const phase = phaseRef.current;
-      for (let index = 0; index < total; index += 1) {
-        const el = slideRefs.current[index];
-        if (!el) continue;
-
-        let d = (index - phase + total) % total;
-        if (d > half) d -= total;
-
-        if (Math.abs(d) > visibleHalf + 1.2) {
-          el.style.visibility = "hidden";
-          el.style.opacity = "0";
-          continue;
-        }
-
-        el.style.visibility = "visible";
-        const t = Math.max(-1, Math.min(1, d / visibleHalf));
-        const x = t * curveWidth;
-        const y = baselineY + Math.pow(Math.abs(t), 1.55) * curveDepth;
-        const rotate = t * rotateMax;
-        const scale = 1.03 - Math.abs(t) * 0.18;
-        const opacity = 1 - Math.abs(t) * 0.22;
-        const z = Math.round((1 - Math.abs(t)) * 30);
-
-        el.style.transform = `translate(-50%, -50%) translate3d(${x}px, ${y}px, 0) rotate(${rotate}deg) scale(${scale})`;
-        el.style.opacity = String(opacity);
-        el.style.zIndex = String(z);
-      }
-    };
-
-    let raf = 0;
-    let last = performance.now();
-
-    const tick = (now: number) => {
-      const dt = Math.min(0.05, (now - last) / 1000);
-      last = now;
-      if (!reduceMotion) {
-        phaseRef.current = (phaseRef.current + dt * speed) % total;
-      }
-      applyTransforms();
-      raf = requestAnimationFrame(tick);
-    };
-
-    applyTransforms();
-    raf = requestAnimationFrame(tick);
-
-    return () => {
-      cancelAnimationFrame(raf);
-    };
-  }, [items.length, paused]);
+  const featured = "featured" in card && card.featured;
 
   return (
-    <>
-      {items.map((item, index) => (
-        <div
-          key={item.id}
-          ref={(el) => {
-            slideRefs.current[index] = el;
-          }}
-          className="absolute left-1/2 top-1/2 will-change-transform [backface-visibility:hidden]"
-          style={{
-            transform: "translate(-50%, -50%) translateZ(0)",
-            transformOrigin: "center center",
-          }}
-        >
-          <article className="h-[clamp(268px,44vh,520px)] w-[clamp(210px,21vw,380px)] overflow-hidden rounded-[6px] bg-white shadow-[0_18px_48px_rgba(25,25,112,0.22)]">
-            <img
-              src={item.image}
-              alt={item.alt}
-              className="h-full w-full object-cover"
-              width={560}
-              height={720}
-              decoding="async"
-              sizes="(max-width: 768px) 35vw, 280px"
-              loading={index < 3 ? "eager" : "lazy"}
-              fetchPriority={index < 3 ? "high" : "low"}
-            />
-          </article>
+    <motion.article
+      initial={{ opacity: 0, y: 28 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.55, delay: 0.15 + index * 0.1, ease: [0.22, 0.61, 0.36, 1] }}
+      className={[
+        "relative overflow-hidden rounded-2xl border border-white/70 bg-white shadow-[0_24px_60px_-20px_rgba(25,25,112,0.45)]",
+        featured ? "order-first z-10 sm:order-none md:-mt-10 md:scale-[1.04]" : "md:mt-6",
+      ].join(" ")}
+    >
+      <div className={featured ? "h-[200px] sm:h-[220px] md:h-[240px]" : "h-[168px] sm:h-[180px]"}>
+        <Image
+          src={card.image}
+          alt={card.alt}
+          fill
+          className="object-cover"
+          sizes={featured ? "(max-width: 768px) 90vw, 360px" : "(max-width: 768px) 42vw, 280px"}
+          priority={index === 1}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#191970]/55 via-transparent to-transparent" />
+      </div>
+
+      <div className="space-y-2 px-4 py-3.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            {card.label}
+          </span>
+          <span
+            className={[
+              "rounded-full px-2 py-0.5 text-[10px] font-bold",
+              featured ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700",
+            ].join(" ")}
+          >
+            {card.delta}
+          </span>
         </div>
-      ))}
-    </>
+        <p className="text-xl font-bold tracking-tight text-[#191970]">{card.stat}</p>
+      </div>
+    </motion.article>
   );
 }
 
 export function MarketingHero() {
-  const [isSpread, setIsSpread] = useState(false);
-  const [carouselPaused, setCarouselPaused] = useState(false);
+  const [email, setEmail] = useState("");
   const sectionRef = useRef<HTMLElement | null>(null);
 
   const { scrollYProgress } = useScroll({
@@ -223,80 +93,127 @@ export function MarketingHero() {
     offset: ["start start", "end start"],
   });
 
-  const zoomScale = useTransform(scrollYProgress, [0, 0.75, 1], [1, 1.95, 2.15]);
-  const zoomY = useTransform(scrollYProgress, [0, 1], [0, -40]);
-  const headingOpacity = useTransform(scrollYProgress, [0, 0.3, 0.55], [1, 1, 0]);
-  const headingY = useTransform(scrollYProgress, [0, 0.55], [0, -36]);
-  const layerOpacity = useTransform(scrollYProgress, [0, 0.9, 1], [1, 1, 0.2]);
+  const contentOpacity = useTransform(scrollYProgress, [0, 0.45, 0.7], [1, 1, 0]);
+  const contentY = useTransform(scrollYProgress, [0, 0.7], [0, -48]);
 
-  useEffect(() => {
-    const spreadId = window.setTimeout(() => setIsSpread(true), 260);
-    return () => window.clearTimeout(spreadId);
-  }, []);
-
-  useEffect(() => {
-    const el = sectionRef.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        setCarouselPaused(!entry?.isIntersecting || entry.intersectionRatio < 0.02);
-      },
-      { root: null, rootMargin: "80px", threshold: [0, 0.02, 0.06, 1] },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
+  const signupHref = email.trim()
+    ? `/signup?email=${encodeURIComponent(email.trim())}`
+    : "/signup";
 
   return (
     <section
       ref={sectionRef}
-      className="relative min-h-[132vh] shrink-0 overflow-x-clip overflow-y-visible bg-[#ffffff] text-[#191970]"
+      className="relative min-h-[100dvh] shrink-0 overflow-x-clip bg-white text-[#191970]"
     >
-      {/*
-        Tail ≈ 32vh beyond sticky — enough for carousel/zoom scrub without a huge blank run before About.
-      */}
-      {/* Sticky viewport: blades, title, carousel only */}
-      <div className="sticky top-0 relative h-screen min-h-screen overflow-x-clip overflow-y-visible bg-transparent">
-        <HeroCreativeWaveBackground className="z-0" />
-        {/* Soft blue/lilac bloom under carousel so the scroll ribbon reads grounded “behind” the cards */}
-        <HeroThreadUnderlay scrollYProgress={scrollYProgress} />
+      {/* White top → blue bottom */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white from-0% via-[#f4f8ff] via-[30%] via-[#d4e6ff] via-[52%] via-[#7eb3ff] via-[68%] to-[#2277FF] to-[82%] to-[#1e3a8f] to-100%"
+        aria-hidden
+      />
+      <HeroGlassBrickGrid />
+      <div
+        className="pointer-events-none absolute -left-24 top-16 h-72 w-72 rounded-full bg-white/50 blur-3xl"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -right-16 bottom-28 h-80 w-80 rounded-full bg-[#6366f1]/20 blur-3xl"
+        aria-hidden
+      />
 
-        <motion.div
-          style={{ opacity: headingOpacity, y: headingY }}
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="pointer-events-none absolute left-1/2 top-[4.5rem] z-[70] w-full max-w-[min(100%,72rem)] -translate-x-1/2 px-4 text-center sm:top-[5.25rem] sm:px-6 md:top-[5.5rem]"
-        >
-          
-          <h1 className="sr-only font-heading">Rivexaflow — governed enterprise AI workspace for CRM, KYC, and billing</h1>
-          <Hero3DTitle title="Rivexaflow" />
-          <div className="relative z-[71] mx-auto mt-4 max-w-[min(100%,64rem)] pb-[min(2.75rem,7vh)] sm:mt-4 sm:pb-[min(3.25rem,8vh)]">
-            <div className="flex justify-center overflow-x-auto overflow-y-visible [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-              <p className="font-subheading inline-block max-w-none px-4 text-center text-[clamp(0.8125rem,calc(0.55rem+1.85vw),1.375rem)] font-medium leading-normal tracking-[0.01em] text-[#0f1638] antialiased whitespace-nowrap sm:px-5 sm:text-[clamp(0.9375rem,calc(0.65rem+1.35vw),1.5rem)] md:text-[clamp(1.0625rem,0.8rem+0.9vw,1.6875rem)]">
-                One platform for CRM, KYC, billing, and workflows —{" "}
-                <span className="font-semibold text-[#0a0f2c]">governed, fast, audit-ready.</span>
-              </p>
-            </div>
-          </div>
-        </motion.div>
-
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 top-0 z-[12] w-full overflow-x-clip overflow-y-visible select-none">
-          <motion.div
-            style={{ scale: zoomScale, y: zoomY, opacity: layerOpacity }}
-            initial={{ scale: 0.34, opacity: 0.55, y: 72 }}
-            animate={{ scale: isSpread ? 1 : 0.34, opacity: 1, y: isSpread ? 0 : 72 }}
-            transition={{ duration: 1.25, ease: [0.22, 0.61, 0.36, 1] }}
-            className="absolute bottom-0 left-1/2 h-[min(76vh,800px)] w-[150vw] -translate-x-1/2"
+      <motion.div
+        style={{ opacity: contentOpacity, y: contentY }}
+        className="relative z-20 mx-auto flex min-h-[100dvh] w-full max-w-6xl flex-col items-center px-4 pb-10 pt-[5.5rem] sm:px-6 sm:pt-24"
+      >
+        <div className="relative z-10 flex w-full max-w-4xl flex-col items-center font-sans">
+          <motion.span
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45 }}
+            className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/65 px-4 py-2 text-xs font-semibold text-[#0a1638] shadow-[0_4px_24px_rgba(34,119,255,0.12),inset_0_1px_0_rgba(255,255,255,1)] backdrop-blur-xl"
           >
-          <HeroArcCarousel items={CAROUSEL_ITEMS} paused={carouselPaused} />
+            <ShieldCheck className="h-4 w-4 shrink-0 text-[#2277FF]" />
+            Enterprise-grade · SOC-ready workspace
+          </motion.span>
 
-          <div className="pointer-events-none absolute bottom-[-8vh] left-1/2 h-[20vh] w-[120vw] -translate-x-1/2 rounded-[100%] bg-white/92" />
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.05 }}
+            className="max-w-4xl text-center"
+          >
+            <h1 className="text-[clamp(1.85rem,4.8vw,3.5rem)] font-extrabold leading-[1.15] tracking-[-0.02em] text-[#050a1f] [text-shadow:0_1px_0_rgba(255,255,255,1),0_2px_24px_rgba(255,255,255,0.65)]">
+              Make your business operations{" "}
+              <span className="text-[#1d4ed8]">fast and secure</span>
+              <span className="mt-2 block sm:mt-3 sm:inline sm:pl-2">
+                with{" "}
+                <span className="inline-flex items-center gap-2 align-middle">
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#2277FF] to-[#4f46e5] shadow-lg shadow-blue-500/35 ring-2 ring-white/90 sm:h-11 sm:w-11">
+                    <span className="font-bold text-lg text-white">R</span>
+                  </span>
+                  <span className="text-[#050a1f]">Rivexaflow</span>
+                </span>
+              </span>
+            </h1>
+            <p className="mx-auto mt-5 max-w-2xl text-[clamp(1rem,2vw,1.2rem)] font-medium leading-[1.65] text-[#1e293b] [text-shadow:0_1px_0_rgba(255,255,255,0.9)]">
+              One governed platform for CRM, KYC, invoicing, and AI workflows — built for teams that
+              need speed without losing audit control.
+            </p>
+          </motion.div>
+
+          <motion.form
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.12 }}
+            className="mt-8 w-full max-w-xl"
+            onSubmit={(e) => e.preventDefault()}
+          >
+            <div className="flex flex-col gap-2 rounded-2xl border border-white/60 bg-white/50 p-1.5 shadow-[0_12px_40px_-12px_rgba(34,119,255,0.35),inset_0_1px_0_rgba(255,255,255,1)] backdrop-blur-2xl sm:flex-row sm:items-center sm:rounded-full sm:p-1.5">
+              <label htmlFor="hero-email" className="sr-only">
+                Work email
+              </label>
+              <input
+                id="hero-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your work email"
+                className="min-w-0 flex-1 rounded-xl border-0 bg-white/70 px-4 py-3.5 text-sm font-medium text-[#0f172a] placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-[#2277FF]/30 sm:rounded-full"
+              />
+              <Link
+                href={signupHref}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#050a1f] px-6 py-3.5 text-sm font-bold text-white shadow-md transition hover:bg-[#191970] sm:rounded-full"
+              >
+                Get started
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </motion.form>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.35 }}
+            className="mt-5 flex flex-wrap items-center justify-center gap-4 text-sm font-semibold text-[#334155]"
+          >
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/50 px-3 py-1 backdrop-blur-md">
+              <Sparkles className="h-4 w-4 text-[#2277FF]" />
+              AI-assisted ops
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/50 px-3 py-1 backdrop-blur-md">
+              <TrendingUp className="h-4 w-4 text-[#2277FF]" />
+              Multi-tenant ready
+            </span>
           </motion.div>
         </div>
-      </div>
 
-      <HeroThreadGap scrollYProgress={scrollYProgress} />
+        <div className="mt-auto w-full max-w-5xl pt-10 md:pt-14">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-5 md:items-end">
+            {HERO_CARDS.map((card, index) => (
+              <HeroPreviewCard key={card.image} card={card} index={index} />
+            ))}
+          </div>
+        </div>
+      </motion.div>
     </section>
   );
 }

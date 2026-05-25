@@ -124,7 +124,16 @@ export function middleware(request: NextRequest) {
 
   // Anonymous user hitting a protected route → go to /login
   if (!token && !isPublic) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    const loginUrl = new URL("/login", request.url);
+    if (pathname === "/onboarding") {
+      loginUrl.searchParams.set("next", "/onboarding");
+    }
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Authenticated user on /onboarding — allow (client resolves step vs dashboard)
+  if (token && pathname === "/onboarding") {
+    return NextResponse.next();
   }
 
   // Authed user hitting an auth-only screen (login/signup/...).
