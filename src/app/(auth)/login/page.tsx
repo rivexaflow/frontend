@@ -7,9 +7,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { authStore } from "@/stores/auth.store";
 import { workspaceStore } from "@/stores/workspace.store";
 import { clearSessionCookie } from "@/lib/auth/session";
-import { postLoginPath } from "@/lib/auth/redirects";
 import { appConfig } from "@/config/app";
 import { loginUser } from "@/lib/api/auth";
+import { onboardingApi } from "@/lib/api/onboarding";
+import {
+  mergeAuthWithOnboarding,
+  resolveLoginDestination,
+} from "@/lib/auth/post-auth-destination";
 import { loginSchema } from "@/schemas/auth.schema";
 import { cn } from "@/lib/utils";
 
@@ -127,6 +131,7 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const setSession = authStore((s) => s.setSession);
   const wantsSignout = searchParams.get("signout") === "1";
+  const onboardingComplete = searchParams.get("onboarding") === "complete";
   const justRegistered = searchParams.get("registered") === "1";
 
   const [email, setEmail] = useState("");
@@ -169,32 +174,36 @@ export default function LoginPage() {
       const fallbackSlug = appConfig.defaultWorkspaceSlug;
       const slug = result.user.workspaceSlug ?? fallbackSlug;
 
+      let onboardingState = null;
+      try {
+        if (result.user.id) {
+          onboardingState = await onboardingApi.getOnboardingState(result.user.id);
+        }
+      } catch {
+        // Non-fatal: login still succeeds; dashboard uses auth profile data.
+      }
+
+      const { user: sessionUser } = mergeAuthWithOnboarding(result, onboardingState);
+
       setSession({
         token: result.token,
         remember,
-        user: {
-          id: result.user.id,
-          name: result.user.name,
-          email: result.user.email,
-          role: result.user.role,
-          workspaceId: result.user.workspaceId,
-          workspaceSlug: result.user.workspaceSlug,
-        },
+        user: sessionUser,
       });
 
-      if (result.user.workspaceId || result.user.workspaceSlug) {
+      const resolvedSlug = sessionUser.workspaceSlug ?? fallbackSlug;
+      if (sessionUser.workspaceId || sessionUser.workspaceSlug) {
         workspaceStore.getState().setWorkspace({
-          workspaceId: result.user.workspaceId ?? "",
-          workspaceName: result.user.workspaceName ?? result.user.workspaceSlug ?? "Workspace",
-          workspaceSlug: result.user.workspaceSlug ?? fallbackSlug,
+          workspaceId: sessionUser.workspaceId ?? "",
+          workspaceName: result.user.workspaceName ?? resolvedSlug ?? "Workspace",
+          workspaceSlug: resolvedSlug,
           plan: result.user.plan,
         });
       }
 
-      console.log("Login result:", { redirectTo: result.redirectTo, user: result.user });
-      const destination = result.redirectTo || postLoginPath(result.user.role, slug);
-      console.log("Redirecting to:", destination);
-      router.push(destination);
+      router.push(
+        resolveLoginDestination(sessionUser, { redirectTo: result.redirectTo }),
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "We couldn't sign you in. Please try again.");
     } finally {
@@ -259,6 +268,18 @@ export default function LoginPage() {
               <CheckIcon className="mt-0.5 text-emerald-600" />
               <span>
                 <strong className="font-semibold">Account created.</strong> Sign in below with the email and password you just chose.
+              </span>
+            </div>
+          ) : null}
+
+          {onboardingComplete ? (
+            <div
+              role="status"
+              className="mt-5 flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3.5 py-2.5 text-[12.5px] text-blue-900"
+            >
+              <CheckIcon className="mt-0.5 text-blue-600" />
+              <span>
+                <strong className="font-semibold">Setup complete.</strong> Sign in to open your personalized dashboard.
               </span>
             </div>
           ) : null}

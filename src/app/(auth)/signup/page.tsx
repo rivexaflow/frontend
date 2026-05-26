@@ -5,6 +5,10 @@ import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { registerUser } from "@/lib/api/auth";
+import {
+  applyOnboardingStateToAuthUser,
+  syncOnboardingLane,
+} from "@/lib/api/onboarding-sync";
 import { registerSchema } from "@/schemas/auth.schema";
 import { authStore } from "@/stores/auth.store";
 import { appConfig } from "@/config/app";
@@ -203,18 +207,38 @@ export default function SignupPage() {
 
       if (result.token && result.user) {
         // Auto-login after successful registration
+        const rawUser = result.user as Record<string, unknown> | undefined;
+        const profileRole =
+          (rawUser?.profileRole as string | undefined) ??
+          (rawUser?.profile_role as string | undefined);
+        const onboardingStep =
+          (result as { onboardingStep?: string }).onboardingStep ??
+          (rawUser?.onboardingStep as string | undefined) ??
+          (rawUser?.onboarding_step as string | undefined);
+
         authStore.getState().setSession({
           token: result.token,
           remember: true,
           user: {
             id: result.user.id || "unknown",
             name: result.user.fullName || result.user.full_name || result.user.name || parsed.data!.fullName,
+            fullName: result.user.fullName || result.user.full_name || parsed.data!.fullName,
             email: result.user.email || parsed.data!.email,
-            role: (result.user.role as any) || "USER",
+            role: (result.user.role as "SUPER_ADMIN" | "ADMIN" | "USER") || "USER",
             workspaceId: result.user.workspaceId || result.user.workspace_id,
             workspaceSlug: result.user.workspaceSlug || result.user.workspace_slug,
+            profileRole,
+            onboardingStep,
           },
         });
+
+        const onboardingState = await syncOnboardingLane({
+          email: parsed.data!.email,
+          password: parsed.data!.password,
+        });
+        if (onboardingState) {
+          applyOnboardingStateToAuthUser(onboardingState);
+        }
 
         const destination = result.redirectTo || "/onboarding";
         router.push(destination);

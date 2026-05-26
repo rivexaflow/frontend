@@ -33,10 +33,14 @@ export function SessionHydrator() {
         const merged = {
           id: profile.id || current?.id || "unknown",
           name: profile.name || current?.name || "User",
+          fullName: current?.fullName,
           email: profile.email || current?.email || "",
           role: profile.role || current?.role || "USER",
           workspaceId: profile.workspaceId ?? current?.workspaceId,
           workspaceSlug: profile.workspaceSlug ?? current?.workspaceSlug,
+          profileRole: profile.profileRole ?? current?.profileRole,
+          onboardingStep: profile.onboardingStep ?? current?.onboardingStep,
+          selectedModules: profile.selectedModules ?? current?.selectedModules,
         };
 
         authStore.setState({ user: merged, role: merged.role });

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { authStore } from "@/stores/auth.store";
+import { effectiveNavRole } from "@/types/auth";
 import { cn } from "@/lib/utils/cn";
 
 type NavItem = { href: string; label: string };
@@ -32,8 +33,9 @@ const userNav = (slug: string): NavItem[] => [
 
 export function WorkspaceSidebar({ slug }: { slug: string }) {
   const pathname = usePathname();
-  const role = authStore((s) => s.role);
-  const items = role === "USER" ? userNav(slug) : adminNav(slug);
+  const user = authStore((s) => s.user);
+  const navRole = effectiveNavRole(user);
+  const items = navRole === "USER" ? userNav(slug) : adminNav(slug);
 
   return (
     <aside className="w-64 shrink-0 border-r border-[var(--rvx-midnight)]/10 bg-[var(--rvx-white)] p-4">

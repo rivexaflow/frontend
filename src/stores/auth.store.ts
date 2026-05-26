@@ -10,6 +10,7 @@ type AuthState = {
   token: string | null;
   role: Role | null;
   setSession: (payload: { user: CurrentUser; token: string; remember?: boolean }) => void;
+  updateUser: (patch: Partial<CurrentUser>) => void;
   logout: () => void;
 };
 
@@ -22,6 +23,13 @@ export const authStore = create<AuthState>()(
       setSession: ({ user, token, remember }) => {
         setSessionCookie(token, { remember });
         set({ user, role: user.role, token });
+      },
+      updateUser: (patch) => {
+        set((state) => {
+          if (!state.user) return state;
+          const user = { ...state.user, ...patch };
+          return { user, role: user.role };
+        });
       },
       logout: () => {
         clearSessionCookie();

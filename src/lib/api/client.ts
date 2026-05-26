@@ -50,7 +50,10 @@ apiClient.interceptors.request.use((config) => {
  */
 const isAuthEndpoint = (url: string | undefined): boolean => {
   if (!url) return false;
-  return /\/auth\/(login|register|refresh|logout)\b/.test(url);
+  return (
+    /\/auth\/(login|register|refresh|logout)\b/.test(url) ||
+    /\/onboarding\/(login|register)\b/.test(url)
+  );
 };
 
 apiClient.interceptors.response.use(
@@ -58,6 +61,10 @@ apiClient.interceptors.response.use(
   async (error) => {
     const status = error?.response?.status;
     const url: string | undefined = error?.config?.url;
+    // Rate limits are enforced server-side; never clear session or redirect on 429.
+    if (status === 429) {
+      return Promise.reject(error);
+    }
     if (status === 401 && !isAuthEndpoint(url)) {
       authStore.getState().logout();
       if (typeof window !== "undefined") {

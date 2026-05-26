@@ -2,88 +2,258 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { useEffect, useId, useRef, useState } from "react";
+import { ChevronDown, Menu, X } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
+import {
+  MARKETING_NAV_ITEMS,
+  type MarketingNavItem,
+  type MarketingNavLink,
+  type MarketingNavMega,
+} from "@/lib/marketing/nav-config";
 import { cn } from "@/lib/utils";
 
-/** Dark blue → deep purple chrome (replacing flat black). */
-const NAV_SHELL =
-  "bg-gradient-to-br from-[#08142c] via-[#121036] to-[#1f0f3f] backdrop-blur-xl";
+const NAV_LINK_BASE =
+  "relative px-4 py-2 text-[15px] font-semibold tracking-tight transition-colors lg:px-5 lg:text-base";
 
-const NAV_SHELL_TAB =
-  "bg-gradient-to-br from-[#0c1834] via-[#151240] to-[#24124a] backdrop-blur-md";
-
-type NavItem = { href: string; label: string };
-
-/**
- * Marketing nav is intentionally static.
- * The trailing "Login" tab always points to the workspace login (`/login`).
- * Platform admin sign-in lives at its own URL (`/admin/login`) and is not
- * surfaced from the marketing site.
- */
-const NAV: NavItem[] = [
-  { href: "/", label: "Home" },
-  { href: "/about", label: "About" },
-  { href: "/pricing", label: "Pricing" },
-  { href: "/contact", label: "Contact" },
-  { href: "/login", label: "Login" },
-];
-
-function useMdUp(): boolean {
-  return useSyncExternalStore(
-    (onStoreChange) => {
-      const mq = window.matchMedia("(min-width: 768px)");
-      mq.addEventListener("change", onStoreChange);
-      return () => mq.removeEventListener("change", onStoreChange);
-    },
-    () => window.matchMedia("(min-width: 768px)").matches,
-    () => false,
+function navLinkClass(active: boolean) {
+  return cn(
+    NAV_LINK_BASE,
+    active
+      ? "text-[#2277FF] after:absolute after:bottom-0 after:left-4 after:right-4 after:h-0.5 after:rounded-full after:bg-[#2277FF] lg:after:left-5 lg:after:right-5"
+      : "text-slate-800 hover:text-[#2277FF]",
   );
 }
 
-function activeIndexForPath(pathname: string, items: ReadonlyArray<NavItem>): number {
-  const hit = items.findIndex((item) => {
-    if (item.href === "/") return pathname === "/";
-    return pathname === item.href || pathname.startsWith(`${item.href}/`);
-  });
-  return hit >= 0 ? hit : 0;
+function isLinkActive(pathname: string, href: string): boolean {
+  if (href === "/") return pathname === "/";
+  if (href.startsWith("/#")) return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** Collapsed pill → expanded bar + top tab; hover / tap; headroom hide on scroll down. */
+function NavBarSurface({ scrolled }: { scrolled: boolean }) {
+  return cn(
+    "border-b transition-[background-color,box-shadow,border-color] duration-300",
+    scrolled
+      ? "border-slate-200/70 bg-white/92 shadow-[0_10px_40px_rgba(15,23,42,0.08)]"
+      : "border-white/50 bg-white/55 shadow-[0_4px_28px_rgba(34,119,255,0.07)]",
+    "backdrop-blur-2xl backdrop-saturate-150",
+  );
+}
+
+function MegaMenuPanel({
+  item,
+  panelId,
+  onNavigate,
+}: {
+  item: MarketingNavMega;
+  panelId: string;
+  onNavigate?: () => void;
+}) {
+  return (
+    <div
+      id={panelId}
+      role="menu"
+      className="w-full rounded-2xl border border-slate-200/80 bg-white shadow-[0_24px_64px_rgba(15,23,42,0.14),0_8px_24px_rgba(34,119,255,0.1)] backdrop-blur-xl"
+    >
+      <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-6 py-4 sm:px-8 sm:py-5">
+        <p className="text-sm font-bold uppercase tracking-[0.12em] text-[#2277FF]">
+          {item.panelTitle}
+        </p>
+        <Link
+          href={item.href}
+          onClick={onNavigate}
+          className="text-sm font-semibold text-slate-600 transition hover:text-[#2277FF]"
+        >
+          {item.panelCta} →
+        </Link>
+      </div>
+      <div className="grid gap-6 px-6 py-6 sm:grid-cols-2 sm:px-8 sm:py-7 lg:grid-cols-4 lg:gap-8">
+        {item.columns.map((column) => (
+          <div key={column.title}>
+            <p className="mb-3 text-sm font-bold uppercase tracking-[0.1em] text-slate-500">
+              {column.title}
+            </p>
+            <ul className="space-y-1.5">
+              {column.items.map((link) => (
+                <li key={`${column.title}-${link.label}`}>
+                  <MegaMenuLink link={link} onNavigate={onNavigate} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MegaMenuLink({
+  link,
+  onNavigate,
+}: {
+  link: MarketingNavLink;
+  onNavigate?: () => void;
+}) {
+  return (
+    <Link
+      href={link.href}
+      onClick={onNavigate}
+      role="menuitem"
+      className="group block rounded-xl px-3 py-3 transition hover:bg-slate-50"
+    >
+      <span className="block text-base font-semibold text-slate-900 group-hover:text-[#2277FF]">
+        {link.label}
+      </span>
+      {link.description ? (
+        <span className="mt-1 block text-sm leading-relaxed text-slate-600">{link.description}</span>
+      ) : null}
+    </Link>
+  );
+}
+
+function DesktopNavItem({
+  item,
+  pathname,
+  openMenu,
+  setOpenMenu,
+}: {
+  item: MarketingNavItem;
+  pathname: string;
+  openMenu: string | null;
+  setOpenMenu: (id: string | null) => void;
+}) {
+  const menuId = useId();
+
+  if (item.type === "link") {
+    const active = isLinkActive(pathname, item.href);
+    return (
+      <Link
+        href={item.href}
+        className={navLinkClass(active)}
+        aria-current={active ? "page" : undefined}
+      >
+        {item.label}
+      </Link>
+    );
+  }
+
+  const open = openMenu === item.label;
+  const active = isLinkActive(pathname, item.href);
+
+  return (
+    <button
+      type="button"
+      className={cn(navLinkClass(open || active), "inline-flex items-center gap-1.5")}
+      aria-expanded={open}
+      aria-haspopup="true"
+      aria-controls={menuId}
+      onMouseEnter={() => setOpenMenu(item.label)}
+      onClick={() => setOpenMenu(open ? null : item.label)}
+    >
+      {item.label}
+      <ChevronDown
+        className={cn("h-4 w-4 transition-transform", open && "rotate-180")}
+        aria-hidden
+      />
+    </button>
+  );
+}
+
+function MobileNavSection({
+  item,
+  pathname,
+  onNavigate,
+}: {
+  item: MarketingNavItem;
+  pathname: string;
+  onNavigate: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (item.type === "link") {
+    const active = isLinkActive(pathname, item.href);
+    return (
+      <Link
+        href={item.href}
+        onClick={onNavigate}
+        className={cn(
+          "block rounded-lg px-3 py-3 text-base font-semibold",
+          active ? "text-[#2277FF]" : "text-slate-800 hover:text-[#2277FF]",
+        )}
+      >
+        {item.label}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-slate-100 bg-slate-50/80">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between px-3 py-2.5 text-sm font-semibold text-slate-800"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((v) => !v)}
+      >
+        {item.label}
+        <ChevronDown className={cn("h-4 w-4 transition-transform", expanded && "rotate-180")} />
+      </button>
+      {expanded ? (
+        <div className="space-y-3 border-t border-slate-100 px-3 py-3">
+          {item.columns.map((column) => (
+            <div key={column.title}>
+              <p className="mb-2 text-xs font-bold uppercase tracking-[0.1em] text-slate-500">
+                {column.title}
+              </p>
+              <ul className="space-y-1">
+                {column.items.map((link) => (
+                  <li key={`${column.title}-${link.label}`}>
+                    <Link
+                      href={link.href}
+                      onClick={onNavigate}
+                      className="block rounded-md px-2 py-2 text-base font-medium text-slate-800 hover:bg-white hover:text-[#2277FF]"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+          <Link
+            href={item.href}
+            onClick={onNavigate}
+            className="inline-flex text-xs font-semibold text-[#2277FF]"
+          >
+            {item.panelCta} →
+          </Link>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function FloatingMarketingNav() {
   const pathname = usePathname();
   const reduceMotion = useReducedMotion();
-  const mdUp = useMdUp();
-  const navRef = useRef<HTMLElement | null>(null);
-  const rowRef = useRef<HTMLDivElement | null>(null);
-  const linkRefs = useRef<(HTMLAnchorElement | null)[]>([]);
   const lastScrollY = useRef(0);
   const scrollTicking = useRef(false);
 
-  /** null = rested state: pill sits on route-active item, label reads white on dark chrome */
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [hoverExpanded, setHoverExpanded] = useState(false);
-  const [pinned, setPinned] = useState(false);
-  const [focusInside, setFocusInside] = useState(false);
   const [scrollHidden, setScrollHidden] = useState(false);
-
-  const [pill, setPill] = useState({ x: 0, y: 0, w: 0, h: 0, opacity: 0 });
-
-  const activeNavIndex = activeIndexForPath(pathname, NAV);
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const megaMenuId = useId();
+  const openMegaItem = MARKETING_NAV_ITEMS.find(
+    (item): item is MarketingNavMega => item.type === "mega" && item.label === openMenu,
+  );
 
   useEffect(() => {
-    setHoveredIndex(null);
+    setMobileOpen(false);
+    setOpenMenu(null);
   }, [pathname]);
 
-  /** Hide on scroll down, show on scroll up (headroom). Near top of page always visible. */
   useEffect(() => {
     lastScrollY.current = typeof window !== "undefined" ? window.scrollY : 0;
 
@@ -94,14 +264,16 @@ export function FloatingMarketingNav() {
         const y = window.scrollY;
         const prev = lastScrollY.current;
         const delta = y - prev;
-        const threshold = 10;
+        const threshold = 8;
 
-        if (y < 56) {
+        setScrolled(y > 12);
+
+        if (y < 48) {
           setScrollHidden(false);
         } else if (delta > threshold) {
           setScrollHidden(true);
-          setHoverExpanded(false);
-          setPinned(false);
+          setMobileOpen(false);
+          setOpenMenu(null);
         } else if (delta < -threshold) {
           setScrollHidden(false);
         }
@@ -115,272 +287,153 @@ export function FloatingMarketingNav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const desktop = mdUp;
-  const layoutExpand = pinned || hoverExpanded || focusInside;
-
-  const refreshPill = useCallback(() => {
-    const row = rowRef.current;
-    const el =
-      hoveredIndex !== null && layoutExpand ? linkRefs.current[hoveredIndex] : null;
-    if (!row || !el) {
-      setPill((p) => ({ ...p, opacity: 0 }));
-      return;
-    }
-    const rr = row.getBoundingClientRect();
-    const lr = el.getBoundingClientRect();
-    setPill({
-      x: lr.left - rr.left + row.scrollLeft,
-      y: lr.top - rr.top + row.scrollTop,
-      w: lr.width,
-      h: lr.height,
-      opacity: 1,
-    });
-  }, [hoveredIndex, layoutExpand]);
-
-  useLayoutEffect(() => {
-    refreshPill();
-  }, [refreshPill, pathname]);
-
   useEffect(() => {
-    if (!layoutExpand) return;
-
-    const onResize = () => refreshPill();
-    window.addEventListener("resize", onResize);
-
-    let ro: ResizeObserver | undefined;
-    if (rowRef.current && typeof ResizeObserver !== "undefined") {
-      ro = new ResizeObserver(() => refreshPill());
-      ro.observe(rowRef.current);
-    }
-
+    if (!mobileOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     return () => {
-      window.removeEventListener("resize", onResize);
-      ro?.disconnect();
+      document.body.style.overflow = prev;
     };
-  }, [layoutExpand, refreshPill]);
-
-  const blurIfOutside = () => {
-    queueMicrotask(() => {
-      if (!navRef.current?.contains(document.activeElement)) {
-        setFocusInside(false);
-        setHoveredIndex(null);
-      }
-    });
-  };
-
-  const handlePointerEnter = (e: React.PointerEvent) => {
-    if (e.pointerType !== "mouse") return;
-    if (mdUp) setHoverExpanded(true);
-  };
-
-  const handlePointerLeave = (e: React.PointerEvent) => {
-    if (e.pointerType !== "mouse") return;
-    if (!mdUp) return;
-    setHoveredIndex(null);
-    setHoverExpanded(false);
-    blurIfOutside();
-  };
-
-  const spring = reduceMotion ? { duration: 0 } : { type: "spring" as const, stiffness: 440, damping: 36 };
+  }, [mobileOpen]);
 
   return (
     <>
-      {!desktop && pinned && !scrollHidden && (
+      {mobileOpen && !scrollHidden ? (
         <button
           type="button"
           aria-label="Close menu"
-          className="fixed inset-0 z-[95] bg-white/70 backdrop-blur-[2px] dark:bg-black/50"
-          onClick={() => setPinned(false)}
+          className="fixed inset-0 z-[98] bg-slate-900/25 backdrop-blur-[2px]"
+          onClick={() => setMobileOpen(false)}
         />
-      )}
+      ) : null}
 
       <motion.header
-        ref={navRef}
-        aria-hidden={scrollHidden ? true : undefined}
         className={cn(
-          "pointer-events-none fixed left-1/2 top-3 z-[100] flex w-max max-w-[min(calc(100vw-1rem),32rem)] -translate-x-1/2 justify-center px-2 sm:top-5 sm:max-w-[min(calc(100vw-2rem),30rem)]",
-          scrollHidden && "pointer-events-none",
+          "fixed inset-x-0 top-0 z-[100]",
+          scrollHidden ? "pointer-events-none" : "pointer-events-auto",
         )}
         initial={false}
         animate={{
-          y: scrollHidden ? -120 : 0,
+          y: scrollHidden ? "-100%" : 0,
           opacity: scrollHidden ? 0 : 1,
         }}
-        transition={reduceMotion ? { duration: 0 } : { duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        transition={
+          reduceMotion ? { duration: 0 } : { duration: 0.28, ease: [0.22, 1, 0.36, 1] }
+        }
+        aria-hidden={scrollHidden ? true : undefined}
       >
         <nav
           aria-label="Main navigation"
-          className={cn(
-            "relative isolate mx-auto w-full max-w-full",
-            scrollHidden ? "pointer-events-none" : "pointer-events-auto",
-          )}
-          onPointerEnter={handlePointerEnter}
-          onPointerLeave={handlePointerLeave}
-          onFocusCapture={() => setFocusInside(true)}
-          onBlurCapture={blurIfOutside}
+          className={cn("w-full overflow-visible", NavBarSurface({ scrolled }))}
         >
-          {/* Top tab + brand mark — visible only when expanded */}
           <div
-            className={cn(
-              "relative z-30 flex justify-center transition-opacity duration-200",
-              layoutExpand ? "opacity-100" : "pointer-events-none h-0 opacity-0",
-            )}
+            className="relative mx-auto w-full max-w-[min(100%,96rem)] px-4 sm:px-6 lg:px-8"
+            onMouseLeave={() => setOpenMenu(null)}
           >
+            <div className="flex h-[4rem] w-full items-center justify-between gap-6 sm:h-[4.25rem] lg:gap-10">
             <Link
               href="/"
-              className={cn(
-                "-mb-px flex min-h-[28px] min-w-[4.25rem] items-center justify-center rounded-t-lg px-4 pb-2.5 pt-1.5 outline-none ring-[#2277FF] ring-offset-2 ring-offset-white transition hover:brightness-110 focus-visible:ring-2 dark:ring-offset-slate-950",
-                NAV_SHELL_TAB,
-              )}
-              style={{
-                boxShadow: "inset 0 -1px 0 rgba(227,231,252,0.12), inset 0 2px 0 rgba(147,174,255,0.08)",
-              }}
-              onClick={() => !desktop && setPinned(false)}
+              className="inline-flex min-w-0 shrink-0 items-center gap-3 outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[#2277FF]/40"
+              onClick={() => setMobileOpen(false)}
             >
-              <span className="bg-gradient-to-br from-[#93c5fd] via-[#a5b4fc] to-[#e9d5ff] bg-clip-text font-heading text-[13px] italic font-bold tracking-tight text-transparent sm:text-sm">
-                RVX
+              <span
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#2277FF] to-[#4f46e5] text-sm font-bold text-white shadow-[0_4px_14px_rgba(34,119,255,0.35)]"
+                aria-hidden
+              >
+                R
+              </span>
+              <span className="truncate font-heading text-lg font-bold italic tracking-tight text-[#0f172a]">
+                Rivexaflow
               </span>
             </Link>
-          </div>
 
-          <div
-            className={cn(
-              "relative z-40 border border-[#93c5fd]/20 transition-[border-radius,box-shadow,padding] duration-300 dark:border-[#a5b4fc]/15",
-              NAV_SHELL,
-              layoutExpand ?
-                "-mt-px rounded-2xl px-1.5 pb-2 pt-1 shadow-[0_16px_48px_-16px_rgba(12,8,40,0.55),inset_0_1px_0_rgba(163,190,255,0.12)] sm:px-2.5 sm:pb-2.5 sm:pt-1"
-              : "rounded-[999px] px-6 py-2.5 shadow-[0_12px_40px_-14px_rgba(10,14,52,0.5)] sm:px-8 sm:py-3",
-            )}
-          >
-            {/* Collapsed: brand + dot */}
-            <div
-              className={cn(
-                "flex items-center justify-center gap-3 transition-opacity duration-150",
-                layoutExpand && "hidden",
-              )}
-            >
-              <button
-                type="button"
-                className="inline-flex items-center gap-3 rounded-full font-heading text-[1.05rem] font-bold italic leading-none tracking-tight text-[#eceef9] outline-none ring-[#2277FF] ring-offset-4 ring-offset-[#0f1430]/80 focus-visible:ring-2 md:hidden dark:ring-offset-slate-950 sm:text-[1.1rem]"
-                aria-expanded={pinned}
-                aria-controls="floating-nav-expanded"
-                onClick={() => setPinned((p) => !p)}
-              >
-                <span>Rivexaflow</span>
-                <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#cfd6ff] shadow-[0_0_16px_rgba(147,174,255,0.88)]" />
-              </button>
+            <div className="hidden min-w-0 flex-1 items-center justify-center gap-x-1 lg:gap-x-2 xl:gap-x-4 lg:flex">
+              {MARKETING_NAV_ITEMS.map((item) => (
+                <DesktopNavItem
+                  key={item.type === "link" ? item.href : item.label}
+                  item={item}
+                  pathname={pathname}
+                  openMenu={openMenu}
+                  setOpenMenu={setOpenMenu}
+                />
+              ))}
+            </div>
 
+            <div className="hidden shrink-0 items-center gap-3 lg:flex">
               <Link
-                href="/"
-                className="hidden items-center gap-3 md:inline-flex"
-                aria-label="Rivexaflow home"
+                href="/login"
+                className="px-2 py-2 text-[15px] font-semibold text-slate-800 transition hover:text-[#2277FF] lg:text-base"
               >
-                <span className="font-heading text-[1.05rem] font-bold italic leading-none tracking-tight text-[#eceef9] sm:text-[1.1rem] lg:text-[1.15rem]">
-                  Rivexaflow
-                </span>
-                <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#cfd6ff] shadow-[0_0_16px_rgba(147,174,255,0.88)]" />
+                Log in
+              </Link>
+              <Link
+                href="/signup"
+                className="rounded-lg bg-[#050a1f] px-5 py-2.5 text-[15px] font-semibold text-white shadow-[0_6px_20px_rgba(15,23,42,0.2)] transition hover:bg-[#191970] lg:text-base"
+              >
+                Get started
               </Link>
             </div>
 
-            {/* Expanded links */}
-            <div
-              id="floating-nav-expanded"
-              className={cn(
-                "transition-[opacity,visibility] duration-200",
-                layoutExpand ?
-                  "visible relative opacity-100"
-                : "pointer-events-none invisible absolute inset-x-2 top-14 opacity-0",
-              )}
-              aria-hidden={!layoutExpand}
+            <button
+              type="button"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200/80 bg-white/80 text-slate-800 outline-none transition hover:border-[#2277FF]/30 hover:bg-white focus-visible:ring-2 focus-visible:ring-[#2277FF]/40 lg:hidden"
+              aria-expanded={mobileOpen}
+              aria-controls="marketing-nav-mobile"
+              onClick={() => setMobileOpen((o) => !o)}
             >
-              <div
-                ref={rowRef}
-                className="relative mx-auto flex w-max max-w-full flex-wrap justify-center gap-x-0.5 gap-y-2 px-0.5 pb-0.5 pt-0 sm:flex-nowrap sm:gap-x-1 sm:gap-y-0 sm:px-1 md:gap-x-1.5"
-              >
-                {layoutExpand && (
-                  <motion.div
-                    aria-hidden
-                    className="pointer-events-none absolute z-0 rounded-xl bg-gradient-to-br from-[#c7dcff] via-[#d4d9ff] to-[#e9e0ff] shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] dark:from-[#6b93ff]/95 dark:via-[#8792ff]/90 dark:to-[#c4b0ff]/90"
-                    animate={{
-                      opacity: pill.opacity,
-                      left: pill.x,
-                      top: pill.y,
-                      width: pill.w,
-                      height: pill.h,
-                    }}
-                    initial={false}
-                    transition={spring}
-                    style={{ position: "absolute", margin: 0 }}
-                  />
-                )}
+              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+            </div>
 
-                {NAV.map((item, i) => {
-                  const isActiveRoute =
-                    item.href === "/" ? pathname === "/"
-                    : pathname === item.href || pathname.startsWith(`${item.href}/`);
-                  const pillHere = hoveredIndex !== null && hoveredIndex === i;
-                  const isAuthAccent = i === NAV.length - 1; // Login tab gets the accent ring
+            <AnimatePresence>
+              {openMegaItem ? (
+                <motion.div
+                  key={openMegaItem.label}
+                  className="absolute inset-x-4 top-full z-50 pt-3 sm:inset-x-6 lg:inset-x-8"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 8 }}
+                  transition={{ duration: 0.2 }}
+                  onMouseEnter={() => setOpenMenu(openMegaItem.label)}
+                >
+                  <MegaMenuPanel item={openMegaItem} panelId={megaMenuId} />
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+          </div>
 
-                  let labelClass: string;
-                  if (pillHere) {
-                    labelClass = "font-semibold text-[#070711] dark:text-black dark:opacity-95";
-                  } else if (hoveredIndex === null && i === activeNavIndex) {
-                    labelClass = "font-semibold text-white";
-                  } else if (hoveredIndex !== null && isActiveRoute) {
-                    labelClass = "text-[#b8c2f0]/88";
-                  } else {
-                    labelClass = "text-[#dde3fb]/93";
-                  }
-
-                  let dotClass: string;
-                  if (pillHere) {
-                    dotClass = "bg-[#0a0a14] dark:bg-white";
-                  } else if (hoveredIndex === null && i === activeNavIndex) {
-                    dotClass = "bg-white shadow-[0_0_10px_rgba(255,255,255,0.45)]";
-                  } else if (hoveredIndex !== null && isActiveRoute) {
-                    dotClass = "bg-[#b8c2f0]/55";
-                  } else {
-                    dotClass = cn(
-                      "bg-[#cfd6ff]/50",
-                      isAuthAccent && "ring-2 ring-[#2277FF]/55 ring-offset-2 ring-offset-[#121036]",
-                    );
-                  }
-
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      ref={(el) => {
-                        linkRefs.current[i] = el;
-                      }}
-                      tabIndex={layoutExpand ? 0 : -1}
-                      className={cn(
-                        "relative z-[1] flex min-w-[3.65rem] flex-col items-center gap-1 px-1.5 py-1 text-center outline-none sm:min-w-[3.95rem] sm:px-2 sm:py-1.5",
-                        "outline-offset-4 focus-visible:ring-2 focus-visible:ring-[#2277FF]/70 focus-visible:ring-offset-4 focus-visible:ring-offset-transparent",
-                      )}
-                      onMouseEnter={() => setHoveredIndex(i)}
-                      onFocus={() => setHoveredIndex(i)}
-                      onClick={() => !desktop && setPinned(false)}
-                    >
-                      <span
-                        className={cn(
-                          "h-1 w-1 shrink-0 rounded-full transition-colors duration-150 sm:h-1.5 sm:w-1.5",
-                          dotClass,
-                        )}
-                        aria-hidden
-                      />
-                      <span
-                        className={cn(
-                          "font-medium uppercase tracking-[0.14em] sm:tracking-[0.18em]",
-                          "text-[9px] sm:text-[10px] md:text-[11px]",
-                          labelClass,
-                        )}
-                      >
-                        {item.label}
-                      </span>
-                    </Link>
-                  );
-                })}
+          <div
+            id="marketing-nav-mobile"
+            className={cn(
+              "overflow-hidden border-t border-slate-100/90 transition-[max-height,opacity] duration-250 lg:hidden",
+              mobileOpen ? "max-h-[min(85vh,720px)] overflow-y-auto opacity-100" : "max-h-0 opacity-0",
+            )}
+            aria-hidden={!mobileOpen}
+          >
+            <div className="space-y-2 px-4 py-3 sm:px-6">
+              {MARKETING_NAV_ITEMS.map((item) => (
+                <MobileNavSection
+                  key={item.type === "link" ? item.href : item.label}
+                  item={item}
+                  pathname={pathname}
+                  onNavigate={() => setMobileOpen(false)}
+                />
+              ))}
+              <div className="flex gap-2 border-t border-slate-100 pt-3">
+                <Link
+                  href="/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex-1 rounded-lg border border-slate-200 py-2.5 text-center text-sm font-semibold text-slate-800"
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/signup"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex-1 rounded-lg bg-[#050a1f] py-2.5 text-center text-sm font-semibold text-white"
+                >
+                  Get started
+                </Link>
               </div>
             </div>
           </div>

@@ -7,6 +7,7 @@ import { endpoints } from "@/lib/api/endpoints";
 import type { ChangePasswordPayload } from "@/schemas/change-password.schema";
 import type { LoginPayload, RegisterPayload } from "@/schemas/auth.schema";
 import type { Role } from "@/types/auth";
+import { profileRoleToNavRole } from "@/types/onboarding";
 
 /**
  * Backend may return any of: `token` / `accessToken` / `access_token`,
@@ -34,6 +35,14 @@ type RawAuthResponse = {
       workspaceName?: string;
       workspace_name?: string;
       plan?: string;
+      profileRole?: string;
+      profile_role?: string;
+      businessRole?: string;
+      business_role?: string;
+      onboardingStep?: string;
+      onboarding_step?: string;
+      selectedModules?: string[];
+      selected_modules?: string[];
     };
     onboardingStep?: string;
     redirectTo?: string;
@@ -52,14 +61,22 @@ export type AuthResult = {
     workspaceSlug?: string;
     workspaceName?: string;
     plan?: string;
+    profileRole?: string;
+    onboardingStep?: string;
+    selectedModules?: string[];
   };
   onboardingStep?: string;
   redirectTo?: string;
 };
 
 const ROLE_SET: ReadonlySet<Role> = new Set<Role>(["SUPER_ADMIN", "ADMIN", "USER"]);
+const PROFILE_ROLE_SET = new Set(["owner", "manager", "freelancer"]);
+
 const coerceRole = (raw: unknown): Role => {
   if (typeof raw === "string" && ROLE_SET.has(raw as Role)) return raw as Role;
+  if (typeof raw === "string" && PROFILE_ROLE_SET.has(raw)) {
+    return profileRoleToNavRole(raw);
+  }
   return "USER";
 };
 
@@ -68,6 +85,17 @@ const pickToken = (raw: RawAuthResponse["data"]): string | null =>
 
 const normalizeUser = (raw: RawAuthResponse["data"], fallbackEmail: string): AuthResult["user"] => {
   const u = raw.user ?? {};
+  const rawRole = typeof u.role === "string" ? u.role : "";
+  const businessRole = u.businessRole ?? u.business_role;
+  const profileRole =
+    u.profileRole ??
+    u.profile_role ??
+    (typeof businessRole === "string" && PROFILE_ROLE_SET.has(businessRole)
+      ? businessRole
+      : undefined) ??
+    (PROFILE_ROLE_SET.has(rawRole) ? rawRole : undefined);
+  const modulesRaw = u.selectedModules ?? u.selected_modules;
+
   return {
     id: u.id ?? "unknown",
     email: u.email ?? fallbackEmail,
@@ -77,6 +105,11 @@ const normalizeUser = (raw: RawAuthResponse["data"], fallbackEmail: string): Aut
     workspaceSlug: u.workspaceSlug ?? u.workspace_slug ?? undefined,
     workspaceName: u.workspaceName ?? u.workspace_name ?? undefined,
     plan: u.plan ?? undefined,
+    profileRole,
+    onboardingStep: u.onboardingStep ?? u.onboarding_step ?? raw.onboardingStep,
+    selectedModules: Array.isArray(modulesRaw)
+      ? modulesRaw.filter((m): m is string => typeof m === "string")
+      : undefined,
   };
 };
 
