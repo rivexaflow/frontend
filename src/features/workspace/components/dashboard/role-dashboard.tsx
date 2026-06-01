@@ -24,6 +24,7 @@ import {
   buildTodosFromModules,
   resolveDashboardModules,
 } from "@/features/workspace/data/dashboard-modules";
+import { workspacePaths } from "@/lib/workspace/paths";
 import { cn } from "@/lib/utils/cn";
 
 const PROFILE_COPY: Record<string, { title: string; subtitle: string }> = {
@@ -47,22 +48,22 @@ export function RoleDashboard({ workspaceSlug }: { workspaceSlug: string }) {
   const profile = (user?.profileRole as string) ?? "freelancer";
   const copy = PROFILE_COPY[profile] ?? PROFILE_COPY.freelancer;
 
-  const modules = resolveDashboardModules(user?.selectedModules ?? [], workspaceSlug);
+  const modules = resolveDashboardModules(user?.selectedModules ?? []);
   const todos = buildTodosFromModules(modules);
 
   const quickLinks =
     navRole === "ADMIN"
       ? [
-          { label: "New lead", icon: Sparkles, href: `/${workspaceSlug}/crm/leads/new`, color: "blue" },
-          { label: "Add contact", icon: UserPlus, href: `/${workspaceSlug}/crm/contacts/new`, color: "emerald" },
-          { label: "KYC review", icon: ShieldCheck, href: `/${workspaceSlug}/kyc`, color: "purple" },
-          { label: "New invoice", icon: FileText, href: `/${workspaceSlug}/invoices/new`, color: "amber" },
+          { label: "New lead", icon: Sparkles, href: workspacePaths.leads, color: "blue" },
+          { label: "Add contact", icon: UserPlus, href: workspacePaths.contacts, color: "emerald" },
+          { label: "KYC review", icon: ShieldCheck, href: workspacePaths.kyc, color: "purple" },
+          { label: "New invoice", icon: FileText, href: workspacePaths.invoices, color: "amber" },
         ]
       : [
-          { label: "My contacts", icon: UserPlus, href: `/${workspaceSlug}/crm/contacts`, color: "emerald" },
-          { label: "My KYC", icon: ShieldCheck, href: `/${workspaceSlug}/kyc/submissions`, color: "purple" },
-          { label: "AI tools", icon: Sparkles, href: `/${workspaceSlug}/ai/tools`, color: "blue" },
-          { label: "Reports", icon: BarChart3, href: `/${workspaceSlug}/reports`, color: "indigo" },
+          { label: "My contacts", icon: UserPlus, href: workspacePaths.contacts, color: "emerald" },
+          { label: "My KYC", icon: ShieldCheck, href: `${workspacePaths.kyc}/submissions`, color: "purple" },
+          { label: "AI tools", icon: Sparkles, href: `${workspacePaths.ai}/tools`, color: "blue" },
+          { label: "Reports", icon: BarChart3, href: workspacePaths.reports, color: "indigo" },
         ];
 
   return (
@@ -144,7 +145,7 @@ export function RoleDashboard({ workspaceSlug }: { workspaceSlug: string }) {
                   </p>
                 </div>
                 <Link
-                  href={`/${workspaceSlug}/reports`}
+                  href={workspacePaths.reports}
                   className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-bold backdrop-blur transition hover:bg-white/20"
                 >
                   View reports
@@ -156,7 +157,7 @@ export function RoleDashboard({ workspaceSlug }: { workspaceSlug: string }) {
         </div>
 
         <div className="space-y-8">
-          <DashboardTodoPanel todos={todos} workspaceSlug={workspaceSlug} />
+          <DashboardTodoPanel todos={todos} />
 
           {navRole === "ADMIN" ? (
             <RecentActivity />
@@ -171,7 +172,7 @@ export function RoleDashboard({ workspaceSlug }: { workspaceSlug: string }) {
                 mentions.
               </p>
               <Link
-                href={`/${workspaceSlug}/team/activity`}
+                href={workspacePaths.userActivity}
                 className="mt-4 inline-flex text-sm font-bold text-blue-600 hover:underline"
               >
                 Open team feed

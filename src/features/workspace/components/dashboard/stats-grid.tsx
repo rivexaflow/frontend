@@ -23,7 +23,7 @@ const stats = [
     gradient: "from-blue-500 to-indigo-600"
   },
   {
-    label: "Active Contacts",
+    label: "Total Completed KYCs",
     value: "842",
     change: "+3.2%",
     isUp: true,
@@ -32,7 +32,7 @@ const stats = [
     gradient: "from-emerald-500 to-teal-600"
   },
   {
-    label: "AI Efficiency",
+    label: "Total Deals",
     value: "94.2%",
     change: "+5.4%",
     isUp: true,

@@ -3,7 +3,7 @@ import type { AuthResult } from "@/lib/api/auth";
 import type { OnboardingState, OnboardingStep, ProfileRole } from "@/types/onboarding";
 import { isOnboardingComplete } from "@/types/onboarding";
 import { effectiveNavRole, type CurrentUser } from "@/types/auth";
-import { appConfig } from "@/config/app";
+import { canonicalWorkspacePath } from "@/lib/workspace/paths";
 
 const PROFILE_ROLES = new Set<ProfileRole>(["owner", "manager", "freelancer"]);
 
@@ -35,12 +35,11 @@ export function resolveLoginDestination(
 ): string {
   const redirectTo = options?.redirectTo;
   if (redirectTo && !redirectTo.startsWith("/onboarding")) {
-    return redirectTo;
+    return canonicalWorkspacePath(redirectTo) ?? redirectTo;
   }
 
   const navRole = effectiveNavRole(user) ?? user.role;
-  const slug = user.workspaceSlug ?? appConfig.defaultWorkspaceSlug;
-  return postLoginPath(navRole, slug);
+  return postLoginPath(navRole);
 }
 
 export function markOnboardingCompleteInBrowser(): void {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { RESERVED_ROOT_SEGMENTS } from "@/lib/constants/routes";
+import { canonicalWorkspacePath, isWorkspaceAppPath } from "@/lib/workspace/paths";
 
 const AUTH_COOKIE = "rvx_access_token";
 
@@ -78,8 +79,8 @@ const homePathForRole = (
   workspaceSlug: string | null,
 ): string | null => {
   if (role === "SUPER_ADMIN") return "/super-admin";
-  if ((role === "ADMIN" || role === "USER") && workspaceSlug) {
-    return `/${workspaceSlug}/dashboard`;
+  if (role === "ADMIN" || role === "USER") {
+    return "/dashboard";
   }
   return null;
 };
@@ -95,8 +96,20 @@ const loginPathForRole = (role: string | null): string => {
   return "/login";
 };
 
+/** App Router prefetch / RSC flight requests cannot follow middleware redirects. */
+const isSoftNavigationRequest = (request: NextRequest): boolean =>
+  request.headers.get("rsc") === "1" ||
+  request.headers.get("next-router-prefetch") === "1" ||
+  request.headers.get("next-router-state-tree") != null ||
+  request.nextUrl.searchParams.has("_rsc");
+
 export function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
+
+  const legacyWorkspaceTarget = canonicalWorkspacePath(pathname);
+  if (legacyWorkspaceTarget && legacyWorkspaceTarget !== pathname) {
+    return NextResponse.redirect(new URL(legacyWorkspaceTarget, request.url));
+  }
   const token = request.cookies.get(AUTH_COOKIE)?.value;
   const role = extractRole(token);
   const workspaceId = workspaceIdFromToken(token);
@@ -147,11 +160,10 @@ export function middleware(request: NextRequest) {
   //   /admin/login (platform operator login):
   //     - SUPER_ADMIN   → straight to /super-admin.
   //     - ADMIN / USER  → wrong door; send them to /login (or their dashboard).
-  if (token && AUTH_ONLY.has(pathname)) {
+  if (token && AUTH_ONLY.has(pathname) && !isSoftNavigationRequest(request)) {
     if (pathname === "/login") {
       if (role === "ADMIN" || role === "USER") {
-        const slug = workspaceSlug ?? "acme-corp";
-        return NextResponse.redirect(new URL(`/${slug}/dashboard`, request.url));
+        return NextResponse.redirect(new URL("/dashboard", request.url));
       }
       if (role === "SUPER_ADMIN") {
         return NextResponse.redirect(new URL("/admin/login", request.url));
@@ -179,14 +191,32 @@ export function middleware(request: NextRequest) {
   if (pathname.startsWith("/super-admin")) {
     if (role === "SUPER_ADMIN") return NextResponse.next();
     // Workspace user wandering into platform area → send them to their dashboard, not 403.
-    if ((role === "ADMIN" || role === "USER") && workspaceSlug) {
-      return NextResponse.redirect(new URL(`/${workspaceSlug}/dashboard`, request.url));
+    if (role === "ADMIN" || role === "USER") {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
     }
     // Anonymous / unknown role → log in.
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Workspace routes
+  // Canonical workspace app routes (/dashboard, /crm/*, …)
+  if (isWorkspaceAppPath(pathname)) {
+    if (role === "SUPER_ADMIN") {
+      return NextResponse.redirect(new URL("/super-admin", request.url));
+    }
+    if (role !== "ADMIN" && role !== "USER") {
+      const response = NextResponse.redirect(new URL("/login", request.url));
+      clearAuthCookie(response);
+      return response;
+    }
+    if (!workspaceId) {
+      const response = NextResponse.redirect(new URL("/login", request.url));
+      clearAuthCookie(response);
+      return response;
+    }
+    return NextResponse.next();
+  }
+
+  // Legacy /{workspaceSlug}/… routes (redirect handled above; guard stragglers)
   if (isWorkspacePath(pathname)) {
     // Super admin trying to access a workspace → take them to their own home.
     if (role === "SUPER_ADMIN") {
@@ -200,11 +230,14 @@ export function middleware(request: NextRequest) {
     }
     // Wrong workspace slug → silently route to the correct workspace with the same sub-path.
     const segments = pathname.split("/").filter(Boolean);
-    const requestedSlug = segments[0];
-    if (workspaceSlug && requestedSlug !== workspaceSlug) {
-      const rest = segments.slice(1).join("/");
+    const rest = segments.slice(1).join("/");
+    const canonical = canonicalWorkspacePath(pathname);
+    if (canonical) {
+      return NextResponse.redirect(new URL(canonical, request.url));
+    }
+    if (workspaceSlug && segments[0] !== workspaceSlug) {
       return NextResponse.redirect(
-        new URL(`/${workspaceSlug}/${rest || "dashboard"}`, request.url),
+        new URL(canonicalWorkspacePath(`/${workspaceSlug}/${rest}`) ?? "/dashboard", request.url),
       );
     }
     if (!workspaceId) {

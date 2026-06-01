@@ -111,7 +111,7 @@ export default function PlatformLoginPage() {
             </span>
             <span className="text-[1.05rem] font-semibold tracking-tight text-slate-900">Rivexaflow</span>
           </Link>
-          <Link href="/login" className="text-xs font-medium text-slate-500 hover:text-slate-900">
+          <Link href="/login" prefetch={false} className="text-xs font-medium text-slate-500 hover:text-slate-900">
             Workspace login
           </Link>
         </header>
@@ -197,7 +197,7 @@ export default function PlatformLoginPage() {
 
           <p className="mt-7 text-center text-[13px] text-slate-500">
             Not a platform operator?{" "}
-            <Link href="/login" className="font-semibold text-[#2277FF] hover:text-[#0056FF]">
+            <Link href="/login" prefetch={false} className="font-semibold text-[#2277FF] hover:text-[#0056FF]">
               Workspace sign in
             </Link>
           </p>

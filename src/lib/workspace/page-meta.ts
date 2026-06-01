@@ -1,0 +1,81 @@
+export type BreadcrumbItem = { label: string; href?: string };
+
+const SEGMENT_LABELS: Record<string, string> = {
+  dashboard: "Dashboard",
+  crm: "CRM",
+  contacts: "Contacts",
+  leads: "Leads",
+  deals: "Deals",
+  pipelines: "Pipelines",
+  hrm: "HRM",
+  "org-chart": "Org chart",
+  employees: "Employees",
+  payroll: "Payroll",
+  attendance: "Attendance",
+  leave: "Manage leave",
+  admin: "HR admin",
+  events: "Events",
+  documents: "Documents",
+  policies: "Company policy",
+  setup: "System setup",
+  kyc: "KYC Center",
+  submissions: "Submissions",
+  reviews: "Reviews",
+  templates: "Templates",
+  invoices: "Invoicing",
+  create: "Create",
+  ai: "AI Agents",
+  tools: "Tools",
+  history: "History",
+  reports: "Analytics",
+  notifications: "Notifications",
+  settings: "Settings",
+  workspace: "Workspace",
+  branding: "Branding",
+  modules: "Modules",
+  "api-keys": "API Keys",
+  password: "Security",
+  billing: "Billing",
+  team: "Team",
+  user: "Users",
+  users: "Users",
+  role: "Roles",
+  roles: "Roles",
+  edit: "Edit role",
+  new: "Create role",
+  members: "Members",
+  invites: "Invites",
+  activity: "Activity",
+};
+
+function labelFor(segment: string, parentSegment?: string): string {
+  if (parentSegment === "hrm" && segment === "reports") return "HR reports";
+  return SEGMENT_LABELS[segment] ?? segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, " ");
+}
+
+/** Build breadcrumb trail from pathname like `/crm/pipelines`. */
+export function resolveWorkspaceBreadcrumbs(pathname: string): BreadcrumbItem[] {
+  const parts = pathname.split("/").filter(Boolean);
+  if (parts.length === 0) return [{ label: "Dashboard", href: "/dashboard" }];
+
+  const items: BreadcrumbItem[] = [{ label: "Workspace", href: "/dashboard" }];
+  let path = "";
+
+  parts.forEach((segment, index) => {
+    path += `/${segment}`;
+    const isLast = index === parts.length - 1;
+    const parent = index > 0 ? parts[index - 1] : undefined;
+    items.push({
+      label: labelFor(segment, parent),
+      href: isLast ? undefined : path,
+    });
+  });
+
+  return items;
+}
+
+export function resolvePageTitle(pathname: string): string {
+  const parts = pathname.split("/").filter(Boolean);
+  if (parts.length === 0) return "Dashboard";
+  return labelFor(parts[parts.length - 1] ?? "dashboard");
+}

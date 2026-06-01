@@ -82,7 +82,7 @@ const MODULE_REGISTRY: Record<string, Omit<DashboardModuleDef, "id">> = {
     label: "Projects",
     description: "Tasks, milestones, and team delivery.",
     icon: Users,
-    href: "team",
+    href: "user",
     color: "slate",
     todoHint: "Update Q2 rollout checklist",
   },
@@ -96,10 +96,7 @@ const MODULE_REGISTRY: Record<string, Omit<DashboardModuleDef, "id">> = {
   },
 };
 
-export function resolveDashboardModules(
-  selected: string[],
-  workspaceSlug: string,
-): DashboardModuleDef[] {
+export function resolveDashboardModules(selected: string[]): DashboardModuleDef[] {
   const source = selected.length > 0 ? selected : ["CRM", "KYC", "Analytics"];
   return source.map((id) => {
     const meta = MODULE_REGISTRY[id] ?? {
@@ -113,7 +110,7 @@ export function resolveDashboardModules(
     return {
       id,
       ...meta,
-      href: `/${workspaceSlug}/${meta.href}`,
+      href: `/${meta.href}`,
     };
   });
 }

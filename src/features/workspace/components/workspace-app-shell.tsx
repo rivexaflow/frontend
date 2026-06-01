@@ -1,34 +1,17 @@
 "use client";
 
-import { ReactNode, useMemo } from "react";
-import { usePathname } from "next/navigation";
+import { ReactNode } from "react";
 import { ModernSidebar } from "@/components/layout/sidebar/modern-sidebar";
 import { WorkspaceHeader } from "@/components/layout/header/workspace-header";
-import { LiveFeedWidget } from "@/components/shared/app-shell/live-feed-widget";
 
-export function WorkspaceAppShell({ slug, children }: { slug: string; children: ReactNode }) {
-  const pathname = usePathname();
-  const title = useMemo(() => {
-    const parts = pathname.split("/").filter(Boolean);
-    return parts.slice(1).join(" / ") || "Overview";
-  }, [pathname]);
-
-  const isDashboard = pathname.endsWith("/dashboard");
-
+export function WorkspaceAppShell({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-[#f7f9ff] dark:bg-slate-950 transition-colors duration-300">
-      <ModernSidebar slug={slug} />
+    <div className="flex min-h-screen bg-[#f4f6fb] dark:bg-slate-950">
+      <ModernSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
-        <WorkspaceHeader slug={slug} title={title} />
-        <main
-          className={
-            isDashboard
-              ? "flex-1 p-6 md:p-8"
-              : "grid flex-1 gap-6 p-6 lg:grid-cols-[1fr_320px]"
-          }
-        >
-          <section className="min-w-0">{children}</section>
-          {!isDashboard && <LiveFeedWidget />}
+        <WorkspaceHeader />
+        <main className="flex-1 p-4 md:p-6 lg:p-8">
+          <div className="mx-auto w-full max-w-[1600px]">{children}</div>
         </main>
       </div>
     </div>

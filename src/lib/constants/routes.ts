@@ -12,5 +12,17 @@ export const RESERVED_ROOT_SEGMENTS = new Set([
   "about",
   "contact",
   "forbidden",
-  "onboarding"
+  "onboarding",
+  "dashboard",
+  "crm",
+  "kyc",
+  "invoices",
+  "ai",
+  "reports",
+  "notifications",
+  "settings",
+  "team",
+  "user",
+  "role",
+  "hrm",
 ]);
