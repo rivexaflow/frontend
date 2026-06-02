@@ -24,7 +24,7 @@ export default function ForbiddenPage() {
         setHome({ href: "/super-admin", label: "Go to platform admin" });
       } else if (user.workspaceSlug) {
         setHome({
-          href: `/${user.workspaceSlug}/dashboard`,
+          href: "/dashboard",
           label: "Go to your dashboard",
         });
       } else {

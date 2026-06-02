@@ -52,7 +52,12 @@ function HeroPreviewCard({
         featured ? "order-first z-10 sm:order-none md:-mt-10 md:scale-[1.04]" : "md:mt-6",
       ].join(" ")}
     >
-      <div className={featured ? "h-[200px] sm:h-[220px] md:h-[240px]" : "h-[168px] sm:h-[180px]"}>
+      <div
+        className={[
+          "relative",
+          featured ? "h-[200px] sm:h-[220px] md:h-[240px]" : "h-[168px] sm:h-[180px]",
+        ].join(" ")}
+      >
         <Image
           src={card.image}
           alt={card.alt}

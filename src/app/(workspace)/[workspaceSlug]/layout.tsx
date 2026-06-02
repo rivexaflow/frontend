@@ -16,7 +16,7 @@ export default async function WorkspaceLayout({
     <WorkspaceRouteProvider slug={workspaceSlug}>
       <SessionHydrator />
       <OnboardingGuard>
-        <WorkspaceAppShell slug={workspaceSlug}>{children}</WorkspaceAppShell>
+        <WorkspaceAppShell>{children}</WorkspaceAppShell>
       </OnboardingGuard>
     </WorkspaceRouteProvider>
   );

@@ -16,10 +16,13 @@ import {
   Bell, 
   LogOut,
   ChevronLeft,
+  ChevronDown,
   Menu,
   Search,
+  UserCog,
+  Briefcase,
+  Network,
   Zap,
-  HelpCircle,
   Building2,
   Ticket,
   Activity,
@@ -27,6 +30,8 @@ import {
   CreditCard
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { HRM_NAV_ITEMS } from "@/features/workspace/data/hrm-nav";
+import { workspacePaths } from "@/lib/workspace/paths";
 import { authStore } from "@/stores/auth.store";
 import { UserAccountDropdown } from "./user-account-dropdown";
 
@@ -38,15 +43,51 @@ interface NavItem {
   category: string;
 }
 
+interface NavGroup {
+  name: string;
+  icon: React.ElementType;
+  category: string;
+  children: { name: string; href: string }[];
+}
+
 const workspaceNavItems: NavItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, category: "General" },
   { name: "Contacts", href: "/crm/contacts", icon: Users, category: "Operations" },
   { name: "Leads", href: "/crm/leads", icon: Target, category: "Operations" },
+  { name: "Deals", href: workspacePaths.deals, icon: Briefcase, category: "Operations" },
   { name: "Pipelines", href: "/crm/pipelines", icon: Layers, category: "Operations" },
   { name: "KYC Center", href: "/kyc", icon: ShieldCheck, category: "Operations", badge: "Live" },
   { name: "Invoices", href: "/invoices", icon: FileText, category: "Operations" },
   { name: "AI Agents", href: "/ai", icon: Sparkles, category: "Intelligence" },
   { name: "Analytics", href: "/reports", icon: Zap, category: "Intelligence" },
+];
+
+const workspaceNavGroups: NavGroup[] = [
+  {
+    name: "HRM",
+    icon: Network,
+    category: "People",
+    children: HRM_NAV_ITEMS.map((item) => ({ name: item.name, href: item.href })),
+  },
+  {
+    name: "User Management",
+    icon: UserCog,
+    category: "Governance",
+    children: [
+      { name: "Users", href: workspacePaths.user },
+      { name: "Roles & permissions", href: workspacePaths.role },
+      { name: "User activity", href: workspacePaths.userActivity },
+    ],
+  },
+];
+
+function isNavGroupActive(pathname: string, children: { href: string }[]): boolean {
+  return children.some(
+    (child) => pathname === child.href || pathname.startsWith(`${child.href}/`),
+  );
+}
+
+const workspaceNavFooter: NavItem[] = [
   { name: "Notifications", href: "/notifications", icon: Bell, category: "System" },
   { name: "Settings", href: "/settings", icon: Settings, category: "System" },
 ];
@@ -62,7 +103,7 @@ const adminNavItems: NavItem[] = [
   { name: "System Health", href: "/super-admin/system-health", icon: Activity, category: "System" },
 ];
 
-export function ModernSidebar({ slug, isAdmin = false }: { slug?: string; isAdmin?: boolean }) {
+export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -70,7 +111,19 @@ export function ModernSidebar({ slug, isAdmin = false }: { slug?: string; isAdmi
   const user = authStore((s) => s.user);
 
   const items = isAdmin ? adminNavItems : workspaceNavItems;
-  const categories = Array.from(new Set(items.map(i => i.category)));
+  const groups = isAdmin ? [] : workspaceNavGroups;
+  const footerItems = isAdmin ? [] : workspaceNavFooter;
+  const CATEGORY_ORDER = ["General", "Operations", "People", "Governance", "Intelligence", "System"] as const;
+  const categorySet = new Set([
+    ...items.map((i) => i.category),
+    ...groups.map((g) => g.category),
+    ...footerItems.map((i) => i.category),
+  ]);
+  const categories = CATEGORY_ORDER.filter((c) => categorySet.has(c));
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    HRM: true,
+    "User Management": true,
+  });
 
   // Auto-collapse on small screens
   useEffect(() => {
@@ -82,12 +135,17 @@ export function ModernSidebar({ slug, isAdmin = false }: { slug?: string; isAdmi
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  useEffect(() => {
+    for (const group of groups) {
+      if (isNavGroupActive(pathname, group.children)) {
+        setOpenGroups((prev) => ({ ...prev, [group.name]: true }));
+      }
+    }
+  }, [pathname, groups]);
+
   const effectiveCollapsed = isCollapsed && !isHovered;
 
-  const getHref = (baseHref: string) => {
-    if (isAdmin) return baseHref;
-    return slug ? `/${slug}${baseHref}` : baseHref;
-  };
+  const getHref = (baseHref: string) => baseHref;
 
   return (
     <>
@@ -129,7 +187,16 @@ export function ModernSidebar({ slug, isAdmin = false }: { slug?: string; isAdmi
         <div className="flex-1 overflow-y-auto px-4 py-6 scrollbar-none">
           {categories.map((category) => {
             const categoryItems = items.filter((item) => item.category === category);
-            if (categoryItems.length === 0) return null;
+            const categoryGroups = groups.filter((group) => group.category === category);
+            const categoryFooter = footerItems.filter((item) => item.category === category);
+
+            if (
+              categoryItems.length === 0 &&
+              categoryGroups.length === 0 &&
+              categoryFooter.length === 0
+            ) {
+              return null;
+            }
 
             return (
               <div key={category} className="mb-8">
@@ -188,50 +255,142 @@ export function ModernSidebar({ slug, isAdmin = false }: { slug?: string; isAdmi
                       </Link>
                     );
                   })}
+
+                  {categoryGroups.map((group) => {
+                      const groupActive = isNavGroupActive(pathname, group.children);
+                      const isOpen = openGroups[group.name] ?? groupActive;
+
+                      return (
+                        <div key={group.name} className="space-y-0.5">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setOpenGroups((prev) => ({
+                                ...prev,
+                                [group.name]: !isOpen,
+                              }))
+                            }
+                            className={cn(
+                              "group relative flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-all duration-200",
+                              groupActive
+                                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/25"
+                                : "text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-900/50",
+                            )}
+                          >
+                            <group.icon
+                              className={cn(
+                                "h-5 w-5 shrink-0",
+                                groupActive ? "text-white" : "text-slate-400",
+                              )}
+                            />
+                            {!effectiveCollapsed ? (
+                              <>
+                                <span className="flex-1 text-sm font-semibold">{group.name}</span>
+                                <ChevronDown
+                                  className={cn(
+                                    "h-4 w-4 shrink-0 transition-transform",
+                                    isOpen ? "rotate-180" : "",
+                                    groupActive ? "text-white/90" : "text-slate-400",
+                                  )}
+                                />
+                              </>
+                            ) : null}
+                          </button>
+
+                          <AnimatePresence initial={false}>
+                            {isOpen && !effectiveCollapsed ? (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="overflow-hidden pl-3"
+                              >
+                                {group.children.map((child) => {
+                                  const childActive =
+                                    pathname === child.href ||
+                                    pathname.startsWith(`${child.href}/`);
+                                  return (
+                                    <Link
+                                      key={child.href}
+                                      href={child.href}
+                                      className={cn(
+                                        "relative flex items-center gap-2 rounded-lg py-2.5 pl-9 pr-3 text-sm font-medium transition",
+                                        childActive
+                                          ? "text-blue-600 dark:text-blue-400"
+                                          : "text-slate-500 hover:text-slate-900 dark:hover:text-white",
+                                      )}
+                                    >
+                                      {childActive ? (
+                                        <span className="absolute left-4 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-blue-600" />
+                                      ) : null}
+                                      {child.name}
+                                    </Link>
+                                  );
+                                })}
+                              </motion.div>
+                            ) : null}
+                          </AnimatePresence>
+                        </div>
+                      );
+                    })}
+
+                  {categoryFooter.map((item) => {
+                      const href = getHref(item.href);
+                      const isActive =
+                        pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
+                      return (
+                        <Link
+                          key={item.name}
+                          href={href}
+                          className={cn(
+                            "group relative flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200",
+                            isActive
+                              ? "bg-blue-50/80 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                              : "text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white",
+                          )}
+                        >
+                          <item.icon
+                            className={cn(
+                              "h-5 w-5 shrink-0",
+                              isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400",
+                            )}
+                          />
+                          {!effectiveCollapsed ? (
+                            <span className="flex-1 font-semibold">{item.name}</span>
+                          ) : null}
+                        </Link>
+                      );
+                    })}
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* Footer / User Profile */}
+        {/* Footer */}
         <div className="border-t border-slate-200/60 p-4 dark:border-slate-800/50">
-          <div 
+          <button
+            type="button"
             onClick={() => setIsAccountOpen(!isAccountOpen)}
             className={cn(
-              "flex items-center gap-3 rounded-2xl p-2 transition-colors cursor-pointer",
-              isAccountOpen ? "bg-slate-100 dark:bg-slate-800" : "hover:bg-slate-50 dark:hover:bg-slate-900/50"
+              "flex w-full items-center gap-3 rounded-xl border border-slate-200/80 px-3 py-2.5 text-left transition",
+              isAccountOpen
+                ? "border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/30"
+                : "hover:bg-slate-50 dark:hover:bg-slate-900/50",
             )}
           >
-            <div className="relative h-10 w-10 shrink-0 rounded-xl bg-gradient-to-tr from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800">
-               <div className="flex h-full w-full items-center justify-center text-sm font-bold text-slate-500 uppercase">
-                  {user?.fullName?.charAt(0) || user?.email?.charAt(0) || "U"}
-               </div>
-               <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-950"></div>
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 text-xs font-bold text-white">
+              {user?.fullName?.charAt(0) || user?.email?.charAt(0) || "U"}
             </div>
-            
-            {!effectiveCollapsed && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex-1 overflow-hidden"
-              >
-                <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
-                  {user?.fullName || "Active User"}
-                </p>
-                <p className="truncate text-xs text-slate-500">
-                  {user?.email || "user@rivexa.com"}
-                </p>
-              </motion.div>
-            )}
-          </div>
-          
-          {!effectiveCollapsed && (
-            <div className="mt-4 flex items-center justify-between px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              <span>v1.0.4 Premium</span>
-              <HelpCircle className="h-4 w-4 cursor-pointer hover:text-slate-600" />
-            </div>
-          )}
+            {!effectiveCollapsed ? (
+              <span className="flex-1 text-sm font-semibold text-slate-700 dark:text-slate-300">Account</span>
+            ) : null}
+          </button>
+          {!effectiveCollapsed ? (
+            <p className="mt-3 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Enterprise · v1.0.4
+            </p>
+          ) : null}
         </div>
 
         {/* Collapse Toggle Button */}

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { authStore } from "@/stores/auth.store";
@@ -126,7 +126,15 @@ function BackArrowIcon() {
   );
 }
 
-export default function LoginPage() {
+function LoginPageFallback() {
+  return (
+    <main className="grid min-h-screen w-full place-items-center bg-white">
+      <p className="text-sm text-slate-500">Loading sign in…</p>
+    </main>
+  );
+}
+
+function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const setSession = authStore((s) => s.setSession);
@@ -429,7 +437,7 @@ export default function LoginPage() {
               Request access
             </Link>
             <span className="mx-2 text-slate-300" aria-hidden>·</span>
-            <Link href="/admin/login" className="font-medium text-slate-500 hover:text-slate-800">
+            <Link href="/admin/login" prefetch={false} className="font-medium text-slate-500 hover:text-slate-800">
               Platform team login
             </Link>
           </p>
@@ -519,5 +527,13 @@ export default function LoginPage() {
         </div>
       </aside>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginPageFallback />}>
+      <LoginPageContent />
+    </Suspense>
   );
 }

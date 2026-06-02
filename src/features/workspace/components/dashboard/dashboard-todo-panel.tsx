@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, Circle, ListTodo } from "lucide-react";
 
+import { workspacePaths } from "@/lib/workspace/paths";
 import { cn } from "@/lib/utils/cn";
 
 export type DashboardTodo = {
@@ -16,10 +17,9 @@ export type DashboardTodo = {
 
 type DashboardTodoPanelProps = {
   todos: DashboardTodo[];
-  workspaceSlug: string;
 };
 
-export function DashboardTodoPanel({ todos: initial, workspaceSlug }: DashboardTodoPanelProps) {
+export function DashboardTodoPanel({ todos: initial }: DashboardTodoPanelProps) {
   const [todos, setTodos] = useState(initial);
 
   const toggle = (id: string) => {
@@ -41,7 +41,7 @@ export function DashboardTodoPanel({ todos: initial, workspaceSlug }: DashboardT
           </div>
         </div>
         <Link
-          href={`/${workspaceSlug}/team`}
+          href={workspacePaths.user}
           className="text-xs font-bold text-blue-600 hover:underline"
         >
           View all
