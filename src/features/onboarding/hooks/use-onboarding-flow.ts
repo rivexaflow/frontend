@@ -10,6 +10,7 @@ import {
   mergeOnboardingIntoUser,
 } from "@/lib/auth/onboarding-redirect";
 import { markOnboardingCompleteInBrowser } from "@/lib/auth/post-auth-destination";
+import { syncWorkspaceContext } from "@/lib/workspace/company-context";
 import { authStore } from "@/stores/auth.store";
 import type { BasicInfoForm, BusinessInfoForm } from "@/features/onboarding/schemas/onboarding.schema";
 import type { OnboardingState } from "@/types/onboarding";
@@ -53,6 +54,7 @@ export function useOnboardingFlow() {
       const currentUser = authStore.getState().user;
       if (currentUser) {
         updateUser(mergeOnboardingIntoUser(currentUser, next));
+        syncWorkspaceContext();
       }
     },
     [updateUser],

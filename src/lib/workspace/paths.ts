@@ -13,6 +13,7 @@ export const WORKSPACE_ROOT_SEGMENTS = [
   "user",
   "role",
   "hrm",
+  "workforce",
 ] as const;
 
 export type WorkspaceRootSegment = (typeof WORKSPACE_ROOT_SEGMENTS)[number];
@@ -29,6 +30,7 @@ export const workspacePaths = {
   hrmAttendance: "/hrm/attendance",
   hrmLeave: "/hrm/leave",
   hrmAdmin: "/hrm/admin",
+  workforce: "/workforce",
   hrmEvents: "/hrm/events",
   hrmDocuments: "/hrm/documents",
   hrmPolicies: "/hrm/policies",

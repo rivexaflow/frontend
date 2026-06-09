@@ -1,61 +1,153 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Shield } from "lucide-react";
-import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { KeyRound, Lock, Shield, Users } from "lucide-react";
 
-import { EnterprisePageShell } from "@/features/workspace/components/enterprise/enterprise-page-shell";
-import { NewRoleCard, RoleCard } from "@/features/workspace/components/roles/role-card";
-import { workspacePaths } from "@/lib/workspace/paths";
-import { workspaceRolesStore } from "@/stores/workspace-roles.store";
+import { RoleInspector } from "@/features/workspace/components/roles/role-inspector";
+import { RolesCatalogList } from "@/features/workspace/components/roles/roles-catalog-list";
+import {
+  RolesDirectoryToolbar,
+  type RoleAssignmentFilter,
+  type RoleTypeFilter,
+} from "@/features/workspace/components/roles/roles-directory-toolbar";
+import type { WorkspaceRoleRecord } from "@/features/workspace/data/workspace-roles-demo";
+import {
+  cloneStageAccess,
+  workspaceRolesStore,
+} from "@/stores/workspace-roles.store";
 
 export function ManageRolesView() {
   const roles = workspaceRolesStore((s) => s.roles);
   const removeRole = workspaceRolesStore((s) => s.removeRole);
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const upsertRole = workspaceRolesStore((s) => s.upsertRole);
 
-  const handleDelete = (id: string) => {
-    if (confirmDelete !== id) {
-      setConfirmDelete(id);
+  const [query, setQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<RoleTypeFilter>("all");
+  const [assignmentFilter, setAssignmentFilter] = useState<RoleAssignmentFilter>("all");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return roles.filter((r) => {
+      if (q && !r.name.toLowerCase().includes(q)) return false;
+      if (typeFilter === "system" && !r.systemLocked) return false;
+      if (typeFilter === "custom" && r.systemLocked) return false;
+      if (assignmentFilter === "assigned" && r.memberIds.length === 0) return false;
+      if (assignmentFilter === "unassigned" && r.memberIds.length > 0) return false;
+      return true;
+    });
+  }, [assignmentFilter, query, roles, typeFilter]);
+
+  const selected = selectedId ? roles.find((r) => r.id === selectedId) ?? null : null;
+
+  useEffect(() => {
+    if (filtered.length === 0) {
+      setSelectedId(null);
       return;
     }
+    if (!selectedId || !filtered.some((r) => r.id === selectedId)) {
+      setSelectedId(filtered[0]!.id);
+    }
+  }, [filtered, selectedId]);
+
+  const assignedMemberIds = new Set(roles.flatMap((r) => r.memberIds));
+  const totalPermissions = roles.reduce((sum, r) => sum + r.permissionKeys.length, 0);
+  const systemRoles = roles.filter((r) => r.systemLocked).length;
+
+  const handleDelete = (id: string) => {
     removeRole(id);
-    setConfirmDelete(null);
+  };
+
+  const handleDuplicate = (role: WorkspaceRoleRecord) => {
+    const copy: WorkspaceRoleRecord = {
+      id: `role_${Date.now()}`,
+      name: `${role.name} (copy)`,
+      permissionKeys: [...role.permissionKeys],
+      memberIds: [],
+      allowedIps: role.allowedIps,
+      stageAccess: cloneStageAccess(role.stageAccess),
+    };
+    upsertRole(copy);
+    setSelectedId(copy.id);
   };
 
   return (
-    <EnterprisePageShell
-      eyebrow="Governance · Roles"
-      title="Manage roles"
-      description="Define profile roles, granular module permissions, and CRM stage access for your workspace team."
-      metrics={[
-        { label: "Active roles", value: String(roles.length), icon: Shield, tone: "purple" },
-      ]}
-      toolbar={
-        <Link
-          href={workspacePaths.roleNew}
-          className="inline-flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-md shadow-blue-600/25 transition hover:bg-blue-700"
-        >
-          <Plus className="h-4 w-4" />
-          Add role
-        </Link>
-      }
-    >
-      {confirmDelete ? (
-        <div
-          role="status"
-          className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
-        >
-          Click delete again on the same role to confirm removal.
-        </div>
-      ) : null}
+    <div className="pb-10">
+      <header className="mb-6">
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+          Governance · Roles & permissions
+        </p>
+        <div className="mt-1 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Access control policies
+            </h1>
+            <p className="mt-1 max-w-2xl text-sm text-slate-600 dark:text-slate-400">
+              Define role-based access for workspace members. Policies bundle module permissions,
+              pipeline stage rules, and optional IP restrictions.
+            </p>
+          </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {roles.map((role) => (
-          <RoleCard key={role.id} role={role} onDelete={handleDelete} />
-        ))}
-        <NewRoleCard />
+          <div className="flex flex-wrap gap-2">
+            {[
+              { label: "Roles", value: roles.length, icon: Shield },
+              { label: "Grants", value: totalPermissions, icon: KeyRound },
+              { label: "Members", value: assignedMemberIds.size, icon: Users },
+              { label: "System", value: systemRoles, icon: Lock },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white px-3 py-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+              >
+                <stat.icon className="h-3.5 w-3.5 text-slate-400" />
+                <span className="text-xs text-slate-500">{stat.label}</span>
+                <span className="text-sm font-bold tabular-nums text-slate-900 dark:text-white">{stat.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      <div className="overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <RolesDirectoryToolbar
+          query={query}
+          onQueryChange={setQuery}
+          typeFilter={typeFilter}
+          onTypeFilterChange={setTypeFilter}
+          assignmentFilter={assignmentFilter}
+          onAssignmentFilterChange={setAssignmentFilter}
+          resultCount={filtered.length}
+        />
+
+        <div className="grid min-h-[560px] lg:grid-cols-[minmax(280px,340px)_1fr]">
+          <div className="max-h-[min(720px,70vh)] overflow-y-auto border-b border-slate-200/90 lg:border-b-0 lg:border-r dark:border-slate-800">
+            <RolesCatalogList
+              roles={filtered}
+              selectedId={selectedId}
+              onSelect={(role) => setSelectedId(role.id)}
+            />
+          </div>
+
+          <div className="min-h-[400px]">
+            {selected ? (
+              <RoleInspector
+                key={selected.id}
+                role={selected}
+                onDelete={!selected.systemLocked ? () => handleDelete(selected.id) : undefined}
+                onDuplicate={!selected.systemLocked ? () => handleDuplicate(selected) : undefined}
+              />
+            ) : (
+              <div className="flex h-full min-h-[400px] flex-col items-center justify-center px-8 text-center">
+                <Shield className="h-10 w-10 text-slate-300" />
+                <p className="mt-4 text-sm font-semibold text-slate-800 dark:text-slate-200">Select a role policy</p>
+                <p className="mt-1 max-w-sm text-sm text-slate-500">
+                  Choose a role from the catalog to review permissions, assigned members, and pipeline access.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-    </EnterprisePageShell>
+    </div>
   );
 }

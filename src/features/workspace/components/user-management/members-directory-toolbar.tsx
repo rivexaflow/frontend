@@ -1,11 +1,12 @@
 "use client";
 
-import { Plus, Search } from "lucide-react";
+import { LayoutGrid, List, Plus, Search } from "lucide-react";
 
 import {
   WORKSPACE_PROFILE_ROLES,
   WORKSPACE_USER_STATUSES,
 } from "@/features/workspace/data/workspace-user-roles";
+import { cn } from "@/lib/utils/cn";
 
 export type MembersFilters = {
   query: string;
@@ -14,12 +15,16 @@ export type MembersFilters = {
   department: string;
 };
 
+export type MembersViewMode = "grid" | "list";
+
 type Props = {
   filters: MembersFilters;
   onChange: (next: MembersFilters) => void;
   departments: string[];
   onInvite: () => void;
   resultCount: number;
+  viewMode: MembersViewMode;
+  onViewModeChange: (mode: MembersViewMode) => void;
 };
 
 const selectClass =
@@ -31,6 +36,8 @@ export function MembersDirectoryToolbar({
   departments,
   onInvite,
   resultCount,
+  viewMode,
+  onViewModeChange,
 }: Props) {
   const set = (key: keyof MembersFilters, value: string) =>
     onChange({ ...filters, [key]: value });
@@ -91,7 +98,35 @@ export function MembersDirectoryToolbar({
       </select>
 
       <div className="flex items-center gap-3 sm:ml-auto">
-        <span className="text-sm text-slate-500">
+        <div className="flex items-center rounded-lg border border-slate-200 p-0.5 dark:border-slate-700">
+          <button
+            type="button"
+            onClick={() => onViewModeChange("grid")}
+            className={cn(
+              "inline-flex h-8 w-8 items-center justify-center rounded-md transition",
+              viewMode === "grid"
+                ? "bg-[#191970] text-white"
+                : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800",
+            )}
+            aria-label="Card view"
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onViewModeChange("list")}
+            className={cn(
+              "inline-flex h-8 w-8 items-center justify-center rounded-md transition",
+              viewMode === "list"
+                ? "bg-[#191970] text-white"
+                : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800",
+            )}
+            aria-label="List view"
+          >
+            <List className="h-4 w-4" />
+          </button>
+        </div>
+        <span className="hidden text-sm text-slate-500 sm:inline">
           <span className="font-medium text-slate-800 dark:text-slate-200">{resultCount}</span> shown
         </span>
         <button

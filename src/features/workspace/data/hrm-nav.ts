@@ -6,7 +6,7 @@ export const HRM_NAV_ITEMS = [
   { name: "Payroll", href: workspacePaths.hrmPayroll },
   { name: "Attendance", href: workspacePaths.hrmAttendance },
   { name: "Manage leave", href: workspacePaths.hrmLeave },
-  { name: "HR admin", href: workspacePaths.hrmAdmin },
+  { name: "HR roles", href: workspacePaths.hrmAdmin },
   { name: "Event", href: workspacePaths.hrmEvents },
   { name: "Document", href: workspacePaths.hrmDocuments },
   { name: "Company policy", href: workspacePaths.hrmPolicies },

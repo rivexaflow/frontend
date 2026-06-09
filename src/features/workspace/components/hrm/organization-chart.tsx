@@ -40,6 +40,7 @@ type ChartProps = {
   onEmployeesChange: (next: HrmEmployee[]) => void;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  onReassignManager?: (employeeId: string, managerId: string) => Promise<void>;
 };
 
 function initials(name: string) {
@@ -287,6 +288,7 @@ export function OrganizationChart({
   onEmployeesChange,
   selectedId,
   onSelect,
+  onReassignManager,
 }: ChartProps) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
@@ -309,7 +311,7 @@ export function OrganizationChart({
     ? employees.find((e) => e.id === draggingId)
     : null;
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     setDraggingId(null);
     setDropTargetId(null);
     const draggedId = String(event.active.id);
@@ -320,12 +322,20 @@ export function OrganizationChart({
     if (draggedId === newManagerId) return;
     if (wouldCreateCycle(employees, draggedId, newManagerId)) return;
 
-    onEmployeesChange(
-      employees.map((e) =>
-        e.id === draggedId ? { ...e, managerId: newManagerId } : e,
-      ),
+    const previous = employees;
+    const optimistic = employees.map((e) =>
+      e.id === draggedId ? { ...e, managerId: newManagerId } : e,
     );
+    onEmployeesChange(optimistic);
     onSelect(draggedId);
+
+    if (onReassignManager) {
+      try {
+        await onReassignManager(draggedId, newManagerId);
+      } catch {
+        onEmployeesChange(previous);
+      }
+    }
   };
 
   const toggleStar = useCallback(

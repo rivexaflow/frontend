@@ -1,5 +1,5 @@
-import { HrmSectionView } from "@/features/workspace/views/hrm-section-view";
+import { HrmPoliciesView } from "@/features/workspace/views/hrm-policies-view";
 
 export default function HrmPoliciesPage() {
-  return <HrmSectionView section="policies" />;
+  return <HrmPoliciesView />;
 }

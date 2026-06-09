@@ -2,6 +2,7 @@
 
 import { onboardingApi } from "@/lib/api/onboarding";
 import { mergeOnboardingIntoUser } from "@/lib/auth/onboarding-redirect";
+import { syncWorkspaceContext } from "@/lib/workspace/company-context";
 import { authStore } from "@/stores/auth.store";
 import type { OnboardingState } from "@/types/onboarding";
 
@@ -27,4 +28,5 @@ export function applyOnboardingStateToAuthUser(state: OnboardingState): void {
   const current = authStore.getState().user;
   if (!current) return;
   authStore.getState().updateUser(mergeOnboardingIntoUser(current, state));
+  syncWorkspaceContext();
 }

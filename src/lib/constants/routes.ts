@@ -25,4 +25,5 @@ export const RESERVED_ROOT_SEGMENTS = new Set([
   "user",
   "role",
   "hrm",
+  "workforce",
 ]);

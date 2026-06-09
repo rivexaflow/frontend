@@ -47,7 +47,13 @@ const extractRole = (token: string | undefined): string | null => {
 
 const workspaceIdFromToken = (token: string | undefined): string | null => {
   const payload = parseJwtPayload(token);
-  return typeof payload?.workspaceId === "string" ? payload.workspaceId : null;
+  if (!payload) return null;
+  const id =
+    payload.workspaceId ??
+    payload.workspace_id ??
+    payload.companyId ??
+    payload.company_id;
+  return typeof id === "string" && id.trim() ? id.trim() : null;
 };
 
 const workspaceSlugFromToken = (token: string | undefined): string | null => {

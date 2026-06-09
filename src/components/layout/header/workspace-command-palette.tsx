@@ -29,7 +29,6 @@ type CommandItem = {
 
 const COMMANDS: CommandItem[] = [
   { id: "dash", label: "Dashboard", hint: "Overview & quick actions", href: workspacePaths.dashboard, icon: LayoutDashboard, keywords: ["home", "overview"] },
-  { id: "contacts", label: "Contacts", hint: "CRM · People & accounts", href: workspacePaths.contacts, icon: Users, keywords: ["crm", "people"] },
   { id: "leads", label: "Leads", hint: "CRM · Pipeline intake", href: workspacePaths.leads, icon: Target, keywords: ["crm", "prospects"] },
   { id: "pipelines", label: "Pipelines", hint: "CRM · Deals & stages", href: workspacePaths.pipelines, icon: Layers, keywords: ["deals", "opportunities"] },
   { id: "kyc", label: "KYC Center", hint: "Identity verification", href: workspacePaths.kyc, icon: ShieldCheck, keywords: ["compliance", "verification"] },
@@ -38,6 +37,7 @@ const COMMANDS: CommandItem[] = [
   { id: "reports", label: "Analytics", hint: "Reports & insights", href: workspacePaths.reports, icon: Zap, keywords: ["reports", "metrics"] },
   { id: "notifications", label: "Notifications", hint: "Alerts & activity", href: workspacePaths.notifications, icon: Bell, keywords: ["alerts"] },
   { id: "settings", label: "Settings", hint: "Workspace configuration", href: workspacePaths.settings, icon: Settings, keywords: ["preferences", "security"] },
+  { id: "departments", label: "Departments", hint: "Governance · Org structure", href: workspacePaths.workforce, icon: Users, keywords: ["departments", "teams", "organization"] },
 ];
 
 type Props = {

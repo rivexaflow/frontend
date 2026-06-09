@@ -3,8 +3,10 @@
 import { useEffect } from "react";
 
 import { getProfile } from "@/lib/api/auth";
+import { onboardingApi } from "@/lib/api/onboarding";
+import { applyOnboardingStateToAuthUser } from "@/lib/api/onboarding-sync";
+import { resolveCompanyId, syncWorkspaceContext } from "@/lib/workspace/company-context";
 import { authStore } from "@/stores/auth.store";
-import { workspaceStore } from "@/stores/workspace.store";
 
 /**
  * Silent client-side hydrator.
@@ -45,14 +47,22 @@ export function SessionHydrator() {
 
         authStore.setState({ user: merged, role: merged.role });
 
-        if (profile.workspaceId || profile.workspaceSlug) {
-          workspaceStore.getState().setWorkspace({
-            workspaceId: profile.workspaceId ?? "",
-            workspaceName:
-              profile.workspaceName ?? profile.workspaceSlug ?? "Workspace",
-            workspaceSlug: profile.workspaceSlug ?? "",
-            plan: profile.plan,
-          });
+        syncWorkspaceContext({
+          workspaceId: merged.workspaceId,
+          workspaceSlug: merged.workspaceSlug,
+          workspaceName: profile.workspaceName ?? profile.workspaceSlug,
+          plan: profile.plan,
+        });
+
+        if (!resolveCompanyId() && merged.id && merged.id !== "unknown") {
+          try {
+            const onboarding = await onboardingApi.getOnboardingState(merged.id);
+            if (!cancelled && onboarding?.company?.id) {
+              applyOnboardingStateToAuthUser(onboarding);
+            }
+          } catch {
+            // Non-fatal: profile + JWT may still provide company context.
+          }
         }
       } catch {
         // 401s are handled by the global interceptor; other errors are non-fatal here.

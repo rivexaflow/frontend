@@ -1,0 +1,91 @@
+import type { HrmEventRecord, HrmEventStatus, HrmEventType } from "@/types/hrm";
+
+export type { HrmEventRecord, HrmEventStatus, HrmEventType } from "@/types/hrm";
+
+export const HRM_EVENT_TYPES: { id: HrmEventType; label: string }[] = [
+  { id: "town_hall", label: "Town hall" },
+  { id: "training", label: "Training" },
+  { id: "social", label: "Social" },
+  { id: "holiday", label: "Holiday" },
+  { id: "onboarding", label: "Onboarding" },
+];
+
+export const HRM_EVENT_STATUSES: { id: HrmEventStatus; label: string }[] = [
+  { id: "draft", label: "Draft" },
+  { id: "published", label: "Published" },
+  { id: "completed", label: "Completed" },
+  { id: "cancelled", label: "Cancelled" },
+];
+
+export const DEMO_HRM_EVENTS: HrmEventRecord[] = [
+  {
+    id: "evt_1",
+    title: "Q2 All-hands Town Hall",
+    type: "town_hall",
+    status: "published",
+    date: "Jun 12, 2026",
+    time: "10:00 AM IST",
+    location: "HQ Auditorium + Zoom",
+    organizer: "Priya Mehta",
+    capacity: 120,
+    rsvpYes: 94,
+    rsvpNo: 8,
+    description: "Quarterly business review, product roadmap, and open Q&A with leadership.",
+  },
+  {
+    id: "evt_2",
+    title: "POSH & Workplace Conduct Training",
+    type: "training",
+    status: "published",
+    date: "Jun 18, 2026",
+    time: "2:00 PM IST",
+    location: "Learning Lab · Floor 3",
+    organizer: "Sarah Chen",
+    capacity: 40,
+    rsvpYes: 32,
+    rsvpNo: 2,
+    description: "Mandatory annual compliance training for all full-time employees.",
+  },
+  {
+    id: "evt_3",
+    title: "Summer Social — Team BBQ",
+    type: "social",
+    status: "draft",
+    date: "Jul 5, 2026",
+    time: "5:30 PM IST",
+    location: "Rooftop Terrace",
+    organizer: "Anil Yadav",
+    capacity: 80,
+    rsvpYes: 0,
+    rsvpNo: 0,
+    description: "Informal team gathering with food and games. Families welcome.",
+  },
+  {
+    id: "evt_4",
+    title: "Independence Day — Office Closed",
+    type: "holiday",
+    status: "published",
+    date: "Aug 15, 2026",
+    time: "All day",
+    location: "—",
+    organizer: "HR Team",
+    capacity: 0,
+    rsvpYes: 0,
+    rsvpNo: 0,
+    description: "National holiday. Payroll and support on reduced staffing.",
+  },
+  {
+    id: "evt_5",
+    title: "New Hire Orientation — Batch 14",
+    type: "onboarding",
+    status: "completed",
+    date: "May 8, 2026",
+    time: "9:30 AM IST",
+    location: "Conference Room B",
+    organizer: "Rajesh Iyer",
+    capacity: 15,
+    rsvpYes: 12,
+    rsvpNo: 0,
+    description: "Day-one orientation covering policies, tools, and buddy assignment.",
+  },
+];
