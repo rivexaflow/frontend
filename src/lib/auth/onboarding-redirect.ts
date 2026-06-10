@@ -4,6 +4,7 @@ import type { OnboardingState, OnboardingStep } from "@/types/onboarding";
 import { isOnboardingComplete } from "@/types/onboarding";
 import type { CurrentUser, Role } from "@/types/auth";
 import { appConfig } from "@/config/app";
+import { applyCompanyToUser, slugFromCompany } from "@/lib/workspace/company-context";
 
 export const ONBOARDING_PATH = "/onboarding";
 export const LOGIN_AFTER_ONBOARDING = "/login?onboarding=complete";
@@ -29,20 +30,21 @@ export function mergeOnboardingIntoUser(
   user: CurrentUser,
   state: OnboardingState,
 ): CurrentUser {
-  const slug =
-    (state.company as { slug?: string } | undefined)?.slug ??
-    user.workspaceSlug;
+  const slug = slugFromCompany(state.company) ?? user.workspaceSlug;
 
-  return {
-    ...user,
-    name: state.user.fullName || user.name,
-    fullName: state.user.fullName || user.fullName,
-    profileRole:
-      (state.user.role as CurrentUser["profileRole"]) ?? user.profileRole,
-    onboardingStep: state.user.onboardingStep ?? state.step,
-    selectedModules: state.company?.modules ?? user.selectedModules,
-    workspaceSlug: slug ?? user.workspaceSlug,
-  };
+  return applyCompanyToUser(
+    {
+      ...user,
+      name: state.user.fullName || user.name,
+      fullName: state.user.fullName || user.fullName,
+      profileRole:
+        (state.user.role as CurrentUser["profileRole"]) ?? user.profileRole,
+      onboardingStep: state.user.onboardingStep ?? state.step,
+      selectedModules: state.company?.modules ?? user.selectedModules,
+      workspaceSlug: slug ?? user.workspaceSlug,
+    },
+    state.company,
+  );
 }
 
 export function destinationFromOnboardingState(

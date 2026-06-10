@@ -5,6 +5,7 @@ import { FormEvent, Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { authStore } from "@/stores/auth.store";
+import { syncWorkspaceContext } from "@/lib/workspace/company-context";
 import { workspaceStore } from "@/stores/workspace.store";
 import { clearSessionCookie } from "@/lib/auth/session";
 import { appConfig } from "@/config/app";
@@ -200,14 +201,13 @@ function LoginPageContent() {
       });
 
       const resolvedSlug = sessionUser.workspaceSlug ?? fallbackSlug;
-      if (sessionUser.workspaceId || sessionUser.workspaceSlug) {
-        workspaceStore.getState().setWorkspace({
-          workspaceId: sessionUser.workspaceId ?? "",
-          workspaceName: result.user.workspaceName ?? resolvedSlug ?? "Workspace",
-          workspaceSlug: resolvedSlug,
-          plan: result.user.plan,
-        });
-      }
+      syncWorkspaceContext({
+        token: result.token,
+        workspaceId: sessionUser.workspaceId,
+        workspaceSlug: resolvedSlug,
+        workspaceName: result.user.workspaceName ?? resolvedSlug ?? "Workspace",
+        plan: result.user.plan,
+      });
 
       router.push(
         resolveLoginDestination(sessionUser, { redirectTo: result.redirectTo }),

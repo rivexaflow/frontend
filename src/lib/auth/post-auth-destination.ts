@@ -3,6 +3,7 @@ import type { AuthResult } from "@/lib/api/auth";
 import type { OnboardingState, OnboardingStep, ProfileRole } from "@/types/onboarding";
 import { isOnboardingComplete } from "@/types/onboarding";
 import { effectiveNavRole, type CurrentUser } from "@/types/auth";
+import { applyCompanyToUser, slugFromCompany } from "@/lib/workspace/company-context";
 import { canonicalWorkspacePath } from "@/lib/workspace/paths";
 
 const PROFILE_ROLES = new Set<ProfileRole>(["owner", "manager", "freelancer"]);
@@ -90,16 +91,18 @@ export function mergeAuthWithOnboarding(
   if (authStep != null && isOnboardingComplete(authStep)) onboardingStep = authStep;
   else if (modules && modules.length > 0 && profileRole) onboardingStep = "DONE";
 
-  const user: CurrentUser = {
-    ...base,
-    name: onboarding.user.fullName || base.name,
-    fullName: onboarding.user.fullName || base.fullName,
-    profileRole,
-    onboardingStep,
-    selectedModules: modules,
-    workspaceSlug:
-      (onboarding.company as { slug?: string } | undefined)?.slug ?? base.workspaceSlug,
-  };
+  const user = applyCompanyToUser(
+    {
+      ...base,
+      name: onboarding.user.fullName || base.name,
+      fullName: onboarding.user.fullName || base.fullName,
+      profileRole,
+      onboardingStep,
+      selectedModules: modules,
+      workspaceSlug: slugFromCompany(onboarding.company) ?? base.workspaceSlug,
+    },
+    onboarding.company,
+  );
 
   return { user, onboardingStep };
 }

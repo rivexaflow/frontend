@@ -1,5 +1,5 @@
-import { HrmSectionView } from "@/features/workspace/views/hrm-section-view";
+import { HrmDocumentsView } from "@/features/workspace/views/hrm-documents-view";
 
 export default function HrmDocumentsPage() {
-  return <HrmSectionView section="documents" />;
+  return <HrmDocumentsView />;
 }

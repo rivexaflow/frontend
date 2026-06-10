@@ -1,0 +1,128 @@
+import type {
+  HrmReportCategory,
+  HrmReportFormat,
+  HrmReportRun,
+  HrmReportRunStatus,
+  HrmReportTemplate,
+} from "@/types/hrm";
+
+export type {
+  HrmReportCategory,
+  HrmReportFormat,
+  HrmReportRun,
+  HrmReportRunStatus,
+  HrmReportTemplate,
+} from "@/types/hrm";
+
+export const HRM_REPORT_CATEGORIES: { id: HrmReportCategory; label: string }[] = [
+  { id: "headcount", label: "Headcount" },
+  { id: "attrition", label: "Attrition" },
+  { id: "payroll", label: "Payroll" },
+  { id: "attendance", label: "Attendance" },
+  { id: "leave", label: "Leave" },
+  { id: "compliance", label: "Compliance" },
+];
+
+export const HRM_REPORT_TEMPLATES: HrmReportTemplate[] = [
+  {
+    id: "rpt_headcount",
+    name: "Headcount by department",
+    category: "headcount",
+    description: "Active employees, contractors, and open roles grouped by department and location.",
+    defaultFormat: "xlsx",
+    estimatedMinutes: 2,
+  },
+  {
+    id: "rpt_attrition",
+    name: "Attrition & exits",
+    category: "attrition",
+    description: "Voluntary and involuntary exits with tenure, reason codes, and manager chain.",
+    defaultFormat: "pdf",
+    estimatedMinutes: 3,
+  },
+  {
+    id: "rpt_payroll",
+    name: "Payroll summary",
+    category: "payroll",
+    description: "Gross, deductions, net pay, and statutory contributions for a salary month.",
+    defaultFormat: "xlsx",
+    estimatedMinutes: 4,
+  },
+  {
+    id: "rpt_attendance",
+    name: "Attendance compliance",
+    category: "attendance",
+    description: "Present, late, absent, and leave days per employee for the selected period.",
+    defaultFormat: "csv",
+    estimatedMinutes: 3,
+  },
+  {
+    id: "rpt_leave",
+    name: "Leave balance ledger",
+    category: "leave",
+    description: "Opening balance, accruals, usage, and closing balance by leave type.",
+    defaultFormat: "xlsx",
+    estimatedMinutes: 2,
+  },
+  {
+    id: "rpt_compliance",
+    name: "Policy acknowledgment",
+    category: "compliance",
+    description: "Acknowledgment status per policy with overdue employees and department breakdown.",
+    defaultFormat: "pdf",
+    estimatedMinutes: 2,
+  },
+];
+
+export const DEMO_HRM_REPORT_RUNS: HrmReportRun[] = [
+  {
+    id: "run_1",
+    templateId: "rpt_headcount",
+    name: "Headcount by department",
+    category: "headcount",
+    format: "xlsx",
+    status: "ready",
+    period: "May 2026",
+    generatedBy: "Sarah Chen",
+    generatedAt: "May 26, 2026 · 9:14 AM",
+    fileSize: "248 KB",
+    recordCount: 124,
+  },
+  {
+    id: "run_2",
+    templateId: "rpt_payroll",
+    name: "Payroll summary",
+    category: "payroll",
+    format: "xlsx",
+    status: "ready",
+    period: "Apr 27 – May 26, 2026",
+    generatedBy: "Finance Ops",
+    generatedAt: "May 26, 2026 · 8:02 AM",
+    fileSize: "1.1 MB",
+    recordCount: 118,
+  },
+  {
+    id: "run_3",
+    templateId: "rpt_attendance",
+    name: "Attendance compliance",
+    category: "attendance",
+    format: "csv",
+    status: "generating",
+    period: "May 2026",
+    generatedBy: "Priya Mehta",
+    generatedAt: "May 26, 2026 · 10:01 AM",
+  },
+  {
+    id: "run_4",
+    templateId: "rpt_compliance",
+    name: "Policy acknowledgment",
+    category: "compliance",
+    format: "pdf",
+    status: "ready",
+    period: "YTD 2026",
+    generatedBy: "HR Team",
+    generatedAt: "May 20, 2026 · 4:30 PM",
+    fileSize: "520 KB",
+    recordCount: 6,
+  },
+];

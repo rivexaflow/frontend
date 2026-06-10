@@ -13,7 +13,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   payroll: "Payroll",
   attendance: "Attendance",
   leave: "Manage leave",
-  admin: "HR admin",
+  admin: "HR roles",
   events: "Events",
   documents: "Documents",
   policies: "Company policy",
@@ -46,10 +46,12 @@ const SEGMENT_LABELS: Record<string, string> = {
   members: "Members",
   invites: "Invites",
   activity: "Activity",
+  workforce: "Workforce",
 };
 
 function labelFor(segment: string, parentSegment?: string): string {
   if (parentSegment === "hrm" && segment === "reports") return "HR reports";
+  if (segment === "workforce") return "Departments";
   return SEGMENT_LABELS[segment] ?? segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, " ");
 }
 

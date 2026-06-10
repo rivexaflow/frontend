@@ -1,5 +1,5 @@
-import { HrmSectionView } from "@/features/workspace/views/hrm-section-view";
+import { HrmAdminView } from "@/features/workspace/views/hrm-admin-view";
 
 export default function HrmAdminPage() {
-  return <HrmSectionView section="admin" />;
+  return <HrmAdminView />;
 }

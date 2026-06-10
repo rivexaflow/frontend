@@ -26,7 +26,7 @@ type Props = {
   employees: HrmEmployee[];
   onClose: () => void;
   onUpdate: (patch: Partial<HrmEmployee>) => void;
-  onAddReport: () => void;
+  onAddReport?: () => void;
   onDelete?: () => void;
 };
 
@@ -234,7 +234,7 @@ export function OrgChartDetailPanel({
               </h3>
               <button
                 type="button"
-                onClick={onAddReport}
+                onClick={() => onAddReport?.()}
                 className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-blue-700"
               >
                 <Plus className="h-3 w-3" />
@@ -271,7 +271,7 @@ export function OrgChartDetailPanel({
         <div className="space-y-2 border-t border-slate-100 p-4 dark:border-slate-800">
           <button
             type="button"
-            onClick={onAddReport}
+            onClick={() => onAddReport?.()}
             className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#191970] text-sm font-semibold text-white transition hover:bg-[#0f0f4d]"
           >
             <UserPlus className="h-4 w-4" />

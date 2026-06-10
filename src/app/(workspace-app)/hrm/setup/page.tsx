@@ -1,5 +1,5 @@
-import { HrmSectionView } from "@/features/workspace/views/hrm-section-view";
+import { HrmSetupView } from "@/features/workspace/views/hrm-setup-view";
 
 export default function HrmSetupPage() {
-  return <HrmSectionView section="setup" />;
+  return <HrmSetupView />;
 }

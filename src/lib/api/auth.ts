@@ -7,6 +7,7 @@ import { endpoints } from "@/lib/api/endpoints";
 import type { ChangePasswordPayload } from "@/schemas/change-password.schema";
 import type { LoginPayload, RegisterPayload } from "@/schemas/auth.schema";
 import type { Role } from "@/types/auth";
+import { pickWorkspaceId } from "@/lib/workspace/workspace-id";
 import { profileRoleToNavRole } from "@/types/onboarding";
 
 /**
@@ -30,6 +31,8 @@ type RawAuthResponse = {
       role?: string;
       workspaceId?: string;
       workspace_id?: string;
+      companyId?: string;
+      company_id?: string;
       workspaceSlug?: string;
       workspace_slug?: string;
       workspaceName?: string;
@@ -101,7 +104,7 @@ const normalizeUser = (raw: RawAuthResponse["data"], fallbackEmail: string): Aut
     email: u.email ?? fallbackEmail,
     name: u.fullName ?? u.full_name ?? u.name ?? (u.email ?? fallbackEmail).split("@")[0],
     role: coerceRole(u.role),
-    workspaceId: u.workspaceId ?? u.workspace_id ?? undefined,
+    workspaceId: pickWorkspaceId(u) ?? pickWorkspaceId(raw),
     workspaceSlug: u.workspaceSlug ?? u.workspace_slug ?? undefined,
     workspaceName: u.workspaceName ?? u.workspace_name ?? undefined,
     plan: u.plan ?? undefined,

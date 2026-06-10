@@ -2,14 +2,15 @@
 
 import { useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
+import { ShieldCheck, UserCheck, UserPlus, Users } from "lucide-react";
 
 import { InviteMemberWizard } from "@/features/workspace/components/user-management/invite-member-wizard";
-import {
-  MembersDirectoryTable,
-} from "@/features/workspace/components/user-management/members-directory-table";
+import { MembersDirectoryGrid } from "@/features/workspace/components/user-management/members-directory-grid";
+import { MembersDirectoryTable } from "@/features/workspace/components/user-management/members-directory-table";
 import {
   MembersDirectoryToolbar,
   type MembersFilters,
+  type MembersViewMode,
 } from "@/features/workspace/components/user-management/members-directory-toolbar";
 import { UserDetailPanel } from "@/features/workspace/components/user-management/user-detail-panel";
 import {
@@ -29,6 +30,7 @@ export function UserManagementUsersView() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [filters, setFilters] = useState<MembersFilters>(EMPTY_FILTERS);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<MembersViewMode>("grid");
 
   const filtered = useMemo(() => {
     const q = filters.query.trim().toLowerCase();
@@ -53,6 +55,7 @@ export function UserManagementUsersView() {
 
   const activeCount = users.filter((u) => u.status === "active").length;
   const invitedCount = users.filter((u) => u.status === "invited").length;
+  const mfaCount = users.filter((u) => u.mfaEnabled).length;
 
   const updateSelected = (patch: Partial<WorkspaceUserRecord>) => {
     if (!selectedId) return;
@@ -68,28 +71,59 @@ export function UserManagementUsersView() {
   return (
     <div className="pb-10">
       <header className="mb-6">
-        <p className="text-xs font-medium text-slate-500">Governance · User management</p>
-        <h1 className="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">Workspace members</h1>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-          {users.length} members · {activeCount} active
-          {invitedCount > 0 ? ` · ${invitedCount} invited` : ""}
-          {" · "}Click a row to view details
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Governance · User management</p>
+        <div className="mt-1 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Workspace members</h1>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              Directory of provisioned accounts, roles, and module access.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { label: "Total", value: users.length, icon: Users },
+              { label: "Active", value: activeCount, icon: UserCheck },
+              { label: "Invited", value: invitedCount, icon: UserPlus },
+              { label: "MFA", value: mfaCount, icon: ShieldCheck },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white px-3 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+              >
+                <stat.icon className="h-3.5 w-3.5 text-slate-400" />
+                <span className="text-xs text-slate-500">{stat.label}</span>
+                <span className="text-sm font-bold text-slate-900 dark:text-white">{stat.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </header>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <MembersDirectoryToolbar
           filters={filters}
           onChange={setFilters}
           departments={departments}
           onInvite={() => setInviteOpen(true)}
           resultCount={filtered.length}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
         />
-        <MembersDirectoryTable
-          users={filtered}
-          selectedId={selectedId}
-          onSelect={(user) => setSelectedId(user.id)}
-        />
+
+        {viewMode === "grid" ? (
+          <MembersDirectoryGrid
+            users={filtered}
+            selectedId={selectedId}
+            onSelect={(user) => setSelectedId(user.id)}
+            onInvite={() => setInviteOpen(true)}
+          />
+        ) : (
+          <MembersDirectoryTable
+            users={filtered}
+            selectedId={selectedId}
+            onSelect={(user) => setSelectedId(user.id)}
+          />
+        )}
       </div>
 
       <AnimatePresence>

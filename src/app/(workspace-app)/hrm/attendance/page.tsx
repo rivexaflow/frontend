@@ -1,5 +1,5 @@
-import { HrmSectionView } from "@/features/workspace/views/hrm-section-view";
+import { HrmAttendanceView } from "@/features/workspace/views/hrm-attendance-view";
 
 export default function HrmAttendancePage() {
-  return <HrmSectionView section="attendance" />;
+  return <HrmAttendanceView />;
 }

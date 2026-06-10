@@ -8,8 +8,6 @@ import {
   ArrowRight,
   Check,
   Mail,
-  Shield,
-  Sparkles,
   UserPlus,
   X,
 } from "lucide-react";
@@ -68,30 +66,45 @@ type Props = {
 };
 
 const inputClass =
-  "mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 outline-none transition focus:border-[#4338ca] focus:ring-2 focus:ring-[#4338ca]/12 dark:border-slate-700 dark:bg-slate-950 dark:text-white";
+  "mt-1.5 h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#191970] focus:bg-white focus:ring-2 focus:ring-[#191970]/10 dark:border-slate-700 dark:bg-slate-900/50 dark:text-white dark:focus:bg-slate-950";
 
 const selectClass =
-  "mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 outline-none focus:border-[#4338ca] focus:ring-2 focus:ring-[#4338ca]/12 dark:border-slate-700 dark:bg-slate-950 dark:text-white";
+  "mt-1.5 h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-sm text-slate-900 outline-none transition focus:border-[#191970] focus:bg-white focus:ring-2 focus:ring-[#191970]/10 dark:border-slate-700 dark:bg-slate-900/50 dark:text-white dark:focus:bg-slate-950";
 
 function Field({
   label,
   htmlFor,
+  hint,
   error,
   children,
 }: {
   label: string;
   htmlFor: string;
+  hint?: string;
   error?: string;
   children: ReactNode;
 }) {
   return (
     <div>
-      <label htmlFor={htmlFor} className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+      <label htmlFor={htmlFor} className="text-xs font-semibold text-slate-800 dark:text-slate-200">
         {label}
       </label>
+      {hint ? <p className="mt-0.5 text-[11px] text-slate-500">{hint}</p> : null}
       {children}
-      {error ? <p className="mt-1 text-xs font-medium text-rose-600">{error}</p> : null}
+      {error ? <p className="mt-1.5 text-xs font-medium text-rose-600">{error}</p> : null}
     </div>
+  );
+}
+
+function FormSection({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
+  return (
+    <section>
+      <div className="mb-4 border-b border-slate-100 pb-3 dark:border-slate-800">
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{title}</h3>
+        {description ? <p className="mt-0.5 text-xs text-slate-500">{description}</p> : null}
+      </div>
+      <div className="space-y-4">{children}</div>
+    </section>
   );
 }
 
@@ -210,46 +223,31 @@ export function InviteMemberWizard({ open, onClose, onCreated }: Props) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[120] flex justify-end">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6">
       <button
         type="button"
-        className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-slate-900/55 backdrop-blur-sm"
         aria-label="Close invite wizard"
         onClick={handleClose}
       />
 
       <motion.div
-        initial={{ x: "100%" }}
-        animate={{ x: 0 }}
-        exit={{ x: "100%" }}
-        className="relative z-[1] flex h-full w-full max-w-[520px] flex-col border-l border-slate-200/90 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950"
+        initial={{ opacity: 0, scale: 0.97, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.97, y: 8 }}
+        transition={{ duration: 0.2 }}
+        className="relative z-[1] flex h-[min(680px,92vh)] w-full max-w-[820px] overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950"
         role="dialog"
         aria-labelledby="invite-wizard-title"
       >
-        <header className="shrink-0 border-b border-slate-100 px-5 py-4 dark:border-slate-800">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#4338ca]">
-                Member onboarding
-              </p>
-              <h2 id="invite-wizard-title" className="mt-0.5 text-lg font-bold text-slate-900 dark:text-white">
-                Invite workspace member
-              </h2>
-              <p className="mt-1 text-xs text-slate-500">
-                Step {stepIndex + 1} of {STEPS.length} — {STEPS[stepIndex]?.hint}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleClose}
-              className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50 dark:border-slate-700"
-              aria-label="Close"
-            >
-              <X className="h-4 w-4" />
-            </button>
+        <aside className="hidden w-[220px] shrink-0 flex-col bg-gradient-to-b from-[#191970] to-[#12124a] sm:flex">
+          <div className="border-b border-white/10 px-5 py-5">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/50">Provisioning</p>
+            <h2 id="invite-wizard-title" className="mt-1 text-[15px] font-semibold text-white">
+              Invite member
+            </h2>
           </div>
-
-          <nav className="mt-4 flex gap-1 overflow-x-auto pb-1" aria-label="Wizard steps">
+          <nav className="flex-1 space-y-0.5 px-3 py-4" aria-label="Wizard steps">
             {STEPS.map((s, i) => {
               const done = i < stepIndex;
               const current = s.id === step;
@@ -257,31 +255,65 @@ export function InviteMemberWizard({ open, onClose, onCreated }: Props) {
                 <div
                   key={s.id}
                   className={cn(
-                    "flex min-w-0 flex-1 flex-col items-center gap-1 rounded-lg px-1 py-1.5 text-center",
-                    current && "bg-blue-50 dark:bg-blue-950/40",
+                    "flex items-start gap-3 rounded-lg px-3 py-2.5 transition",
+                    current && "bg-white/10",
                   )}
                 >
                   <span
                     className={cn(
-                      "flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold",
-                      done && "bg-emerald-500 text-white",
-                      current && !done && "bg-[#191970] text-white",
-                      !done && !current && "bg-slate-200 text-slate-500 dark:bg-slate-800",
+                      "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold",
+                      done && "bg-emerald-400 text-[#12124a]",
+                      current && !done && "bg-white text-[#191970]",
+                      !done && !current && "bg-white/15 text-white/50",
                     )}
                   >
-                    {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                    {done ? <Check className="h-3 w-3" /> : i + 1}
                   </span>
-                  <span className="truncate text-[9px] font-semibold uppercase tracking-wide text-slate-500">
-                    {s.title}
+                  <span className="min-w-0">
+                    <span className={cn("block text-xs font-semibold", current ? "text-white" : "text-white/70")}>
+                      {s.title}
+                    </span>
+                    <span className="block text-[10px] text-white/40">{s.hint}</span>
                   </span>
                 </div>
               );
             })}
           </nav>
-        </header>
+          <div className="border-t border-white/10 px-5 py-4">
+            <p className="text-[10px] leading-relaxed text-white/45">
+              Secure invite link · 72-hour expiry · MFA enforced by policy
+            </p>
+          </div>
+        </aside>
 
-        <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
-          <div className="flex-1 overflow-y-auto px-5 py-5">
+        <div className="flex min-w-0 flex-1 flex-col">
+          {/* Progress bar */}
+          <div className="h-1 shrink-0 bg-slate-100 dark:bg-slate-800">
+            <div
+              className="h-full bg-[#191970] transition-all duration-300"
+              style={{ width: `${((stepIndex + 1) / STEPS.length) * 100}%` }}
+            />
+          </div>
+
+          <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-5 py-3.5 dark:border-slate-800">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                Step {stepIndex + 1} of {STEPS.length}
+              </p>
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">{STEPS[stepIndex]?.title}</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="rounded-lg border border-slate-200 p-2 text-slate-400 transition hover:bg-slate-50 hover:text-slate-700 dark:border-slate-700 dark:hover:bg-slate-800"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </header>
+
+          <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
+            <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
             <AnimatePresence mode="wait">
               <motion.div
                 key={step}
@@ -291,26 +323,26 @@ export function InviteMemberWizard({ open, onClose, onCreated }: Props) {
                 transition={{ duration: 0.2 }}
               >
                 {step === "identity" ? (
-                  <div className="space-y-4">
-                    <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50/90 to-indigo-50/50 p-4 dark:border-blue-900/40 dark:from-blue-950/30 dark:to-indigo-950/20">
-                      <div className="flex gap-3">
-                        <Sparkles className="h-5 w-5 shrink-0 text-blue-600" />
-                        <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-400">
-                          We&apos;ll send a secure invite link. The member completes profile setup on first sign-in.
-                        </p>
-                      </div>
-                    </div>
-                    <Field label="Full name *" htmlFor="iw-name" error={errors.name}>
+                  <FormSection
+                    title="Member identity"
+                    description="Basic contact details for the invitation email."
+                  >
+                    <Field label="Full name" htmlFor="iw-name" error={errors.name}>
                       <input
                         id="iw-name"
                         value={form.name}
                         onChange={(e) => set("name", e.target.value)}
-                        placeholder="e.g. Jordan Lee"
+                        placeholder="Jordan Lee"
                         className={inputClass}
                         autoFocus
                       />
                     </Field>
-                    <Field label="Work email *" htmlFor="iw-email" error={errors.email}>
+                    <Field
+                      label="Work email"
+                      htmlFor="iw-email"
+                      hint="Must belong to your organization's verified domain."
+                      error={errors.email}
+                    >
                       <input
                         id="iw-email"
                         type="email"
@@ -320,7 +352,7 @@ export function InviteMemberWizard({ open, onClose, onCreated }: Props) {
                         className={inputClass}
                       />
                     </Field>
-                    <Field label="Mobile (optional)" htmlFor="iw-mobile">
+                    <Field label="Mobile number" htmlFor="iw-mobile" hint="Optional · used for MFA recovery">
                       <input
                         id="iw-mobile"
                         value={form.mobile}
@@ -329,12 +361,15 @@ export function InviteMemberWizard({ open, onClose, onCreated }: Props) {
                         className={inputClass}
                       />
                     </Field>
-                  </div>
+                  </FormSection>
                 ) : null}
 
                 {step === "organization" ? (
-                  <div className="space-y-4">
-                    <Field label="Profile role *" htmlFor="iw-role" error={errors.profileRole}>
+                  <FormSection
+                    title="Role & placement"
+                    description="Assign a profile role and organizational unit."
+                  >
+                    <Field label="Profile role" htmlFor="iw-role" error={errors.profileRole}>
                       <select
                         id="iw-role"
                         value={form.profileRole}
@@ -349,14 +384,14 @@ export function InviteMemberWizard({ open, onClose, onCreated }: Props) {
                           </option>
                         ))}
                       </select>
-                      <p className="mt-2 text-xs text-slate-500">
-                        Permissions inherit from the role template.{" "}
+                      <p className="mt-2 text-[11px] text-slate-500">
+                        Permissions inherit from role template.{" "}
                         <Link
                           href={workspacePaths.role}
-                          className="font-semibold text-blue-600 hover:underline"
+                          className="font-semibold text-[#191970] hover:underline dark:text-blue-400"
                           onClick={handleClose}
                         >
-                          Manage roles
+                          Manage roles →
                         </Link>
                       </p>
                     </Field>
@@ -392,7 +427,7 @@ export function InviteMemberWizard({ open, onClose, onCreated }: Props) {
                         </select>
                       </Field>
                     </div>
-                    <Field label="Reports to" htmlFor="iw-manager">
+                    <Field label="Reports to" htmlFor="iw-manager" hint="Optional · sets org hierarchy">
                       <select
                         id="iw-manager"
                         value={form.reportingTo}
@@ -407,15 +442,15 @@ export function InviteMemberWizard({ open, onClose, onCreated }: Props) {
                         ))}
                       </select>
                     </Field>
-                  </div>
+                  </FormSection>
                 ) : null}
 
                 {step === "access" ? (
-                  <div className="space-y-3">
-                    <p className="text-xs text-slate-500">
-                      Grant module access aligned to their function. You can refine per-user overrides later.
-                    </p>
-                    <div className="grid gap-2">
+                  <FormSection
+                    title="Module access"
+                    description="Select which workspace modules this member can access."
+                  >
+                    <div className="grid gap-2 sm:grid-cols-2">
                       {WORKSPACE_ACCESS_MODULES.map((mod) => {
                         const on = modules.includes(mod.id);
                         return (
@@ -424,68 +459,75 @@ export function InviteMemberWizard({ open, onClose, onCreated }: Props) {
                             type="button"
                             onClick={() => toggleModule(mod.id)}
                             className={cn(
-                              "flex items-start gap-3 rounded-xl border p-3.5 text-left transition",
+                              "flex items-start gap-2.5 rounded-lg border p-3 text-left transition",
                               on
-                                ? "border-blue-300 bg-blue-50/80 ring-1 ring-blue-500/20 dark:border-blue-800 dark:bg-blue-950/40"
-                                : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900",
+                                ? "border-[#191970]/30 bg-[#191970]/5 ring-1 ring-[#191970]/15"
+                                : "border-slate-200 bg-slate-50/50 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900/50",
                             )}
                           >
                             <span
                               className={cn(
-                                "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border",
-                                on ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300",
+                                "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border",
+                                on ? "border-[#191970] bg-[#191970] text-white" : "border-slate-300 bg-white",
                               )}
                             >
-                              {on ? <Check className="h-3 w-3" /> : null}
+                              {on ? <Check className="h-2.5 w-2.5" /> : null}
                             </span>
                             <span>
-                              <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                              <span className="text-xs font-semibold text-slate-900 dark:text-white">
                                 {mod.label}
                               </span>
-                              <span className="mt-0.5 block text-xs text-slate-500">{mod.description}</span>
+                              <span className="mt-0.5 block text-[10px] leading-snug text-slate-500">
+                                {mod.description}
+                              </span>
                             </span>
                           </button>
                         );
                       })}
                     </div>
                     {modules.length === 0 ? (
-                      <p className="text-xs font-medium text-rose-600">Select at least one module.</p>
+                      <p className="text-xs font-medium text-rose-600">Select at least one module to continue.</p>
                     ) : null}
-                    <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-amber-200/80 bg-amber-50/60 p-3 dark:border-amber-900/40 dark:bg-amber-950/20">
+                    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-amber-200/70 bg-amber-50/40 p-3 dark:border-amber-900/30 dark:bg-amber-950/15">
                       <input
                         type="checkbox"
                         checked={form.kycPortalAccess}
                         onChange={(e) => set("kycPortalAccess", e.target.checked)}
-                        className="h-4 w-4 rounded border-amber-300 text-amber-600"
+                        className="mt-0.5 h-4 w-4 rounded border-amber-300 text-amber-600"
                       />
-                      <span className="text-xs font-medium text-amber-950 dark:text-amber-100">
-                        Extended KYC portal permissions (stage-gated)
+                      <span>
+                        <span className="text-xs font-semibold text-amber-950 dark:text-amber-100">
+                          Extended KYC portal access
+                        </span>
+                        <span className="mt-0.5 block text-[10px] text-amber-800/70 dark:text-amber-200/60">
+                          Stage-gated permissions for compliance workflows.
+                        </span>
                       </span>
                     </label>
-                  </div>
+                  </FormSection>
                 ) : null}
 
                 {step === "security" ? (
-                  <div className="space-y-4">
+                  <FormSection title="Security policy" description="Login rules and access restrictions.">
                     <ToggleRow
                       label="Allow workspace login"
-                      description="Member can sign in after accepting invite"
+                      description="Member can sign in after accepting the invite"
                       checked={form.loginEnabled}
                       onChange={(v) => set("loginEnabled", v)}
                     />
                     <ToggleRow
                       label="Account active"
-                      description="Inactive accounts cannot access any module"
+                      description="Inactive accounts are blocked from all modules"
                       checked={form.activeStatus}
                       onChange={(v) => set("activeStatus", v)}
                     />
                     <ToggleRow
                       label="Require MFA on first login"
-                      description="Recommended for revenue, compliance, and admin roles"
+                      description="Recommended for admin, finance, and compliance roles"
                       checked={requireMfa}
                       onChange={setRequireMfa}
                     />
-                    <Field label="IP allowlist (optional)" htmlFor="iw-ips">
+                    <Field label="IP allowlist" htmlFor="iw-ips" hint="Optional · comma-separated IPv4 addresses">
                       <input
                         id="iw-ips"
                         value={form.allowedIps}
@@ -493,16 +535,15 @@ export function InviteMemberWizard({ open, onClose, onCreated }: Props) {
                         placeholder="203.0.113.0, 198.51.100.42"
                         className={inputClass}
                       />
-                      <p className="mt-1.5 text-[11px] text-slate-500">Leave empty for no IP restriction.</p>
                     </Field>
-                  </div>
+                  </FormSection>
                 ) : null}
 
                 {step === "review" ? (
-                  <div className="space-y-4">
-                    <div className="rounded-2xl border border-slate-200/90 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/50">
-                      <div className="flex items-center gap-3 border-b border-slate-200/80 pb-3 dark:border-slate-700">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#191970] text-sm font-bold text-white">
+                  <FormSection title="Review & send" description="Confirm provisioning details before sending.">
+                    <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
+                      <div className="flex items-center gap-3 bg-gradient-to-r from-[#191970] to-indigo-800 px-4 py-3.5">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/15 text-sm font-bold text-white">
                           {form.name
                             .split(" ")
                             .map((p) => p[0])
@@ -510,12 +551,12 @@ export function InviteMemberWizard({ open, onClose, onCreated }: Props) {
                             .slice(0, 2)
                             .toUpperCase() || "?"}
                         </div>
-                        <div>
-                          <p className="font-bold text-slate-900 dark:text-white">{form.name || "—"}</p>
-                          <p className="text-xs text-slate-500">{form.email || "—"}</p>
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-white">{form.name || "—"}</p>
+                          <p className="truncate text-xs text-white/70">{form.email || "—"}</p>
                         </div>
                       </div>
-                      <dl className="mt-3 space-y-2 text-xs">
+                      <dl className="divide-y divide-slate-100 dark:divide-slate-800">
                         <ReviewRow label="Profile role" value={form.profileRole} />
                         <ReviewRow label="Department" value={form.department || "—"} />
                         <ReviewRow label="Team" value={form.team || "—"} />
@@ -523,56 +564,64 @@ export function InviteMemberWizard({ open, onClose, onCreated }: Props) {
                         <ReviewRow
                           label="Security"
                           value={[
-                            form.loginEnabled ? "Login on" : "Login off",
+                            form.loginEnabled ? "Login enabled" : "Login disabled",
                             form.activeStatus ? "Active" : "Inactive",
                             requireMfa ? "MFA required" : "MFA optional",
                           ].join(" · ")}
                         />
                       </dl>
                     </div>
-                    <div className="flex items-start gap-2 rounded-xl border border-emerald-200/80 bg-emerald-50/60 p-3 text-xs text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-200">
-                      <Mail className="h-4 w-4 shrink-0" />
-                      An invitation email will be sent with a 72-hour secure link.
+                    <div className="flex items-start gap-2.5 rounded-lg border border-emerald-200/70 bg-emerald-50/50 px-3.5 py-3 dark:border-emerald-900/30 dark:bg-emerald-950/15">
+                      <Mail className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                      <p className="text-xs leading-relaxed text-emerald-900 dark:text-emerald-200">
+                        A secure invitation email will be sent. The link expires in 72 hours.
+                      </p>
                     </div>
-                  </div>
+                  </FormSection>
                 ) : null}
               </motion.div>
             </AnimatePresence>
           </div>
 
-          <footer className="flex shrink-0 items-center justify-between gap-2 border-t border-slate-100 px-5 py-4 dark:border-slate-800">
+          <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-100 bg-white px-5 py-3.5 dark:border-slate-800 dark:bg-slate-950 sm:px-6">
             <button
               type="button"
               onClick={stepIndex === 0 ? handleClose : back}
-              className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               {stepIndex === 0 ? (
                 "Cancel"
               ) : (
                 <>
-                  <ArrowLeft className="h-4 w-4" />
+                  <ArrowLeft className="h-3.5 w-3.5" />
                   Back
                 </>
               )}
             </button>
-            <button
-              type="submit"
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#191970] px-5 text-sm font-semibold text-white shadow-md hover:bg-[#0f0f4d]"
-            >
-              {step === "review" ? (
-                <>
-                  <UserPlus className="h-4 w-4" />
-                  Send invitation
-                </>
-              ) : (
-                <>
-                  Continue
-                  <ArrowRight className="h-4 w-4" />
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-3">
+              <span className="hidden text-[11px] text-slate-400 sm:inline">
+                {stepIndex + 1} / {STEPS.length}
+              </span>
+              <button
+                type="submit"
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#191970] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0f0f4d]"
+              >
+                {step === "review" ? (
+                  <>
+                    <UserPlus className="h-3.5 w-3.5" />
+                    Send invitation
+                  </>
+                ) : (
+                  <>
+                    Continue
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </>
+                )}
+              </button>
+            </div>
           </footer>
         </form>
+        </div>
       </motion.div>
     </div>
   );
@@ -590,10 +639,10 @@ function ToggleRow({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200/90 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+    <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/90 bg-slate-50/40 px-3.5 py-3 dark:border-slate-800 dark:bg-slate-900/30">
       <div>
-        <p className="text-sm font-semibold text-slate-900 dark:text-white">{label}</p>
-        <p className="mt-0.5 text-xs text-slate-500">{description}</p>
+        <p className="text-xs font-semibold text-slate-900 dark:text-white">{label}</p>
+        <p className="mt-0.5 text-[11px] text-slate-500">{description}</p>
       </div>
       <button
         type="button"
@@ -601,14 +650,14 @@ function ToggleRow({
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={cn(
-          "relative h-6 w-11 shrink-0 rounded-full transition",
+          "relative h-5 w-9 shrink-0 rounded-full transition",
           checked ? "bg-[#191970]" : "bg-slate-300 dark:bg-slate-600",
         )}
       >
         <span
           className={cn(
-            "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition",
-            checked ? "left-[22px]" : "left-0.5",
+            "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition",
+            checked ? "left-[18px]" : "left-0.5",
           )}
         />
       </button>
@@ -618,9 +667,9 @@ function ToggleRow({
 
 function ReviewRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between gap-4">
-      <dt className="text-slate-500">{label}</dt>
-      <dd className="max-w-[58%] text-right font-semibold text-slate-800 dark:text-slate-200">{value}</dd>
+    <div className="flex items-center justify-between gap-4 px-4 py-2.5 text-xs">
+      <dt className="font-medium text-slate-500">{label}</dt>
+      <dd className="max-w-[55%] truncate text-right font-semibold text-slate-800 dark:text-slate-200">{value}</dd>
     </div>
   );
 }

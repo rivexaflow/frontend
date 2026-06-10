@@ -1,5 +1,5 @@
-import { HrmSectionView } from "@/features/workspace/views/hrm-section-view";
+import { HrmLeaveView } from "@/features/workspace/views/hrm-leave-view";
 
 export default function HrmLeavePage() {
-  return <HrmSectionView section="leave" />;
+  return <HrmLeaveView />;
 }

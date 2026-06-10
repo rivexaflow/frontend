@@ -1,5 +1,5 @@
-import { HrmSectionView } from "@/features/workspace/views/hrm-section-view";
+import { HrmEventsView } from "@/features/workspace/views/hrm-events-view";
 
 export default function HrmEventsPage() {
-  return <HrmSectionView section="events" />;
+  return <HrmEventsView />;
 }

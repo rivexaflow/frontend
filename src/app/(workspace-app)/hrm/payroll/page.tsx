@@ -1,5 +1,5 @@
-import { HrmSectionView } from "@/features/workspace/views/hrm-section-view";
+import { HrmPayrollView } from "@/features/workspace/views/hrm-payroll-view";
 
 export default function HrmPayrollPage() {
-  return <HrmSectionView section="payroll" />;
+  return <HrmPayrollView />;
 }

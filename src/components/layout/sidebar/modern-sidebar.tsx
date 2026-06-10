@@ -27,7 +27,7 @@ import {
   Ticket,
   Activity,
   History,
-  CreditCard
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { HRM_NAV_ITEMS } from "@/features/workspace/data/hrm-nav";
@@ -52,7 +52,6 @@ interface NavGroup {
 
 const workspaceNavItems: NavItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, category: "General" },
-  { name: "Contacts", href: "/crm/contacts", icon: Users, category: "Operations" },
   { name: "Leads", href: "/crm/leads", icon: Target, category: "Operations" },
   { name: "Deals", href: workspacePaths.deals, icon: Briefcase, category: "Operations" },
   { name: "Pipelines", href: "/crm/pipelines", icon: Layers, category: "Operations" },
@@ -75,6 +74,7 @@ const workspaceNavGroups: NavGroup[] = [
     category: "Governance",
     children: [
       { name: "Users", href: workspacePaths.user },
+      { name: "Departments", href: workspacePaths.workforce },
       { name: "Roles & permissions", href: workspacePaths.role },
       { name: "User activity", href: workspacePaths.userActivity },
     ],
