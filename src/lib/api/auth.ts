@@ -297,7 +297,7 @@ export async function superAdminLoginUser(payload: LoginPayload): Promise<AuthRe
   try {
     return await postAuthAndNormalize(endpoints.auth.superAdminLogin, payload);
   } catch (err) {
-    mapLoginError(err);
+    return mapLoginError(err);
   }
 }
 
@@ -311,6 +311,6 @@ export async function loginUser(payload: LoginPayload): Promise<AuthResult> {
   try {
     return await postAuthAndNormalize(endpoints.auth.login, payload);
   } catch (err) {
-    mapLoginError(err);
+    return mapLoginError(err);
   }
 }
