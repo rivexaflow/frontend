@@ -18,6 +18,7 @@ const STATUS_TONE = {
   probation: "amber",
   on_leave: "blue",
   offboarding: "purple",
+  resigned: "purple",
   terminated: "rose",
   inactive: "slate",
 } as const;
@@ -26,7 +27,8 @@ const STATUS_LABEL = {
   active: "Active",
   probation: "Probation",
   on_leave: "On leave",
-  offboarding: "Offboarding",
+  offboarding: "Notice period",
+  resigned: "Resigned",
   terminated: "Terminated",
   inactive: "Inactive",
 } as const;

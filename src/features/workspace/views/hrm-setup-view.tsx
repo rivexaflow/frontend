@@ -6,7 +6,7 @@ import {
   AlertCircle,
   Bell,
   Calendar,
-  Check,
+  CheckCircle2,
   Clock,
   Globe,
   Loader2,
@@ -15,10 +15,12 @@ import {
   RotateCcw,
   Settings,
   Shield,
-  Sliders,
   Wallet,
 } from "lucide-react";
 
+import { CrmPanel, CrmShell } from "@/features/workspace/components/crm/crm-panel";
+import { HrmCompactBanner } from "@/features/workspace/components/hrm/hrm-compact-banner";
+import { OrgChartStatStrip } from "@/features/workspace/components/hrm/org-chart-stat-strip";
 import {
   CURRENCY_OPTIONS,
   DEFAULT_HRM_SETUP,
@@ -148,50 +150,77 @@ export function HrmSetupView() {
   }, []);
 
   const activeMeta = HRM_SETUP_SECTIONS.find((s) => s.id === section)!;
+  const configuredPct = Math.round(
+    (totalConfigured / (HRM_SETUP_SECTIONS.length * 3)) * 100,
+  );
 
   return (
-    <div className="pb-10">
-      <header className="mb-6">
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">People · HRM</p>
-        <div className="mt-1 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">System setup</h1>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-              Enterprise HRM configuration — regional locale, payroll cycles, compliance, and integrations.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {[
-              { label: "Sections", value: HRM_SETUP_SECTIONS.length, icon: Sliders },
-              { label: "Configured", value: `${totalConfigured}/${HRM_SETUP_SECTIONS.length * 3}`, icon: Check },
-              { label: "Timezone", value: settings.regional.defaultTimezone.split("/")[1] ?? "—", icon: Globe },
-              { label: "Currency", value: settings.regional.defaultCurrency, icon: Wallet },
-            ].map((stat) => (
-              <div key={stat.label} className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white px-3 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <stat.icon className="h-3.5 w-3.5 text-slate-400" />
-                <span className="text-xs text-slate-500">{stat.label}</span>
-                <span className="text-sm font-bold text-slate-900 dark:text-white">{stat.value}</span>
+    <div className="pb-8">
+      <CrmShell>
+        <HrmCompactBanner
+          title="System setup"
+          subtitle="Regional defaults · payroll · leave · compliance · integrations"
+          stats={[
+            { label: "Sections", value: HRM_SETUP_SECTIONS.length },
+            { label: "Configured", value: `${configuredPct}%`, tone: configuredPct >= 80 ? "success" : "warning" },
+            { label: "Timezone", value: settings.regional.defaultTimezone.split("/")[1] ?? "—" },
+            { label: "Currency", value: settings.regional.defaultCurrency },
+          ]}
+          actions={
+            <button
+              type="button"
+              onClick={() => void load()}
+              disabled={loading}
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-white/15 px-3 text-xs font-semibold text-white ring-1 ring-white/20 hover:bg-white/25 disabled:opacity-50"
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+              Reload
+            </button>
+          }
+        />
+
+        <div className="space-y-4 p-3 md:p-4">
+          {error ? (
+            <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {error}
+            </div>
+          ) : null}
+
+          <OrgChartStatStrip
+            stats={[
+              {
+                label: "Pay frequency",
+                value: settings.payroll.payFrequency,
+                hint: "Payroll cycle",
+                icon: Wallet,
+                tone: "blue",
+              },
+              {
+                label: "Annual leave",
+                value: `${settings.leave.annualLeaveDays}d`,
+                hint: "Default entitlement",
+                icon: Calendar,
+                tone: "emerald",
+              },
+              {
+                label: "Audit log",
+                value: settings.compliance.auditLogEnabled ? "On" : "Off",
+                hint: "Compliance",
+                icon: Shield,
+                tone: "amber",
+              },
+            ]}
+          />
+
+          <CrmPanel>
+            {loading ? (
+              <div className="flex items-center justify-center gap-2 py-24 text-sm text-slate-500">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Loading settings…
               </div>
-            ))}
-          </div>
-        </div>
-      </header>
-
-      {error ? (
-        <div className="mb-4 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          {error}
-        </div>
-      ) : null}
-
-      <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        {loading ? (
-          <div className="flex items-center justify-center gap-2 py-24 text-sm text-slate-500">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            Loading settings…
-          </div>
-        ) : (
-        <div className="flex flex-col lg:flex-row">
+            ) : (
+              <div className="flex flex-col lg:flex-row">
           <nav className="shrink-0 border-b border-slate-200/90 p-4 lg:w-64 lg:border-b-0 lg:border-r dark:border-slate-800">
             {(["core", "operations", "platform"] as const).map((group) => (
               <div key={group} className="mb-4 last:mb-0">
@@ -403,14 +432,16 @@ export function HrmSetupView() {
               </button>
               {savedSection === section ? (
                 <span className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600">
-                  <Check className="h-4 w-4" /> Section saved
+                  <CheckCircle2 className="h-4 w-4" /> Section saved
                 </span>
               ) : null}
             </div>
           </div>
         </div>
-        )}
-      </div>
+            )}
+          </CrmPanel>
+        </div>
+      </CrmShell>
     </div>
   );
 }

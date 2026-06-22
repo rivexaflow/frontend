@@ -23,9 +23,10 @@ import { ChangePasswordForm } from "@/features/auth/components/change-password-f
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  sidebarWidth?: number;
 }
 
-export function UserAccountDropdown({ isOpen, onClose }: Props) {
+export function UserAccountDropdown({ isOpen, onClose, sidebarWidth = 280 }: Props) {
   const user = authStore((s) => s.user);
   const logout = authStore((s) => s.logout);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -61,14 +62,15 @@ export function UserAccountDropdown({ isOpen, onClose }: Props) {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
               transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+              style={{ left: Math.max(8, sidebarWidth - 288 + 12), bottom: 88 }}
               className={cn(
-                "absolute bottom-20 left-4 z-50 w-72 overflow-hidden rounded-[24px] border border-slate-200 bg-white p-4 shadow-2xl",
-                "dark:border-slate-800 dark:bg-slate-900"
+                "fixed z-50 w-72 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl shadow-[#191970]/10",
+                "dark:border-slate-800 dark:bg-slate-900",
               )}
             >
               {/* Header */}
               <div className="flex items-center gap-3 px-2 py-3">
-                <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-blue-100 to-indigo-100 dark:from-blue-900/40 dark:to-indigo-900/40 flex items-center justify-center text-lg font-bold text-blue-600 uppercase">
+                <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-[#191970]/15 to-[#2277ff]/20 flex items-center justify-center text-lg font-bold text-[#191970] uppercase">
                   {user?.fullName?.charAt(0) || user?.email?.charAt(0) || "U"}
                 </div>
                 <div className="flex-1 overflow-hidden">

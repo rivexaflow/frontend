@@ -1,14 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { AlertCircle, GitBranch, Loader2, Users } from "lucide-react";
+import { AlertCircle, GitBranch, Layers, Loader2, Users } from "lucide-react";
 
 import {
   OrganizationChart,
   OrgChartToolbar,
 } from "@/features/workspace/components/hrm/organization-chart";
 import { OrgChartDetailPanel } from "@/features/workspace/components/hrm/org-chart-detail-panel";
+import { measureOrgTree } from "@/features/workspace/components/hrm/org-chart-layout";
+import { OrgChartStatStrip } from "@/features/workspace/components/hrm/org-chart-stat-strip";
 import { EnterprisePageShell } from "@/features/workspace/components/enterprise/enterprise-page-shell";
 import { useHrCompanyId } from "@/features/workspace/hooks/use-hr-company-id";
 import { MISSING_COMPANY_CONTEXT_MESSAGE } from "@/lib/workspace/company-context";
@@ -69,26 +71,43 @@ export function HrmOrgChartView() {
     void load();
   };
 
+  const orgStats = useMemo(() => {
+    const unitCount = new Set(employees.map((e) => e.unitLabel ?? e.department).filter(Boolean)).size;
+    const { depth } = measureOrgTree(employees);
+    const managerCount = employees.filter((e) =>
+      employees.some((r) => r.managerId === e.id),
+    ).length;
+
+    return [
+      {
+        label: "Headcount",
+        value: employees.length,
+        hint: "On chart",
+        icon: Users,
+        tone: "blue" as const,
+      },
+      {
+        label: "Units",
+        value: unitCount,
+        hint: "Departments",
+        icon: GitBranch,
+        tone: "emerald" as const,
+      },
+      {
+        label: "Levels",
+        value: depth,
+        hint: managerCount > 0 ? `${managerCount} managers` : "Hierarchy depth",
+        icon: Layers,
+        tone: "amber" as const,
+      },
+    ];
+  }, [employees]);
+
   return (
     <EnterprisePageShell
       eyebrow="People · HRM"
       title="Company org chart"
       description="Full-width interactive hierarchy. Click any unit to open its profile — scroll and zoom to explore the entire organization."
-      metrics={[
-        {
-          label: "Headcount",
-          value: String(employees.length),
-          hint: "On chart",
-          icon: Users,
-          tone: "blue",
-        },
-        {
-          label: "Units",
-          value: String(new Set(employees.map((e) => e.unitLabel ?? e.department)).size),
-          icon: GitBranch,
-          tone: "purple",
-        },
-      ]}
       toolbar={<OrgChartToolbar onRefresh={handleRefresh} />}
     >
       {!companyId ? (
@@ -104,6 +123,8 @@ export function HrmOrgChartView() {
           <p>{error}</p>
         </div>
       ) : null}
+
+      <OrgChartStatStrip stats={orgStats} />
 
       <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="border-b border-slate-100 px-5 py-3.5 dark:border-slate-800">

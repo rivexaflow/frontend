@@ -203,7 +203,7 @@ export function LeadFormModal({ open, onClose, onSubmit, defaultOwner = "Priya S
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-70"
+            className="rounded-lg bg-[#191970] px-4 py-2 text-sm font-semibold text-white hover:bg-[#12124a] disabled:opacity-70"
           >
             Create lead
           </button>

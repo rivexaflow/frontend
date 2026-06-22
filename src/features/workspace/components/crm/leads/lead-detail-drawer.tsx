@@ -14,20 +14,17 @@ import {
 } from "lucide-react";
 
 import { StatusBadge } from "@/features/workspace/components/enterprise/enterprise-data-table";
-import type { LeadRecord, LeadStatus } from "@/features/workspace/data/crm-demo";
+import { isTerminalLeadStatus, LEAD_STATUS_LABELS, type LeadRecord, type LeadStatus } from "@/features/workspace/data/crm-demo";
 
-const statusTone = {
-  new: "blue",
-  qualified: "emerald",
-  nurturing: "amber",
-  lost: "rose",
-} as const;
-
-const statusLabel: Record<LeadStatus, string> = {
-  new: "New",
-  qualified: "Qualified",
-  nurturing: "Nurturing",
-  lost: "Not a fit",
+const statusTone = (status: LeadStatus): "blue" | "emerald" | "amber" | "rose" => {
+  if (status === "interested" || status === "document_received" || status === "move_to_activation" || status === "qualified") {
+    return "emerald";
+  }
+  if (isTerminalLeadStatus(status)) return "rose";
+  if (status === "callback" || status === "document_pending" || status === "not_pickup_call" || status === "nurturing") {
+    return "amber";
+  }
+  return "blue";
 };
 
 type Props = {
@@ -49,7 +46,7 @@ export function LeadDetailDrawer({ lead, onClose, onStatusChange, onConvert }: P
 
   if (!lead) return null;
 
-  const isHot = (lead.scoreBand === "A1" || lead.scoreBand === "A2") && lead.status !== "lost";
+  const isHot = (lead.scoreBand === "A1" || lead.scoreBand === "A2") && !isTerminalLeadStatus(lead.status);
 
   return (
     <div className="fixed inset-0 z-[130] flex justify-end">
@@ -69,7 +66,7 @@ export function LeadDetailDrawer({ lead, onClose, onStatusChange, onConvert }: P
 
         <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
           <div className="flex flex-wrap gap-2">
-            <StatusBadge label={statusLabel[lead.status]} tone={statusTone[lead.status]} />
+            <StatusBadge label={LEAD_STATUS_LABELS[lead.status]} tone={statusTone(lead.status)} />
             {isHot ? <StatusBadge label="Hot lead" tone="emerald" /> : null}
           </div>
 
@@ -118,9 +115,9 @@ export function LeadDetailDrawer({ lead, onClose, onStatusChange, onConvert }: P
           </div>
         </div>
 
-        {lead.status !== "lost" ? (
+        {!isTerminalLeadStatus(lead.status) ? (
           <div className="space-y-2 border-t border-slate-100 p-4 dark:border-slate-800">
-            {lead.status === "qualified" ? (
+            {lead.status === "interested" || lead.status === "ready_to_open_account" || lead.status === "move_to_activation" ? (
               <button
                 type="button"
                 onClick={onConvert}
@@ -133,7 +130,7 @@ export function LeadDetailDrawer({ lead, onClose, onStatusChange, onConvert }: P
               <button
                 type="button"
                 onClick={() => {
-                  onStatusChange(lead.id, "qualified");
+                  onStatusChange(lead.id, "interested");
                   onConvert();
                 }}
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
@@ -145,19 +142,19 @@ export function LeadDetailDrawer({ lead, onClose, onStatusChange, onConvert }: P
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => onStatusChange(lead.id, "qualified")}
+                onClick={() => onStatusChange(lead.id, "interested")}
                 className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 py-2 text-xs font-semibold text-emerald-800"
               >
                 <CheckCircle2 className="h-4 w-4" />
-                Qualify
+                Mark interested
               </button>
               <button
                 type="button"
-                onClick={() => onStatusChange(lead.id, "lost")}
+                onClick={() => onStatusChange(lead.id, "not_interested")}
                 className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 py-2 text-xs font-semibold text-rose-700"
               >
                 <XCircle className="h-4 w-4" />
-                Not a fit
+                Not interested
               </button>
             </div>
           </div>

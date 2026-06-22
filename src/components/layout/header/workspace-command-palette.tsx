@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  BarChart3,
   Bell,
   FileText,
   Layers,
   LayoutDashboard,
+  Phone,
   Search,
   Settings,
   ShieldCheck,
@@ -16,6 +18,7 @@ import {
   Zap,
 } from "lucide-react";
 
+import { HRM_NAV_FLAT_LINKS } from "@/features/workspace/data/hrm-nav";
 import { workspacePaths } from "@/lib/workspace/paths";
 
 type CommandItem = {
@@ -30,14 +33,28 @@ type CommandItem = {
 const COMMANDS: CommandItem[] = [
   { id: "dash", label: "Dashboard", hint: "Overview & quick actions", href: workspacePaths.dashboard, icon: LayoutDashboard, keywords: ["home", "overview"] },
   { id: "leads", label: "Leads", hint: "CRM · Pipeline intake", href: workspacePaths.leads, icon: Target, keywords: ["crm", "prospects"] },
+  { id: "deals", label: "Deals", hint: "CRM · Opportunities", href: workspacePaths.deals, icon: Layers, keywords: ["crm", "deals"] },
   { id: "pipelines", label: "Pipelines", hint: "CRM · Deals & stages", href: workspacePaths.pipelines, icon: Layers, keywords: ["deals", "opportunities"] },
+  { id: "crm-tasks", label: "CRM tasks", hint: "CRM · Lead tasks", href: workspacePaths.crmTasks, icon: Target, keywords: ["crm", "tasks", "todo"] },
+  { id: "crm-dialer", label: "Dialer", hint: "CRM · Click-to-call & queue", href: workspacePaths.crmDialer, icon: Phone, keywords: ["crm", "dialer", "call", "phone", "outbound"] },
+  { id: "crm-lead-reports", label: "Report · Lead", hint: "CRM · Analytics", href: workspacePaths.crmLeadReports, icon: BarChart3, keywords: ["crm", "reports", "analytics", "lead"] },
+  { id: "crm-deal-reports", label: "Report · Deal", hint: "CRM · Analytics", href: workspacePaths.crmDealReports, icon: BarChart3, keywords: ["crm", "reports", "analytics", "deal"] },
+  { id: "crm-setup", label: "CRM settings", hint: "CRM · Stages & defaults", href: workspacePaths.crmSetup, icon: Settings, keywords: ["crm", "settings", "setup", "config"] },
   { id: "kyc", label: "KYC Center", hint: "Identity verification", href: workspacePaths.kyc, icon: ShieldCheck, keywords: ["compliance", "verification"] },
   { id: "invoices", label: "Invoices", hint: "Billing & receivables", href: workspacePaths.invoices, icon: FileText, keywords: ["billing", "finance"] },
   { id: "ai", label: "AI Agents", hint: "Automations & assistants", href: workspacePaths.ai, icon: Sparkles, keywords: ["automation", "intelligence"] },
   { id: "reports", label: "Analytics", hint: "Reports & insights", href: workspacePaths.reports, icon: Zap, keywords: ["reports", "metrics"] },
   { id: "notifications", label: "Notifications", hint: "Alerts & activity", href: workspacePaths.notifications, icon: Bell, keywords: ["alerts"] },
   { id: "settings", label: "Settings", hint: "Workspace configuration", href: workspacePaths.settings, icon: Settings, keywords: ["preferences", "security"] },
-  { id: "departments", label: "Departments", hint: "Governance · Org structure", href: workspacePaths.workforce, icon: Users, keywords: ["departments", "teams", "organization"] },
+  { id: "departments", label: "Departments", hint: "HRM · Org structure", href: workspacePaths.hrmDepartments, icon: Users, keywords: ["departments", "teams", "organization", "hrm"] },
+  ...HRM_NAV_FLAT_LINKS.map((item) => ({
+    id: `hrm-${item.href}`,
+    label: item.name,
+    hint: "HRM",
+    href: item.href,
+    icon: Users,
+    keywords: ["hrm", "people", item.name.toLowerCase()],
+  })),
 ];
 
 type Props = {

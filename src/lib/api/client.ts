@@ -51,7 +51,7 @@ apiClient.interceptors.request.use((config) => {
 const isAuthEndpoint = (url: string | undefined): boolean => {
   if (!url) return false;
   return (
-    /\/auth\/(login|register|refresh|logout)\b/.test(url) ||
+    /\/auth\/(login|super-admin-login|register|refresh|logout)\b/.test(url) ||
     /\/onboarding\/(login|register)\b/.test(url)
   );
 };

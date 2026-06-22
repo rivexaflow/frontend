@@ -5,14 +5,10 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   Building2,
-  ChevronDown,
   Loader2,
-  Pencil,
   Plus,
   RefreshCw,
   Search,
-  Shield,
-  Trash2,
   Users,
   UsersRound,
 } from "lucide-react";
@@ -22,6 +18,12 @@ import {
   FormField,
   inputClassName,
 } from "@/features/workspace/components/enterprise/enterprise-form-modal";
+import {
+  DepartmentFolderCard,
+  DepartmentFolderCardSkeleton,
+} from "@/features/workspace/components/hrm/departments/department-folder-card";
+import { DepartmentTeamsDrawer } from "@/features/workspace/components/hrm/departments/department-teams-drawer";
+import { MemberAccessPanel } from "@/features/workspace/components/hrm/departments/member-access-panel";
 import { useHrCompanyId } from "@/features/workspace/hooks/use-hr-company-id";
 import { MISSING_COMPANY_CONTEXT_MESSAGE } from "@/lib/workspace/company-context";
 import {
@@ -32,7 +34,6 @@ import {
   fetchCompanyDepartments,
   updateCompanyDepartment,
   updateDepartmentTeam,
-  updateMemberScope,
 } from "@/lib/api/company";
 import { DEMO_WORKSPACE_USERS } from "@/features/workspace/data/workspace-users-demo";
 import { fetchHrEmployees } from "@/lib/api/hrm";
@@ -40,7 +41,6 @@ import type {
   HrmDepartment,
   HrmDepartmentTeam,
   HrmEmployeeRecord,
-  MemberDataScope,
 } from "@/types/hrm";
 import { workspacePaths } from "@/lib/workspace/paths";
 import { cn } from "@/lib/utils/cn";
@@ -65,21 +65,11 @@ function buildLeaderOptions(
     .sort((a, b) => a.label.localeCompare(b.label));
 }
 
-const SCOPE_OPTIONS: { value: MemberDataScope; label: string; description: string }[] = [
-  { value: "SELF", label: "Self only", description: "Member sees only their own records." },
-  { value: "TEAM", label: "Team", description: "Member sees records for their assigned team." },
-  { value: "DEPARTMENT", label: "Department", description: "Member sees all records in a department." },
-  { value: "COMPANY", label: "Company-wide", description: "Member sees organization-wide records." },
-];
-
 type PageTab = "organization" | "access";
 type DeptModalMode = { type: "create" } | { type: "edit"; dept: HrmDepartment };
 type TeamModalMode =
   | { type: "create"; deptId: string; deptName: string }
   | { type: "edit"; deptId: string; team: HrmDepartmentTeam };
-
-const selectClass =
-  "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-[#191970] focus:ring-1 focus:ring-[#191970]/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200";
 
 export function WorkforceManagementView() {
   const companyId = useHrCompanyId();
@@ -87,7 +77,7 @@ export function WorkforceManagementView() {
   const [departments, setDepartments] = useState<HrmDepartment[]>([]);
   const [employees, setEmployees] = useState<HrmEmployeeRecord[]>([]);
   const [employeesError, setEmployeesError] = useState<string | null>(null);
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [drawerDeptId, setDrawerDeptId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -108,9 +98,6 @@ export function WorkforceManagementView() {
     try {
       const deptList = await fetchCompanyDepartments(companyId);
       setDepartments(deptList);
-      if (deptList.length > 0) {
-        setExpandedIds(new Set([deptList[0].id]));
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load departments.");
     }
@@ -161,14 +148,9 @@ export function WorkforceManagementView() {
     return leaderOptions.find((o) => o.id === id)?.label ?? "Unknown member";
   };
 
-  const toggleExpanded = (deptId: string) => {
-    setExpandedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(deptId)) next.delete(deptId);
-      else next.add(deptId);
-      return next;
-    });
-  };
+  const drawerDept = drawerDeptId
+    ? filteredDepartments.find((d) => d.id === drawerDeptId) ?? departments.find((d) => d.id === drawerDeptId) ?? null
+    : null;
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -183,7 +165,7 @@ export function WorkforceManagementView() {
         d.id === dept.id ? { ...dept, teams: dept.teams.length ? dept.teams : d.teams } : d,
       );
     });
-    setExpandedIds((prev) => new Set([...prev, dept.id]));
+    setDrawerDeptId(dept.id);
   };
 
   const upsertTeam = (deptId: string, team: HrmDepartmentTeam) => {
@@ -196,16 +178,12 @@ export function WorkforceManagementView() {
         return { ...d, teams };
       }),
     );
-    setExpandedIds((prev) => new Set([...prev, deptId]));
+    setDrawerDeptId(deptId);
   };
 
   const removeDepartment = (deptId: string) => {
     setDepartments((prev) => prev.filter((d) => d.id !== deptId));
-    setExpandedIds((prev) => {
-      const next = new Set(prev);
-      next.delete(deptId);
-      return next;
-    });
+    setDrawerDeptId((prev) => (prev === deptId ? null : prev));
   };
 
   const removeTeam = (deptId: string, teamId: string) => {
@@ -326,16 +304,13 @@ export function WorkforceManagementView() {
                   className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none focus:border-[#191970] focus:ring-1 focus:ring-[#191970]/20 dark:border-slate-700 dark:bg-slate-950"
                 />
               </div>
-              <p className="mt-2 text-xs text-slate-500">
-                {filteredDepartments.length} department{filteredDepartments.length === 1 ? "" : "s"} ·
-                expand a row to manage its teams
-              </p>
             </div>
 
             {loading ? (
-              <div className="flex items-center justify-center gap-2 px-4 py-20 text-sm text-slate-500">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading departments…
+              <div className="grid gap-6 p-6 grid-cols-1 md:grid-cols-2 2xl:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <DepartmentFolderCardSkeleton key={i} />
+                ))}
               </div>
             ) : filteredDepartments.length === 0 ? (
               <div className="px-4 py-20 text-center">
@@ -357,51 +332,63 @@ export function WorkforceManagementView() {
                 </button>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[720px] text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:border-slate-800 dark:bg-slate-950/40">
-                      <th className="px-4 py-3">Name</th>
-                      <th className="px-4 py-3">Head / Leader</th>
-                      <th className="px-4 py-3">Members</th>
-                      <th className="px-4 py-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {filteredDepartments.map((dept) => {
-                      const expanded = expandedIds.has(dept.id);
-                      return (
-                        <DepartmentRows
-                          key={dept.id}
-                          dept={dept}
-                          expanded={expanded}
-                          memberLabel={memberLabel}
-                          onToggle={() => toggleExpanded(dept.id)}
-                          onEdit={() => setDeptModal({ type: "edit", dept })}
-                          onDelete={() => setDeleteDeptId(dept.id)}
-                          onAddTeam={() =>
-                            setTeamModal({ type: "create", deptId: dept.id, deptName: dept.name })
-                          }
-                          onEditTeam={(team) =>
-                            setTeamModal({ type: "edit", deptId: dept.id, team })
-                          }
-                          onDeleteTeam={(teamId) => setDeleteTeam({ deptId: dept.id, teamId })}
-                        />
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="p-5">
+                <div className="mb-5 flex items-center gap-2">
+                  <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Departments</h2>
+                  <span className="rounded-full bg-[#191970] px-2.5 py-0.5 text-[10px] font-bold text-white">
+                    {filteredDepartments.length}
+                  </span>
+                  <span className="text-xs text-slate-500">· click a folder to manage teams</span>
+                </div>
+                <div className="grid gap-6 grid-cols-1 md:grid-cols-2 2xl:grid-cols-3">
+                  {filteredDepartments.map((dept) => (
+                    <DepartmentFolderCard
+                      key={dept.id}
+                      dept={dept}
+                      headLabel={memberLabel(dept.headId)}
+                      selected={drawerDeptId === dept.id}
+                      onSelect={() => setDrawerDeptId(dept.id)}
+                      onEdit={() => setDeptModal({ type: "edit", dept })}
+                      onDelete={() => setDeleteDeptId(dept.id)}
+                      onAddTeam={() =>
+                        setTeamModal({ type: "create", deptId: dept.id, deptName: dept.name })
+                      }
+                    />
+                  ))}
+                </div>
               </div>
             )}
           </>
         ) : (
-          <MemberAccessTab
+          <MemberAccessPanel
             companyId={companyId}
             departments={departments}
             members={DEMO_WORKSPACE_USERS}
           />
         )}
       </div>
+
+      <DepartmentTeamsDrawer
+        dept={drawerDept}
+        headLabel={drawerDept ? memberLabel(drawerDept.headId) : ""}
+        memberLabel={memberLabel}
+        onClose={() => setDrawerDeptId(null)}
+        onEditDept={() => drawerDept && setDeptModal({ type: "edit", dept: drawerDept })}
+        onAddTeam={() =>
+          drawerDept &&
+          setTeamModal({
+            type: "create",
+            deptId: drawerDept.id,
+            deptName: drawerDept.name,
+          })
+        }
+        onEditTeam={(team) =>
+          drawerDept && setTeamModal({ type: "edit", deptId: drawerDept.id, team })
+        }
+        onDeleteTeam={(teamId) =>
+          drawerDept && setDeleteTeam({ deptId: drawerDept.id, teamId })
+        }
+      />
 
       {deptModal ? (
         <DepartmentModal
@@ -450,328 +437,6 @@ export function WorkforceManagementView() {
           }}
         />
       ) : null}
-    </div>
-  );
-}
-
-function DepartmentRows({
-  dept,
-  expanded,
-  memberLabel,
-  onToggle,
-  onEdit,
-  onDelete,
-  onAddTeam,
-  onEditTeam,
-  onDeleteTeam,
-}: {
-  dept: HrmDepartment;
-  expanded: boolean;
-  memberLabel: (id: string | null | undefined) => string;
-  onToggle: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
-  onAddTeam: () => void;
-  onEditTeam: (team: HrmDepartmentTeam) => void;
-  onDeleteTeam: (teamId: string) => void;
-}) {
-  return (
-    <>
-      <tr className="bg-white transition hover:bg-slate-50/60 dark:bg-slate-900 dark:hover:bg-slate-900/60">
-        <td className="px-4 py-3">
-          <button
-            type="button"
-            onClick={onToggle}
-            className="flex items-center gap-2 text-left font-semibold text-slate-900 dark:text-white"
-          >
-            <ChevronDown
-              className={cn(
-                "h-4 w-4 shrink-0 text-slate-400 transition",
-                expanded ? "rotate-0" : "-rotate-90",
-              )}
-            />
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40">
-              <Building2 className="h-4 w-4" />
-            </span>
-            <span>
-              {dept.name}
-              <span className="ml-2 text-xs font-normal text-slate-400">
-                {dept.teams.length} team{dept.teams.length === 1 ? "" : "s"}
-              </span>
-            </span>
-          </button>
-        </td>
-        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{memberLabel(dept.headId)}</td>
-        <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">
-          {dept.memberCount ?? "—"}
-        </td>
-        <td className="px-4 py-3">
-          <div className="flex justify-end gap-1">
-            <ActionButton label="Add team" onClick={onAddTeam} icon={Plus} />
-            <ActionButton label="Edit department" onClick={onEdit} icon={Pencil} />
-            <ActionButton label="Delete department" onClick={onDelete} icon={Trash2} danger />
-          </div>
-        </td>
-      </tr>
-
-      {expanded
-        ? dept.teams.length === 0
-          ? (
-            <tr className="bg-slate-50/50 dark:bg-slate-950/30">
-              <td colSpan={4} className="px-4 py-4 pl-16 text-sm text-slate-500">
-                No teams in this department.{" "}
-                <button
-                  type="button"
-                  onClick={onAddTeam}
-                  className="font-semibold text-[#191970] hover:underline"
-                >
-                  Add a team
-                </button>
-              </td>
-            </tr>
-          )
-          : dept.teams.map((team) => (
-            <tr
-              key={team.id}
-              className="bg-slate-50/50 transition hover:bg-slate-100/60 dark:bg-slate-950/30 dark:hover:bg-slate-900/50"
-            >
-              <td className="px-4 py-2.5 pl-16">
-                <span className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
-                  <UsersRound className="h-4 w-4 text-slate-400" />
-                  {team.name}
-                </span>
-              </td>
-              <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">
-                {memberLabel(team.leaderId)}
-              </td>
-              <td className="px-4 py-2.5 tabular-nums text-slate-600 dark:text-slate-300">
-                {team.memberCount ?? "—"}
-              </td>
-              <td className="px-4 py-2.5">
-                <div className="flex justify-end gap-1">
-                  <ActionButton
-                    label={`Edit ${team.name}`}
-                    onClick={() => onEditTeam(team)}
-                    icon={Pencil}
-                  />
-                  <ActionButton
-                    label={`Delete ${team.name}`}
-                    onClick={() => onDeleteTeam(team.id)}
-                    icon={Trash2}
-                    danger
-                  />
-                </div>
-              </td>
-            </tr>
-          ))
-        : null}
-    </>
-  );
-}
-
-function ActionButton({
-  label,
-  onClick,
-  icon: Icon,
-  danger,
-}: {
-  label: string;
-  onClick: () => void;
-  icon: React.ElementType;
-  danger?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      className={cn(
-        "rounded-lg p-2 transition",
-        danger
-          ? "text-rose-500 hover:bg-rose-50"
-          : "text-slate-500 hover:bg-slate-100 hover:text-slate-800",
-      )}
-    >
-      <Icon className="h-4 w-4" />
-    </button>
-  );
-}
-
-function MemberAccessTab({
-  companyId,
-  departments,
-  members,
-}: {
-  companyId: string | null;
-  departments: HrmDepartment[];
-  members: { id: string; name: string; email: string }[];
-}) {
-  const [memberId, setMemberId] = useState("");
-  const [dataScope, setDataScope] = useState<MemberDataScope>("SELF");
-  const [departmentId, setDepartmentId] = useState("");
-  const [teamId, setTeamId] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [scopeError, setScopeError] = useState<string | null>(null);
-
-  const teamsForDept = useMemo(() => {
-    const dept = departments.find((d) => d.id === departmentId);
-    return dept?.teams ?? [];
-  }, [departments, departmentId]);
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!companyId || !memberId) {
-      setScopeError("Please select a member.");
-      return;
-    }
-    if (dataScope === "TEAM" && (!departmentId || !teamId)) {
-      setScopeError("Select both a department and team for team-level access.");
-      return;
-    }
-    if (dataScope === "DEPARTMENT" && !departmentId) {
-      setScopeError("Select a department for department-level access.");
-      return;
-    }
-
-    setSubmitting(true);
-    setScopeError(null);
-    setMessage(null);
-    try {
-      await updateMemberScope(companyId, memberId, {
-        dataScope,
-        departmentId: dataScope === "DEPARTMENT" || dataScope === "TEAM" ? departmentId : null,
-        teamId: dataScope === "TEAM" ? teamId : null,
-      });
-      setMessage("Access scope saved.");
-    } catch (err) {
-      setScopeError(err instanceof Error ? err.message : "Could not save access scope.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="p-4 sm:p-6">
-      <div className="mb-6 flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
-        <Shield className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
-        <div>
-          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">What is member access?</p>
-          <p className="mt-1 text-sm text-slate-500">
-            Choose how much data each person can see — only their own work, their team, their
-            department, or the whole company.
-          </p>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="mx-auto max-w-2xl space-y-5">
-        <FormField label="Member" htmlFor="access-member">
-          <select
-            id="access-member"
-            value={memberId}
-            onChange={(e) => setMemberId(e.target.value)}
-            className={selectClass}
-            disabled={!companyId || submitting}
-          >
-            <option value="">Select a member</option>
-            {members.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.name} ({member.email})
-              </option>
-            ))}
-          </select>
-        </FormField>
-
-        <fieldset>
-          <legend className="mb-2 text-sm font-semibold text-slate-800 dark:text-slate-200">
-            Access level
-          </legend>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {SCOPE_OPTIONS.map((opt) => (
-              <label
-                key={opt.value}
-                className={cn(
-                  "flex cursor-pointer gap-3 rounded-xl border p-3 transition",
-                  dataScope === opt.value
-                    ? "border-[#191970] bg-blue-50/50 ring-1 ring-[#191970]/20 dark:bg-blue-950/20"
-                    : "border-slate-200 hover:border-slate-300 dark:border-slate-700",
-                )}
-              >
-                <input
-                  type="radio"
-                  name="dataScope"
-                  value={opt.value}
-                  checked={dataScope === opt.value}
-                  onChange={() => setDataScope(opt.value)}
-                  className="mt-1"
-                  disabled={submitting}
-                />
-                <span>
-                  <span className="block text-sm font-semibold text-slate-900 dark:text-white">
-                    {opt.label}
-                  </span>
-                  <span className="block text-xs text-slate-500">{opt.description}</span>
-                </span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-
-        {dataScope === "DEPARTMENT" || dataScope === "TEAM" ? (
-          <FormField label="Department" htmlFor="access-dept">
-            <select
-              id="access-dept"
-              value={departmentId}
-              onChange={(e) => {
-                setDepartmentId(e.target.value);
-                setTeamId("");
-              }}
-              className={selectClass}
-              disabled={submitting || departments.length === 0}
-            >
-              <option value="">Select department</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          </FormField>
-        ) : null}
-
-        {dataScope === "TEAM" ? (
-          <FormField label="Team" htmlFor="access-team">
-            <select
-              id="access-team"
-              value={teamId}
-              onChange={(e) => setTeamId(e.target.value)}
-              className={selectClass}
-              disabled={submitting || !departmentId || teamsForDept.length === 0}
-            >
-              <option value="">Select team</option>
-              {teamsForDept.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-          </FormField>
-        ) : null}
-
-        {scopeError ? <p className="text-sm font-medium text-rose-600">{scopeError}</p> : null}
-        {message ? <p className="text-sm font-medium text-emerald-600">{message}</p> : null}
-
-        <div className="flex justify-end border-t border-slate-100 pt-4 dark:border-slate-800">
-          <button
-            type="submit"
-            disabled={!companyId || submitting}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#191970] px-5 text-sm font-semibold text-white transition hover:bg-[#12124a] disabled:opacity-60"
-          >
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Save access
-          </button>
-        </div>
-      </form>
     </div>
   );
 }

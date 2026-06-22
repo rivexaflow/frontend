@@ -8,7 +8,7 @@ import { FeatureShowcaseV2 as FeatureShowcase } from "@/components/marketing/fea
 import { Testimonials } from "@/components/marketing/testimonials";
 import { CTASection } from "@/components/marketing/cta-section";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
-import { VisionKineticSection } from "@/components/marketing/vision-kinetic-section";
+import { VisionMissionSection } from "@/components/marketing/vision-mission-section";
 import { PowerfulServicesSection } from "@/components/marketing/powerful-services-section";
 import { BusinessImpactBento } from "@/components/marketing/business-impact-bento";
 import { FloatingMarketingNav } from "@/components/marketing/floating-marketing-nav";
@@ -25,7 +25,7 @@ export default function HomePage() {
 
       <FeatureShowcase />
 
-      <VisionKineticSection />
+      <VisionMissionSection />
 
       <PowerfulServicesSection />
 

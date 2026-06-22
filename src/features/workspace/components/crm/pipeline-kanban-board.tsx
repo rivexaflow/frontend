@@ -146,7 +146,7 @@ function KanbanColumn({
       <div className="border-b border-slate-100/80 px-4 py-3 dark:border-slate-800">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-bold text-slate-900 dark:text-white">{stage.name}</h3>
-          <span className="rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-bold text-slate-600 shadow-sm dark:bg-slate-800 dark:text-slate-300">
+          <span className="rounded-full bg-[#191970] px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
             {deals.length}
           </span>
         </div>

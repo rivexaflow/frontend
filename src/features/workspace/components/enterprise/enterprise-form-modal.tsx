@@ -12,7 +12,8 @@ type Props = {
   children: ReactNode;
   onClose: () => void;
   className?: string;
-  size?: "md" | "lg" | "xl";
+  size?: "md" | "lg" | "xl" | "2xl" | "full";
+  flush?: boolean;
 };
 
 export function EnterpriseFormModal({
@@ -23,6 +24,7 @@ export function EnterpriseFormModal({
   onClose,
   className,
   size = "md",
+  flush = false,
 }: Props) {
   useEffect(() => {
     if (!open) return;
@@ -52,6 +54,8 @@ export function EnterpriseFormModal({
           size === "md" && "sm:max-w-md",
           size === "lg" && "sm:max-w-lg",
           size === "xl" && "sm:max-w-3xl",
+          size === "2xl" && "sm:max-w-5xl",
+          size === "full" && "sm:max-w-6xl",
           className,
         )}
       >
@@ -71,7 +75,7 @@ export function EnterpriseFormModal({
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="overflow-y-auto px-6 py-5">{children}</div>
+        <div className={cn("overflow-y-auto", flush ? "" : "px-6 py-5")}>{children}</div>
       </div>
     </div>
   );

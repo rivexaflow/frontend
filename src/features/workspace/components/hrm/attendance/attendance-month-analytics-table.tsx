@@ -105,14 +105,22 @@ export function AttendanceMonthAnalyticsTable({
                   >
                     <td className="px-5 py-3 font-medium text-slate-900 dark:text-white">{cal.label}</td>
                     <td className="px-5 py-3">
-                      <span className="font-semibold tabular-nums text-[#191970] dark:text-blue-300">
-                        {cal.summary.attendanceRate}%
-                      </span>
+                      <div className="flex min-w-[100px] items-center gap-2">
+                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-[#191970] to-[#2277ff]"
+                            style={{ width: `${cal.summary.attendanceRate}%` }}
+                          />
+                        </div>
+                        <span className="w-10 text-right text-xs font-bold tabular-nums text-[#191970]">
+                          {cal.summary.attendanceRate}%
+                        </span>
+                      </div>
                     </td>
                     <td className="px-5 py-3 tabular-nums text-slate-600">{cal.summary.present}</td>
                     <td className="px-5 py-3 tabular-nums text-amber-700">{cal.summary.late}</td>
                     <td className="px-5 py-3 tabular-nums text-rose-600">{cal.summary.absent}</td>
-                    <td className="px-5 py-3 tabular-nums text-violet-600">{cal.summary.onLeave}</td>
+                    <td className="px-5 py-3 tabular-nums text-[#0056ff]">{cal.summary.onLeave}</td>
                     <td className="px-5 py-3 tabular-nums text-slate-500">{cal.summary.offDays}</td>
                     <td className="px-5 py-3 tabular-nums text-slate-600">{cal.summary.totalHours}h</td>
                   </tr>

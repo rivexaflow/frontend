@@ -51,6 +51,7 @@ import { DEMO_HRM_EMPLOYEES } from "@/features/workspace/data/hrm-org-demo";
 import { DEMO_HRM_PAYROLL } from "@/features/workspace/data/hrm-payroll-demo";
 import { DEMO_HRM_POLICIES } from "@/features/workspace/data/hrm-policies-demo";
 import { DEMO_HRM_REPORT_RUNS, HRM_REPORT_TEMPLATES } from "@/features/workspace/data/hrm-reports-demo";
+import { DEMO_HRM_ROLES } from "@/features/workspace/data/hrm-roles-demo";
 import { DEFAULT_HRM_SETUP } from "@/features/workspace/data/hrm-setup-demo";
 import { filenameFromContentDisposition, triggerBlobDownload } from "@/lib/hrm/download-blob";
 import type {
@@ -67,6 +68,7 @@ import type {
   CreateEventPayload,
   CreatePolicyPayload,
   CreateRolePayload,
+  UpdateRolePayload,
   DocumentRemindPayload,
   DocumentUploadPayload,
   DocumentVerifyPayload,
@@ -261,13 +263,13 @@ export async function fetchHrRoles(companyId: string): Promise<HrmRole[]> {
     assertSuccess(data);
     return normalizeRolesList(unwrap(data));
   } catch (err) {
-    if (useDummy()) {
-      return [
-        { id: "role_hr_mgr", name: "HR Manager", description: "Full HR operations access" },
-        { id: "role_recruiter", name: "Recruiter", description: "Hiring and onboarding" },
-        { id: "role_payroll", name: "Payroll Specialist", description: "Payroll processing" },
-      ];
-    }
+    if (useDummy()) return DEMO_HRM_ROLES.map(({ id, name, description, permissions, createdAt }) => ({
+      id,
+      name,
+      description,
+      permissions,
+      createdAt,
+    }));
     throw apiError(err, "Could not load HR roles.");
   }
 }
@@ -284,6 +286,50 @@ export async function createHrRole(companyId: string, payload: CreateRolePayload
     return role;
   } catch (err) {
     throw apiError(err, "Could not create HR role.");
+  }
+}
+
+export async function updateHrRole(
+  companyId: string,
+  roleId: string,
+  payload: UpdateRolePayload,
+): Promise<HrmRole> {
+  try {
+    const { data } = await apiClient.patch<ApiEnvelope<unknown>>(
+      endpoints.hr.role(companyId, roleId),
+      payload,
+    );
+    assertSuccess(data);
+    const role = normalizeRole(unwrap(data));
+    if (!role) throw new Error("Update role response was invalid.");
+    return role;
+  } catch (err) {
+    if (useDummy()) {
+      const existing = DEMO_HRM_ROLES.find((r) => r.id === roleId);
+      if (!existing) throw new Error("Role not found.");
+      return {
+        id: existing.id,
+        name: payload.name ?? existing.name,
+        description: payload.description ?? existing.description,
+        permissions: payload.permissions ?? existing.permissions,
+        createdAt: existing.createdAt,
+      };
+    }
+    throw apiError(err, "Could not update HR role.");
+  }
+}
+
+export async function deleteHrRole(companyId: string, roleId: string): Promise<void> {
+  try {
+    const { data } = await apiClient.delete<ApiEnvelope<unknown>>(endpoints.hr.role(companyId, roleId));
+    assertSuccess(data);
+  } catch (err) {
+    if (useDummy()) {
+      const existing = DEMO_HRM_ROLES.find((r) => r.id === roleId);
+      if (!existing) throw new Error("Role not found.");
+      return;
+    }
+    throw apiError(err, "Could not delete HR role.");
   }
 }
 
@@ -833,6 +879,7 @@ export async function remindHrDocumentSubmissions(
     );
     assertSuccess(data);
   } catch (err) {
+    if (useDummy()) return;
     throw apiError(err, "Could not send document reminders.");
   }
 }

@@ -7,13 +7,22 @@ const SEGMENT_LABELS: Record<string, string> = {
   leads: "Leads",
   deals: "Deals",
   pipelines: "Pipelines",
+  tasks: "Tasks",
+  "my-tasks": "My tasks",
+  dialer: "Dialer",
+  whatsapp: "WhatsApp",
+  webhooks: "Webhooks",
+  "layout-builder": "Form builder",
+  "facebook-leads": "Facebook leads",
+  duplicates: "Duplicates",
+  import: "Bulk import",
   hrm: "HRM",
   "org-chart": "Org chart",
   employees: "Employees",
   payroll: "Payroll",
   attendance: "Attendance",
   leave: "Manage leave",
-  admin: "HR roles",
+  admin: "Roles & permissions",
   events: "Events",
   documents: "Documents",
   policies: "Company policy",
@@ -50,7 +59,14 @@ const SEGMENT_LABELS: Record<string, string> = {
 };
 
 function labelFor(segment: string, parentSegment?: string): string {
+  if (parentSegment === "hrm" && segment === "employees") return "Employees";
+  if (parentSegment === "employees") return "Profile";
+  if (parentSegment === "hrm" && segment === "dashboard") return "HRM Dashboard";
   if (parentSegment === "hrm" && segment === "reports") return "HR reports";
+  if (parentSegment === "crm" && segment === "reports") return "CRM reports";
+  if (parentSegment === "crm" && segment === "setup") return "Settings";
+  if (parentSegment === "reports" && segment === "leads") return "Lead";
+  if (parentSegment === "reports" && segment === "deals") return "Deal";
   if (segment === "workforce") return "Departments";
   return SEGMENT_LABELS[segment] ?? segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, " ");
 }
