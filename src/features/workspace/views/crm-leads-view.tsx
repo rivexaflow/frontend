@@ -2,35 +2,65 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, Target, TrendingUp, UserPlus } from "lucide-react";
 
+import { CrmShell } from "@/features/workspace/components/crm/crm-panel";
+import type { CrmViewMode } from "@/features/workspace/components/crm/crm-view-toggle";
 import { LeadFormModal } from "@/features/workspace/components/crm/lead-form-modal";
 import { LeadDetailDrawer } from "@/features/workspace/components/crm/leads/lead-detail-drawer";
+import { LeadsDirectoryToolbar, type LeadsFilters } from "@/features/workspace/components/crm/leads/leads-directory-toolbar";
+import { LeadsKanbanBoard } from "@/features/workspace/components/crm/leads/leads-kanban-board";
 import { LeadsInboxPanel } from "@/features/workspace/components/crm/leads/panels/leads-inbox-panel";
-import { EnterprisePageShell } from "@/features/workspace/components/enterprise/enterprise-page-shell";
-import { EnterpriseToolbar } from "@/features/workspace/components/enterprise/enterprise-toolbar";
 import { useDebouncedSearch } from "@/features/workspace/hooks/use-debounced-search";
+import { matchesLeadAdvancedFilters, matchesLeadQuickSearch } from "@/lib/workspace/lead-topbar-filters";
+import { workspaceTopbarStore } from "@/stores/workspace-topbar.store";
 import { DEMO_LEADS, type LeadRecord, type LeadStatus } from "@/features/workspace/data/crm-demo";
+
+const EMPTY_FILTERS: LeadsFilters = { query: "", source: "", owner: "" };
 
 export function CrmLeadsView() {
   const router = useRouter();
   const [leads, setLeads] = useState<LeadRecord[]>(DEMO_LEADS);
-  const [search, setSearch] = useState("");
-  const { validation } = useDebouncedSearch(search, { minLength: 2 });
+  const [filters, setFilters] = useState<LeadsFilters>(EMPTY_FILTERS);
+  const [viewMode, setViewMode] = useState<CrmViewMode>("board");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<LeadRecord | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const metrics = useMemo(() => {
-    const newCount = leads.filter((l) => l.status === "new").length;
-    const hot = leads.filter(
-      (l) => (l.scoreBand === "A1" || l.scoreBand === "A2") && l.status !== "lost",
-    ).length;
-    const needsAttention = leads.filter(
-      (l) => l.slaStatus !== "on_track" && l.status !== "lost" && l.status !== "qualified",
-    ).length;
-    const qualified = leads.filter((l) => l.status === "qualified").length;
-    return { newCount, hot, needsAttention, qualified };
-  }, [leads]);
+  const quickSearch = workspaceTopbarStore((s) => s.quickSearch);
+  const searchableFields = workspaceTopbarStore((s) => s.searchableFields);
+  const advancedFilters = workspaceTopbarStore((s) => s.advancedFilters);
+  const advancedFiltersActive = workspaceTopbarStore((s) => s.advancedFiltersActive);
+
+  const combinedQuery = [quickSearch, filters.query].filter(Boolean).join(" ").trim();
+  const { effectiveQuery } = useDebouncedSearch(combinedQuery, { minLength: 0, debounceMs: 250 });
+
+  const sources = useMemo(
+    () => [...new Set(leads.map((l) => l.source))].sort(),
+    [leads],
+  );
+  const owners = useMemo(
+    () => [...new Set(leads.map((l) => l.owner))].sort(),
+    [leads],
+  );
+
+  const filtered = useMemo(() => {
+    const q = effectiveQuery.trim().toLowerCase();
+    return leads.filter((l) => {
+      if (filters.source && l.source !== filters.source) return false;
+      if (filters.owner && l.owner !== filters.owner) return false;
+      if (advancedFiltersActive && !matchesLeadAdvancedFilters(l, advancedFilters)) return false;
+      if (!q) return true;
+      if (quickSearch.trim()) {
+        return matchesLeadQuickSearch(l, quickSearch, searchableFields);
+      }
+      return (
+        l.name.toLowerCase().includes(q) ||
+        l.company.toLowerCase().includes(q) ||
+        l.email.toLowerCase().includes(q) ||
+        l.owner.toLowerCase().includes(q)
+      );
+    });
+  }, [leads, filters.source, filters.owner, effectiveQuery, quickSearch, searchableFields, advancedFilters, advancedFiltersActive]);
 
   const updateStatus = useCallback((id: string, status: LeadStatus) => {
     setLeads((prev) =>
@@ -40,7 +70,7 @@ export function CrmLeadsView() {
               ...l,
               status,
               updatedAt: "Just now",
-              slaStatus: status === "qualified" ? "on_track" : l.slaStatus,
+              slaStatus: status === "interested" || status === "move_to_activation" ? "on_track" : l.slaStatus,
             }
           : l,
       ),
@@ -48,60 +78,51 @@ export function CrmLeadsView() {
     setSelectedLead((sel) => (sel?.id === id ? { ...sel, status } : sel));
   }, []);
 
+  const handleRefresh = () => {
+    setRefreshing(true);
+    window.setTimeout(() => setRefreshing(false), 400);
+  };
+
   return (
-    <>
-      <EnterprisePageShell
-        eyebrow="Operations · CRM"
-        title="Leads"
-        description="Everyone you’re selling to lives here. Add leads, follow up on time, and move the best ones to your pipeline."
-        metrics={[
-          {
-            label: "New",
-            value: String(metrics.newCount),
-            hint: "Not contacted yet",
-            icon: UserPlus,
-            tone: "blue",
-          },
-          {
-            label: "Hot",
-            value: String(metrics.hot),
-            hint: "High priority",
-            icon: Target,
-            tone: "emerald",
-          },
-          {
-            label: "Needs follow-up",
-            value: String(metrics.needsAttention),
-            hint: "Past due or at risk",
-            icon: Clock,
-            tone: "amber",
-          },
-          {
-            label: "Qualified",
-            value: String(metrics.qualified),
-            hint: "Ready for deals",
-            icon: TrendingUp,
-            tone: "purple",
-          },
-        ]}
-        toolbar={
-          <EnterpriseToolbar
-            searchPlaceholder="Search by name, company, or email…"
-            searchValue={search}
-            onSearchChange={setSearch}
-            searchHint={validation.message}
-            primaryLabel="Add lead"
-            onPrimaryClick={() => setModalOpen(true)}
-          />
-        }
-      >
-        <LeadsInboxPanel
-          leads={leads}
-          search={search}
-          onSelect={setSelectedLead}
-          onStatusChange={updateStatus}
+    <div className="pb-4">
+      <CrmShell className="overflow-visible">
+        <LeadsDirectoryToolbar
+          filters={filters}
+          onChange={setFilters}
+          sources={sources}
+          owners={owners}
+          resultCount={filtered.length}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          onAdd={() => setModalOpen(true)}
+          onRefresh={handleRefresh}
+          refreshing={refreshing}
         />
-      </EnterprisePageShell>
+
+        <div className="p-3 md:p-4 lg:p-5">
+          {viewMode === "board" ? (
+            <LeadsKanbanBoard
+                leads={filtered}
+                onChange={(next) => {
+                  const ids = new Set(filtered.map((l) => l.id));
+                  setLeads((prev) => {
+                    const updated = new Map(next.filter((l) => ids.has(l.id)).map((l) => [l.id, l]));
+                    return prev.map((l) => updated.get(l.id) ?? l);
+                  });
+                }}
+                onSelect={setSelectedLead}
+                searchQuery={effectiveQuery}
+            />
+          ) : (
+            <LeadsInboxPanel
+              leads={filtered}
+              search={filters.query}
+              onSelect={setSelectedLead}
+              onStatusChange={updateStatus}
+            />
+          )}
+        </div>
+      </CrmShell>
 
       <LeadFormModal
         open={modalOpen}
@@ -115,6 +136,6 @@ export function CrmLeadsView() {
         onStatusChange={updateStatus}
         onConvert={() => router.push("/crm/pipelines")}
       />
-    </>
+    </div>
   );
 }

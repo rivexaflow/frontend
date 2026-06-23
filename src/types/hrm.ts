@@ -3,10 +3,11 @@ export type HrmEmploymentStatus =
   | "on_leave"
   | "probation"
   | "offboarding"
+  | "resigned"
   | "terminated"
   | "inactive";
 
-export type HrmEmploymentType = "full_time" | "part_time" | "contract" | "intern";
+export type HrmEmploymentType = "full_time" | "part_time" | "contract" | "intern" | "freelancer";
 
 export type HrmWorkMode = "onsite" | "hybrid" | "remote";
 
@@ -29,6 +30,242 @@ export type HrmEmployeeRecord = {
   joinedAt: string;
   leavingDate?: string | null;
   workMode?: HrmWorkMode;
+};
+
+/** Profile section ids for the full employee profile page. */
+export type HrmEmployeeProfileSectionId =
+  | "basic"
+  | "employment"
+  | "organization"
+  | "contact"
+  | "identity"
+  | "payroll"
+  | "attendance_leave"
+  | "assets"
+  | "skills"
+  | "documents"
+  | "performance"
+  | "access"
+  | "exit"
+  | "timeline";
+
+export type HrmEmployeeBasicInfo = {
+  firstName: string;
+  middleName?: string;
+  lastName: string;
+  preferredName?: string;
+  profilePictureUrl?: string;
+  gender?: string;
+  dateOfBirth?: string;
+  maritalStatus?: string;
+  nationality?: string;
+  bloodGroup?: string;
+  personalEmail?: string;
+  personalMobile?: string;
+};
+
+export type HrmEmployeeEmploymentDetails = {
+  employeeCategory?: string;
+  confirmationDate?: string;
+  teamLead?: string;
+  workLocation?: string;
+  officeBranch?: string;
+  costCenter?: string;
+  gradeBand?: string;
+  shiftAssignment?: string;
+};
+
+export type HrmEmployeeOrganizationInfo = {
+  businessUnit?: string;
+  division?: string;
+  department: string;
+  team?: string;
+  reportingManager?: string;
+  skipLevelManager?: string;
+  hrManager?: string;
+};
+
+export type HrmEmployeeContactInfo = {
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postalCode?: string;
+  permanentSameAsCurrent?: boolean;
+  permanentAddressLine1?: string;
+  permanentAddressLine2?: string;
+  permanentCity?: string;
+  permanentState?: string;
+  permanentCountry?: string;
+  permanentPostalCode?: string;
+  emergencyName?: string;
+  emergencyRelationship?: string;
+  emergencyMobile?: string;
+  emergencyAlternate?: string;
+};
+
+export type HrmIdentityRegion = "india" | "international";
+
+export type HrmEmployeeIdentityInfo = {
+  region: HrmIdentityRegion;
+  panNumber?: string;
+  aadhaarNumber?: string;
+  passportNumber?: string;
+  drivingLicense?: string;
+  uan?: string;
+  esicNumber?: string;
+  socialSecurityNumber?: string;
+  taxId?: string;
+  visaNumber?: string;
+  workPermitNumber?: string;
+};
+
+export type HrmEmployeePayrollInfo = {
+  ctc?: number;
+  basicSalary?: number;
+  allowances?: number;
+  bankName?: string;
+  accountNumber?: string;
+  ifscSwift?: string;
+  paymentMethod?: string;
+  taxRegime?: string;
+  currency?: string;
+  payFrequency?: string;
+  lastPaidPeriod?: string;
+};
+
+export type HrmEmployeeAttendanceLeaveInfo = {
+  shift?: string;
+  weeklyOff?: string;
+  attendancePolicy?: string;
+  leavePolicy?: string;
+  workMode?: HrmWorkMode;
+  workingHours?: string;
+  overtimeEligible?: boolean;
+  annualBalance?: number;
+  sickBalance?: number;
+  pendingRequests?: number;
+  attendanceRate?: number;
+};
+
+export type HrmEmployeeAssetsInfo = {
+  laptopAssigned?: boolean;
+  laptopSerial?: string;
+  monitor?: string;
+  phone?: string;
+  accessCard?: string;
+  simCard?: string;
+  softwareLicenses?: string;
+};
+
+export type HrmEmployeeSkillsInfo = {
+  primarySkills?: string;
+  secondarySkills?: string;
+  certifications?: string;
+  yearsOfExperience?: number;
+  previousEmployer?: string;
+  linkedIn?: string;
+  portfolio?: string;
+  resumeFileName?: string;
+};
+
+export type HrmEmployeeDocumentItem = {
+  id: string;
+  name: string;
+  type: string;
+  status: "verified" | "pending" | "expired";
+  uploadedAt: string;
+};
+
+export type HrmEmployeeAssetItem = {
+  id: string;
+  name: string;
+  category: string;
+  serialNumber?: string;
+  assignedAt: string;
+  status: "assigned" | "returned" | "lost";
+};
+
+export type HrmEmployeeSkillItem = {
+  id: string;
+  name: string;
+  level: "beginner" | "intermediate" | "advanced" | "expert";
+  certified?: boolean;
+  expiryDate?: string;
+};
+
+export type HrmEmployeePerformanceReview = {
+  id: string;
+  period: string;
+  rating: number;
+  reviewer: string;
+  summary: string;
+};
+
+export type HrmEmployeePerformanceInfo = {
+  probationStatus?: string;
+  performanceRating?: number;
+  kpis?: string;
+  goals?: string;
+  promotionHistory?: string;
+  appraisalHistory?: string;
+  reviews: HrmEmployeePerformanceReview[];
+};
+
+export type HrmEmployeeActivityItem = {
+  id: string;
+  action: string;
+  detail?: string;
+  occurredAt: string;
+  actor?: string;
+};
+
+export type HrmEmployeeExitInfo = {
+  status: "none" | "initiated" | "in_progress" | "completed";
+  noticePeriodDays?: number;
+  reason?: string;
+  lastWorkingDay?: string;
+  exitInterview?: string;
+  assetReturnStatus?: string;
+  fullAndFinalStatus?: string;
+  clearanceProgress?: number;
+  notes?: string;
+};
+
+export type HrmEmployeeAccessInfo = {
+  userRole?: string;
+  permissions?: string;
+  departmentAccess?: string;
+  projectAccess?: string;
+  crmAccess?: boolean;
+  financeAccess?: boolean;
+  adminRights?: boolean;
+  hrRoleName?: string;
+  dataScope?: MemberDataScope;
+  workspaceUserLinked?: boolean;
+  lastLogin?: string;
+  mfaEnabled?: boolean;
+};
+
+/** Extended employee profile — directory record + HRMS sections. */
+export type HrmEmployeeProfile = HrmEmployeeRecord & {
+  basic: HrmEmployeeBasicInfo;
+  employmentDetails: HrmEmployeeEmploymentDetails;
+  organization: HrmEmployeeOrganizationInfo;
+  contact: HrmEmployeeContactInfo;
+  identity: HrmEmployeeIdentityInfo;
+  payroll: HrmEmployeePayrollInfo;
+  attendanceLeave: HrmEmployeeAttendanceLeaveInfo;
+  assetsInfo: HrmEmployeeAssetsInfo;
+  skillsInfo: HrmEmployeeSkillsInfo;
+  documents: HrmEmployeeDocumentItem[];
+  assetItems: HrmEmployeeAssetItem[];
+  skillItems: HrmEmployeeSkillItem[];
+  performance: HrmEmployeePerformanceInfo;
+  access: HrmEmployeeAccessInfo;
+  timeline: HrmEmployeeActivityItem[];
+  exit: HrmEmployeeExitInfo;
 };
 
 export type HrmDepartmentTeam = {
@@ -109,6 +346,12 @@ export type UpdateMemberScopePayload = {
 
 export type CreateRolePayload = {
   name: string;
+  description?: string;
+  permissions?: string[];
+};
+
+export type UpdateRolePayload = {
+  name?: string;
   description?: string;
   permissions?: string[];
 };
@@ -384,6 +627,8 @@ export type DocumentVerifyPayload = {
 
 export type DocumentRemindPayload = {
   documentTypeId: string;
+  employeeIds?: string[];
+  message?: string;
 };
 
 export type HrmPolicyCategory = "hr" | "leave" | "conduct" | "safety" | "it" | "benefits";

@@ -8,6 +8,7 @@ import {
   Briefcase,
   Building2,
   Calendar,
+  ExternalLink,
   GitBranch,
   Loader2,
   Mail,
@@ -28,6 +29,7 @@ import {
   type HrmEmploymentType,
 } from "@/features/workspace/data/hrm-employees-demo";
 import type { HrmRole } from "@/types/hrm";
+import { hrmEmployeeProfilePath } from "@/lib/workspace/hrm-paths";
 import { workspacePaths } from "@/lib/workspace/paths";
 import { cn } from "@/lib/utils/cn";
 
@@ -164,6 +166,13 @@ export function EmployeeDetailPanel({
             <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">
               {typeLabel}
             </span>
+            <Link
+              href={hrmEmployeeProfilePath(employee.id)}
+              className="inline-flex items-center gap-1 rounded-md bg-[#191970]/10 px-2.5 py-1 text-[11px] font-semibold text-[#191970] transition hover:bg-[#191970]/15"
+            >
+              <ExternalLink className="h-3 w-3" />
+              Full profile
+            </Link>
           </div>
         </div>
 

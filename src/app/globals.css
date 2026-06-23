@@ -176,3 +176,77 @@
   from { opacity: 0.45; }
   to   { opacity: 1; }
 }
+
+/* Login brand panel — original look: static gradient, corner glows, fixed dot grid sparkle */
+.login-brand-panel {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: linear-gradient(135deg, #0b1432 0%, #121040 48%, #1f0f3f 100%);
+}
+
+/* Blue top-left + purple bottom-right glow — opacity pulse only (no slide from bottom) */
+.login-brand-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(900px 540px at 18% 18%, rgba(34, 119, 255, 0.42), transparent 60%),
+    radial-gradient(700px 440px at 86% 82%, rgba(126, 86, 246, 0.38), transparent 62%);
+  animation: login-brand-glow-pulse 9s ease-in-out infinite;
+}
+
+/* Original 22px dot grid — same positions, gentle sparkle loop */
+.login-brand-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.7) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(circle at 50% 50%, black 0%, black 55%, transparent 78%);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, black 0%, black 55%, transparent 78%);
+  opacity: 0.16;
+  animation: login-brand-dots-sparkle 5s ease-in-out infinite;
+}
+
+@keyframes login-brand-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.82;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes login-brand-dots-sparkle {
+  0%,
+  100% {
+    opacity: 0.11;
+  }
+  35% {
+    opacity: 0.19;
+  }
+  65% {
+    opacity: 0.14;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-brand-panel::before,
+  .login-brand-panel::after {
+    animation: none;
+  }
+
+  .login-brand-panel::before {
+    opacity: 1;
+  }
+
+  .login-brand-panel::after {
+    opacity: 0.16;
+  }
+}

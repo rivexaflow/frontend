@@ -2,6 +2,7 @@ import type {
   HrmEmployeeRecord,
   HrmEmploymentStatus,
   HrmEmploymentType,
+  HrmWorkMode,
 } from "@/types/hrm";
 
 export type { HrmEmployeeRecord, HrmEmploymentStatus, HrmEmploymentType };
@@ -10,7 +11,8 @@ export const HRM_EMPLOYMENT_STATUSES: { id: HrmEmploymentStatus; label: string }
   { id: "active", label: "Active" },
   { id: "probation", label: "Probation" },
   { id: "on_leave", label: "On leave" },
-  { id: "offboarding", label: "Offboarding" },
+  { id: "offboarding", label: "Notice period" },
+  { id: "resigned", label: "Resigned" },
   { id: "terminated", label: "Terminated" },
   { id: "inactive", label: "Inactive" },
 ];
@@ -20,6 +22,13 @@ export const HRM_EMPLOYMENT_TYPES: { id: HrmEmploymentType; label: string }[] = 
   { id: "part_time", label: "Part-time" },
   { id: "contract", label: "Contract" },
   { id: "intern", label: "Intern" },
+  { id: "freelancer", label: "Freelancer" },
+];
+
+export const HRM_WORK_MODES: { id: HrmWorkMode; label: string }[] = [
+  { id: "onsite", label: "On-site" },
+  { id: "hybrid", label: "Hybrid" },
+  { id: "remote", label: "Remote" },
 ];
 
 export const DEMO_HRM_EMPLOYEE_DIRECTORY: HrmEmployeeRecord[] = [

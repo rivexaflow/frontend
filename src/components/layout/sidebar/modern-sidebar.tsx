@@ -30,7 +30,8 @@ import {
   CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import { HRM_NAV_ITEMS } from "@/features/workspace/data/hrm-nav";
+import { CRM_NAV_CHILDREN, isCrmNavSubGroup } from "@/features/workspace/data/crm-nav";
+import { HRM_NAV_CHILDREN, isHrmNavSubGroup } from "@/features/workspace/data/hrm-nav";
 import { workspacePaths } from "@/lib/workspace/paths";
 import { authStore } from "@/stores/auth.store";
 import { UserAccountDropdown } from "./user-account-dropdown";
@@ -48,13 +49,12 @@ interface NavGroup {
   icon: React.ElementType;
   category: string;
   children: { name: string; href: string }[];
+  isCrm?: boolean;
+  isHrm?: boolean;
 }
 
 const workspaceNavItems: NavItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, category: "General" },
-  { name: "Leads", href: "/crm/leads", icon: Target, category: "Operations" },
-  { name: "Deals", href: workspacePaths.deals, icon: Briefcase, category: "Operations" },
-  { name: "Pipelines", href: "/crm/pipelines", icon: Layers, category: "Operations" },
   { name: "KYC Center", href: "/kyc", icon: ShieldCheck, category: "Operations", badge: "Live" },
   { name: "Invoices", href: "/invoices", icon: FileText, category: "Operations" },
   { name: "AI Agents", href: "/ai", icon: Sparkles, category: "Intelligence" },
@@ -63,10 +63,18 @@ const workspaceNavItems: NavItem[] = [
 
 const workspaceNavGroups: NavGroup[] = [
   {
+    name: "CRM",
+    icon: Target,
+    category: "Operations",
+    children: [],
+    isCrm: true,
+  },
+  {
     name: "HRM",
     icon: Network,
     category: "People",
-    children: HRM_NAV_ITEMS.map((item) => ({ name: item.name, href: item.href })),
+    children: [],
+    isHrm: true,
   },
   {
     name: "User Management",
@@ -81,11 +89,40 @@ const workspaceNavGroups: NavGroup[] = [
   },
 ];
 
+function flattenCrmHrefs(): string[] {
+  return CRM_NAV_CHILDREN.flatMap((item) =>
+    isCrmNavSubGroup(item) ? item.children.map((c) => c.href) : [item.href],
+  );
+}
+
 function isNavGroupActive(pathname: string, children: { href: string }[]): boolean {
   return children.some(
     (child) => pathname === child.href || pathname.startsWith(`${child.href}/`),
   );
 }
+
+function flattenHrmHrefs(): string[] {
+  return HRM_NAV_CHILDREN.flatMap((item) =>
+    isHrmNavSubGroup(item) ? item.children.map((c) => c.href) : [item.href],
+  );
+}
+
+function isCrmNavActive(pathname: string): boolean {
+  return flattenCrmHrefs().some(
+    (href) => pathname === href || pathname.startsWith(`${href}/`),
+  );
+}
+
+function isHrmNavActive(pathname: string): boolean {
+  return flattenHrmHrefs().some(
+    (href) => pathname === href || pathname.startsWith(`${href}/`),
+  );
+}
+
+const TOP_GROUP_NAMES = ["CRM", "HRM", "User Management"] as const;
+
+const CRM_SUBGROUP_NAMES = ["Report"] as const;
+const HRM_SUBGROUP_NAMES = ["HR Settings"] as const;
 
 const workspaceNavFooter: NavItem[] = [
   { name: "Notifications", href: "/notifications", icon: Bell, category: "System" },
@@ -120,10 +157,43 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
     ...footerItems.map((i) => i.category),
   ]);
   const categories = CATEGORY_ORDER.filter((c) => categorySet.has(c));
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
-    HRM: true,
-    "User Management": true,
-  });
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const [openCrmSubGroups, setOpenCrmSubGroups] = useState<Record<string, boolean>>({});
+  const [openHrmSubGroups, setOpenHrmSubGroups] = useState<Record<string, boolean>>({});
+
+  const closeAccountMenu = () => setIsAccountOpen(false);
+
+  const toggleTopGroup = (groupName: string, isOpen: boolean) => {
+    closeAccountMenu();
+    setOpenGroups(() => {
+      if (isOpen) {
+        return Object.fromEntries(TOP_GROUP_NAMES.map((n) => [n, false]));
+      }
+      return Object.fromEntries(TOP_GROUP_NAMES.map((n) => [n, n === groupName]));
+    });
+  };
+
+  const toggleCrmSubGroup = (name: string, isOpen: boolean) => {
+    closeAccountMenu();
+    setOpenCrmSubGroups(() => {
+      if (isOpen) return { [name]: false };
+      return Object.fromEntries(CRM_SUBGROUP_NAMES.map((n) => [n, n === name]));
+    });
+  };
+
+  const toggleHrmSubGroup = (name: string, isOpen: boolean) => {
+    closeAccountMenu();
+    setOpenHrmSubGroups(() => {
+      if (isOpen) return { [name]: false };
+      return Object.fromEntries(HRM_SUBGROUP_NAMES.map((n) => [n, n === name]));
+    });
+  };
+
+  const closeAllNavGroups = () => {
+    setOpenGroups(Object.fromEntries(TOP_GROUP_NAMES.map((n) => [n, false])));
+    setOpenCrmSubGroups({});
+    setOpenHrmSubGroups({});
+  };
 
   // Auto-collapse on small screens
   useEffect(() => {
@@ -136,14 +206,37 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   }, []);
 
   useEffect(() => {
+    const nextGroups = Object.fromEntries(TOP_GROUP_NAMES.map((n) => [n, false]));
     for (const group of groups) {
-      if (isNavGroupActive(pathname, group.children)) {
-        setOpenGroups((prev) => ({ ...prev, [group.name]: true }));
-      }
+      const active = group.isCrm
+        ? isCrmNavActive(pathname)
+        : group.isHrm
+          ? isHrmNavActive(pathname)
+          : isNavGroupActive(pathname, group.children);
+      if (active) nextGroups[group.name] = true;
     }
+    setOpenGroups(nextGroups);
+
+    const nextCrmSubs = Object.fromEntries(CRM_SUBGROUP_NAMES.map((n) => [n, false]));
+    if (pathname.includes("/crm/reports")) nextCrmSubs.Report = true;
+    setOpenCrmSubGroups(nextCrmSubs);
+
+    const nextHrmSubs = Object.fromEntries(HRM_SUBGROUP_NAMES.map((n) => [n, false]));
+    if (
+      pathname.includes("/hrm/settings") ||
+      pathname.includes("/hrm/admin") ||
+      pathname.includes("/hrm/setup")
+    ) {
+      nextHrmSubs["HR Settings"] = true;
+    }
+    setOpenHrmSubGroups(nextHrmSubs);
   }, [pathname, groups]);
 
   const effectiveCollapsed = isCollapsed && !isHovered;
+
+  useEffect(() => {
+    if (effectiveCollapsed) closeAllNavGroups();
+  }, [effectiveCollapsed]);
 
   const getHref = (baseHref: string) => baseHref;
 
@@ -165,7 +258,7 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
         {/* Logo Section */}
         <div className="flex h-20 items-center px-6">
           <Link href={getHref("/dashboard")} className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 shadow-lg shadow-blue-500/30">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#191970] to-[#2277ff] shadow-lg shadow-[#191970]/25">
               <span className="text-xl font-black text-white">R</span>
             </div>
             <AnimatePresence mode="wait">
@@ -176,7 +269,7 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                   exit={{ opacity: 0, x: -10 }}
                   className="text-xl font-bold tracking-tight text-slate-900 dark:text-white"
                 >
-                  Rivexa<span className="text-blue-600">flow</span>
+                  Rivexa<span className="text-[#2277ff]">flow</span>
                 </motion.span>
               )}
             </AnimatePresence>
@@ -217,17 +310,20 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                       <Link
                         key={item.name}
                         href={href}
+                        onClick={closeAccountMenu}
                         className={cn(
-                          "group relative flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200",
-                          isActive 
-                            ? "bg-blue-50/80 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400" 
-                            : "text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white"
+                          "group relative flex items-center gap-3 rounded-xl px-4 py-2.5 transition-all duration-200",
+                          isActive
+                            ? "bg-[#191970]/8 text-[#191970] dark:bg-[#191970]/20 dark:text-[#2277ff]"
+                            : "text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white",
                         )}
                       >
-                        <item.icon className={cn(
-                          "h-5 w-5 shrink-0 transition-transform group-hover:scale-110",
-                          isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"
-                        )} />
+                        <item.icon
+                          className={cn(
+                            "h-[18px] w-[18px] shrink-0 transition-transform group-hover:scale-105",
+                            isActive ? "text-[#191970] dark:text-[#2277ff]" : "text-slate-400",
+                          )}
+                        />
                         
                         {!effectiveCollapsed && (
                           <motion.span
@@ -248,7 +344,7 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                         {isActive && (
                           <motion.div
                             layoutId="active-pill"
-                            className="absolute left-0 h-6 w-1 rounded-r-full bg-blue-600"
+                            className="absolute left-0 h-6 w-1 rounded-r-full bg-[#191970]"
                             transition={{ type: "spring", stiffness: 300, damping: 30 }}
                           />
                         )}
@@ -257,23 +353,23 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                   })}
 
                   {categoryGroups.map((group) => {
-                      const groupActive = isNavGroupActive(pathname, group.children);
+                      const groupActive = group.isCrm
+                        ? isCrmNavActive(pathname)
+                        : group.isHrm
+                          ? isHrmNavActive(pathname)
+                          : isNavGroupActive(pathname, group.children);
                       const isOpen = openGroups[group.name] ?? groupActive;
 
                       return (
                         <div key={group.name} className="space-y-0.5">
                           <button
                             type="button"
-                            onClick={() =>
-                              setOpenGroups((prev) => ({
-                                ...prev,
-                                [group.name]: !isOpen,
-                              }))
-                            }
+                            aria-expanded={isOpen}
+                            onClick={() => toggleTopGroup(group.name, isOpen)}
                             className={cn(
-                              "group relative flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-all duration-200",
+                              "group relative flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-left transition-all duration-200",
                               groupActive
-                                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/25"
+                                ? "bg-gradient-to-r from-[#191970] to-[#2277ff] text-white shadow-md shadow-[#191970]/20"
                                 : "text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-900/50",
                             )}
                           >
@@ -303,30 +399,188 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                                 initial={{ height: 0, opacity: 0 }}
                                 animate={{ height: "auto", opacity: 1 }}
                                 exit={{ height: 0, opacity: 0 }}
-                                className="overflow-hidden pl-3"
+                                transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                                className="overflow-hidden border-l-2 border-[#191970]/10 pl-2 ml-3"
                               >
-                                {group.children.map((child) => {
-                                  const childActive =
-                                    pathname === child.href ||
-                                    pathname.startsWith(`${child.href}/`);
-                                  return (
-                                    <Link
-                                      key={child.href}
-                                      href={child.href}
-                                      className={cn(
-                                        "relative flex items-center gap-2 rounded-lg py-2.5 pl-9 pr-3 text-sm font-medium transition",
-                                        childActive
-                                          ? "text-blue-600 dark:text-blue-400"
-                                          : "text-slate-500 hover:text-slate-900 dark:hover:text-white",
-                                      )}
-                                    >
-                                      {childActive ? (
-                                        <span className="absolute left-4 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-blue-600" />
-                                      ) : null}
-                                      {child.name}
-                                    </Link>
-                                  );
-                                })}
+                                {group.isCrm
+                                  ? CRM_NAV_CHILDREN.map((item) => {
+                                      if (isCrmNavSubGroup(item)) {
+                                        const subActive = isNavGroupActive(pathname, item.children);
+                                        const subOpen = openCrmSubGroups[item.name] ?? subActive;
+                                        return (
+                                          <div key={item.name} className="py-0.5">
+                                            <button
+                                              type="button"
+                                              aria-expanded={subOpen}
+                                              onClick={() => toggleCrmSubGroup(item.name, subOpen)}
+                                              className={cn(
+                                                "flex w-full items-center gap-2 rounded-lg py-2 pl-4 pr-3 text-sm font-semibold transition",
+                                                subActive
+                                                  ? "text-[#191970] dark:text-[#2277ff]"
+                                                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400",
+                                              )}
+                                            >
+                                              <ChevronDown
+                                                className={cn(
+                                                  "h-3.5 w-3.5 shrink-0 transition-transform",
+                                                  subOpen ? "rotate-180" : "",
+                                                )}
+                                              />
+                                              {item.name}
+                                            </button>
+                                            {subOpen ? (
+                                              <div className="ml-4 border-l border-slate-200/80 pl-2 dark:border-slate-700">
+                                                {item.children.map((child) => {
+                                                  const childActive =
+                                                    pathname === child.href ||
+                                                    pathname.startsWith(`${child.href}/`);
+                                                  return (
+                                                    <Link
+                                                      key={child.href}
+                                                      href={child.href}
+                                                      onClick={closeAccountMenu}
+                                                      className={cn(
+                                                        "relative flex items-center gap-2 rounded-lg py-2 pl-4 pr-3 text-sm font-medium transition",
+                                                        childActive
+                                                          ? "bg-[#191970]/8 font-semibold text-[#191970] dark:text-[#2277ff]"
+                                                          : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:hover:text-white",
+                                                      )}
+                                                    >
+                                                      {childActive ? (
+                                                        <span className="absolute left-1.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-[#191970]" />
+                                                      ) : null}
+                                                      {child.name}
+                                                    </Link>
+                                                  );
+                                                })}
+                                              </div>
+                                            ) : null}
+                                          </div>
+                                        );
+                                      }
+                                      const childActive =
+                                        pathname === item.href ||
+                                        pathname.startsWith(`${item.href}/`);
+                                      return (
+                                        <Link
+                                          key={item.href}
+                                          href={item.href}
+                                          onClick={closeAccountMenu}
+                                          className={cn(
+                                            "relative flex items-center gap-2 rounded-lg py-2 pl-4 pr-3 text-sm font-medium transition",
+                                            childActive
+                                              ? "bg-[#191970]/8 font-semibold text-[#191970] dark:text-[#2277ff]"
+                                              : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:hover:text-white",
+                                          )}
+                                        >
+                                          {childActive ? (
+                                            <span className="absolute left-1.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-[#191970]" />
+                                          ) : null}
+                                          {item.name}
+                                        </Link>
+                                      );
+                                    })
+                                  : group.isHrm
+                                    ? HRM_NAV_CHILDREN.map((item) => {
+                                        if (isHrmNavSubGroup(item)) {
+                                          const subActive = isNavGroupActive(pathname, item.children);
+                                          const subOpen = openHrmSubGroups[item.name] ?? subActive;
+                                          return (
+                                            <div key={item.name} className="py-0.5">
+                                              <button
+                                                type="button"
+                                                aria-expanded={subOpen}
+                                                onClick={() => toggleHrmSubGroup(item.name, subOpen)}
+                                                className={cn(
+                                                  "flex w-full items-center gap-2 rounded-lg py-2 pl-4 pr-3 text-sm font-semibold transition",
+                                                  subActive
+                                                    ? "text-[#191970] dark:text-[#2277ff]"
+                                                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400",
+                                                )}
+                                              >
+                                                <ChevronDown
+                                                  className={cn(
+                                                    "h-3.5 w-3.5 shrink-0 transition-transform",
+                                                    subOpen ? "rotate-180" : "",
+                                                  )}
+                                                />
+                                                {item.name}
+                                              </button>
+                                              {subOpen ? (
+                                                <div className="ml-4 border-l border-slate-200/80 pl-2 dark:border-slate-700">
+                                                  {item.children.map((child) => {
+                                                    const childActive =
+                                                      pathname === child.href ||
+                                                      pathname.startsWith(`${child.href}/`);
+                                                    return (
+                                                      <Link
+                                                        key={child.href}
+                                                        href={child.href}
+                                                        onClick={closeAccountMenu}
+                                                        className={cn(
+                                                          "relative flex items-center gap-2 rounded-lg py-2 pl-4 pr-3 text-sm font-medium transition",
+                                                          childActive
+                                                            ? "bg-[#191970]/8 font-semibold text-[#191970] dark:text-[#2277ff]"
+                                                            : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:hover:text-white",
+                                                        )}
+                                                      >
+                                                        {childActive ? (
+                                                          <span className="absolute left-1.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-[#191970]" />
+                                                        ) : null}
+                                                        {child.name}
+                                                      </Link>
+                                                    );
+                                                  })}
+                                                </div>
+                                              ) : null}
+                                            </div>
+                                          );
+                                        }
+                                        const childActive =
+                                          pathname === item.href ||
+                                          pathname.startsWith(`${item.href}/`);
+                                        return (
+                                          <Link
+                                            key={item.href}
+                                            href={item.href}
+                                            onClick={closeAccountMenu}
+                                            className={cn(
+                                              "relative flex items-center gap-2 rounded-lg py-2 pl-4 pr-3 text-sm font-medium transition",
+                                              childActive
+                                                ? "bg-[#191970]/8 font-semibold text-[#191970] dark:text-[#2277ff]"
+                                                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:hover:text-white",
+                                            )}
+                                          >
+                                            {childActive ? (
+                                              <span className="absolute left-4 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-[#191970]" />
+                                            ) : null}
+                                            {item.name}
+                                          </Link>
+                                        );
+                                      })
+                                  : group.children.map((child) => {
+                                      const childActive =
+                                        pathname === child.href ||
+                                        pathname.startsWith(`${child.href}/`);
+                                      return (
+                                        <Link
+                                          key={child.href}
+                                          href={child.href}
+                                          onClick={closeAccountMenu}
+                                          className={cn(
+                                            "relative flex items-center gap-2 rounded-lg py-2 pl-4 pr-3 text-sm font-medium transition",
+                                            childActive
+                                              ? "bg-[#191970]/8 font-semibold text-[#191970] dark:text-[#2277ff]"
+                                              : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:hover:text-white",
+                                          )}
+                                        >
+                                          {childActive ? (
+                                            <span className="absolute left-1.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-[#191970]" />
+                                          ) : null}
+                                          {child.name}
+                                        </Link>
+                                      );
+                                    })}
                               </motion.div>
                             ) : null}
                           </AnimatePresence>
@@ -342,17 +596,18 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                         <Link
                           key={item.name}
                           href={href}
+                          onClick={closeAccountMenu}
                           className={cn(
-                            "group relative flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200",
+                            "group relative flex items-center gap-3 rounded-xl px-4 py-2.5 transition-all duration-200",
                             isActive
-                              ? "bg-blue-50/80 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                              ? "bg-[#191970]/8 text-[#191970] dark:bg-[#191970]/20 dark:text-[#2277ff]"
                               : "text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white",
                           )}
                         >
                           <item.icon
                             className={cn(
-                              "h-5 w-5 shrink-0",
-                              isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400",
+                              "h-[18px] w-[18px] shrink-0",
+                              isActive ? "text-[#191970] dark:text-[#2277ff]" : "text-slate-400",
                             )}
                           />
                           {!effectiveCollapsed ? (
@@ -371,15 +626,18 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
         <div className="border-t border-slate-200/60 p-4 dark:border-slate-800/50">
           <button
             type="button"
-            onClick={() => setIsAccountOpen(!isAccountOpen)}
+            onClick={() => {
+              if (!isAccountOpen) closeAllNavGroups();
+              setIsAccountOpen(!isAccountOpen);
+            }}
             className={cn(
               "flex w-full items-center gap-3 rounded-xl border border-slate-200/80 px-3 py-2.5 text-left transition",
               isAccountOpen
-                ? "border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/30"
+                ? "border-[#191970]/30 bg-[#191970]/5"
                 : "hover:bg-slate-50 dark:hover:bg-slate-900/50",
             )}
           >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 text-xs font-bold text-white">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#191970] to-[#2277ff] text-xs font-bold text-white">
               {user?.fullName?.charAt(0) || user?.email?.charAt(0) || "U"}
             </div>
             {!effectiveCollapsed ? (
@@ -402,9 +660,10 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
         </button>
       </motion.aside>
 
-      <UserAccountDropdown 
-        isOpen={isAccountOpen} 
-        onClose={() => setIsAccountOpen(false)} 
+      <UserAccountDropdown
+        isOpen={isAccountOpen}
+        onClose={() => setIsAccountOpen(false)}
+        sidebarWidth={effectiveCollapsed ? 80 : 280}
       />
     </>
   );

@@ -1,34 +1,63 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertCircle, AlertTriangle, CalendarRange, ClipboardList, Clock, Loader2, RefreshCw, UserCheck } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { AlertCircle, Download, Loader2, Plus, RefreshCw, Search } from "lucide-react";
 
+import { CrmShell } from "@/features/workspace/components/crm/crm-panel";
+import { crm } from "@/features/workspace/components/crm/crm-styles";
 import { AttendanceEmployeeProfileView } from "@/features/workspace/components/hrm/attendance/attendance-employee-profile-view";
 import { AttendanceDirectoryGrid } from "@/features/workspace/components/hrm/attendance/attendance-directory-grid";
-import type { HrmViewMode } from "@/features/workspace/components/hrm/hrm-directory-view-toggle";
-import {
-  AttendanceDirectoryToolbar,
-  type AttendanceFilters,
-} from "@/features/workspace/components/hrm/attendance/attendance-directory-toolbar";
 import { AttendanceTable } from "@/features/workspace/components/hrm/attendance/attendance-table";
-import { useHrCompanyId } from "@/features/workspace/hooks/use-hr-company-id";
-import { MISSING_COMPANY_CONTEXT_MESSAGE } from "@/lib/workspace/company-context";
+import { HrmCompactBanner, HrmPanelTabs } from "@/features/workspace/components/hrm/hrm-compact-banner";
+import type { HrmViewMode } from "@/features/workspace/components/hrm/hrm-directory-view-toggle";
+import { HrmDirectoryViewToggle } from "@/features/workspace/components/hrm/hrm-directory-view-toggle";
+import {
+  ATTENDANCE_STATUSES,
+  type AttendanceStatus,
+} from "@/features/workspace/data/hrm-attendance-demo";
+import {
+  ATTENDANCE_TABS,
+  type AttendanceTabId,
+  parseAttendanceTab,
+} from "@/features/workspace/data/attendance-tabs";
 import {
   formatDisplayDate,
   getSalaryMonthRange,
   type EmployeeAttendanceProfile,
 } from "@/features/workspace/data/hrm-attendance-salary-month";
+import { useHrCompanyId } from "@/features/workspace/hooks/use-hr-company-id";
 import {
   buildEmployeeAttendanceProfileFromRecords,
   toIsoDateOnly,
 } from "@/lib/hrm/build-attendance-profile";
 import { fetchHrAttendanceLogs, fetchHrEmployees } from "@/lib/api/hrm";
+import { MISSING_COMPANY_CONTEXT_MESSAGE } from "@/lib/workspace/company-context";
+import { workspacePaths } from "@/lib/workspace/paths";
+import { authStore } from "@/stores/auth.store";
 import type { AttendanceRecord, HrmEmployeeRecord } from "@/types/hrm";
+import { cn } from "@/lib/utils/cn";
+
+export type AttendanceFilters = {
+  query: string;
+  department: string;
+  status: AttendanceStatus | "";
+};
 
 const EMPTY_FILTERS: AttendanceFilters = { query: "", department: "", status: "" };
 
-export function HrmAttendanceView() {
+type Props = {
+  initialTab?: AttendanceTabId;
+};
+
+export function HrmAttendanceView({ initialTab }: Props) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const companyId = useHrCompanyId();
+  const currentUserId = authStore((s) => s.user?.id);
+
+  const activeTab = parseAttendanceTab(initialTab ?? searchParams.get("tab"));
+
   const [employees, setEmployees] = useState<HrmEmployeeRecord[]>([]);
   const [profiles, setProfiles] = useState<EmployeeAttendanceProfile[]>([]);
   const [filters, setFilters] = useState<AttendanceFilters>(EMPTY_FILTERS);
@@ -99,14 +128,34 @@ export function HrmAttendanceView() {
     void load();
   }, [load]);
 
+  const setTab = (tab: AttendanceTabId) => {
+    setSelectedEmployee(null);
+    setFilters(EMPTY_FILTERS);
+    const url = tab === "all" ? workspacePaths.hrmAttendance : `${workspacePaths.hrmAttendance}?tab=${tab}`;
+    router.replace(url, { scroll: false });
+  };
+
   const departments = useMemo(
     () => [...new Set(profiles.map((p) => p.department))].sort(),
     [profiles],
   );
 
+  const tabFiltered = useMemo(() => {
+    switch (activeTab) {
+      case "not-clocked-in":
+        return profiles.filter((p) => !p.today.checkIn && p.today.status !== "on_leave");
+      case "on-break":
+        return profiles.filter((p) => p.today.status === "half_day");
+      case "me":
+        return currentUserId ? profiles.filter((p) => p.id === currentUserId) : [];
+      default:
+        return profiles;
+    }
+  }, [profiles, activeTab, currentUserId]);
+
   const filtered = useMemo(() => {
     const q = filters.query.trim().toLowerCase();
-    return profiles.filter((p) => {
+    return tabFiltered.filter((p) => {
       if (filters.department && p.department !== filters.department) return false;
       if (filters.status && p.today.status !== filters.status) return false;
       if (q) {
@@ -115,125 +164,201 @@ export function HrmAttendanceView() {
       }
       return true;
     });
-  }, [profiles, filters]);
+  }, [tabFiltered, filters]);
 
   const presentCount = profiles.filter(
     (p) => p.today.status === "present" || p.today.status === "remote",
   ).length;
   const lateCount = profiles.filter((p) => p.today.status === "late").length;
   const absentCount = profiles.filter((p) => p.today.status === "absent").length;
-  const avgMonthRate =
-    profiles.length === 0
-      ? 0
-      : Math.round(profiles.reduce((s, p) => s + p.salaryMonth.attendanceRate, 0) / profiles.length);
+  const notClockedCount = profiles.filter((p) => !p.today.checkIn && p.today.status !== "on_leave").length;
+
+  const tabCounts: Partial<Record<AttendanceTabId, number>> = {
+    all: profiles.length,
+    "on-break": profiles.filter((p) => p.today.status === "half_day").length,
+    "not-clocked-in": notClockedCount,
+  };
 
   const handleRefresh = () => {
     setRefreshing(true);
     void load();
   };
 
-  if (selectedEmployee && companyId) {
-    return (
-      <AttendanceEmployeeProfileView
-        companyId={companyId}
-        employee={selectedEmployee}
-        onBack={() => setSelectedEmployee(null)}
-        onRecordsChange={load}
-      />
-    );
-  }
+  const showProfile = selectedEmployee && companyId;
+  const showDirectory = activeTab === "all" || activeTab === "not-clocked-in" || activeTab === "on-break" || activeTab === "me";
+
+  const setFilter = <K extends keyof AttendanceFilters>(key: K, value: AttendanceFilters[K]) =>
+    setFilters((prev) => ({ ...prev, [key]: value }));
 
   return (
-    <div className="pb-10">
-      <header className="mb-6">
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">People · HRM</p>
-        <div className="mt-1 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Attendance</h1>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-              Daily clock-in for {todayLabel}. Click an employee for full calendar history from their join date.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {[
-              { label: "Today", value: profiles.length, icon: ClipboardList },
-              { label: "Present", value: presentCount, icon: UserCheck },
-              { label: "Late", value: lateCount, icon: Clock },
-              { label: "Month avg", value: `${avgMonthRate}%`, icon: CalendarRange },
-              { label: "Absent", value: absentCount, icon: AlertTriangle },
-            ].map((stat) => (
-              <div
-                key={stat.label}
-                className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white px-3 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+    <div className="pb-8">
+      {!showProfile ? (
+        <CrmShell>
+          <HrmCompactBanner
+            title="Attendance"
+            subtitle={`${todayLabel} · Salary month ${salaryMonthRange.label}`}
+            stats={[
+              { label: "Present", value: presentCount, tone: "success" },
+              { label: "Late", value: lateCount, tone: "warning" },
+              { label: "Absent", value: absentCount, tone: "danger" },
+              { label: "Not in", value: notClockedCount },
+            ]}
+            actions={
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={refreshing || !companyId}
+                className={cn(
+                  crm.btnSecondarySm,
+                  "border-white/20 bg-white/10 text-white hover:bg-white/20 disabled:opacity-50",
+                )}
               >
-                <stat.icon className="h-3.5 w-3.5 text-slate-400" />
-                <span className="text-xs text-slate-500">{stat.label}</span>
-                <span className="text-sm font-bold text-slate-900 dark:text-white">{stat.value}</span>
+                <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
+                Refresh
+              </button>
+            }
+          />
+
+          <HrmPanelTabs
+            tabs={ATTENDANCE_TABS.map((t) => ({
+              id: t.id,
+              label: t.label,
+              count: tabCounts[t.id],
+            }))}
+            active={activeTab}
+            onChange={setTab}
+          />
+
+          {!companyId ? (
+            <div className="mx-4 mt-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>{MISSING_COMPANY_CONTEXT_MESSAGE}</p>
+            </div>
+          ) : null}
+
+          {error ? (
+            <div className="mx-4 mt-4 flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>{error}</p>
+            </div>
+          ) : null}
+
+          {showDirectory ? (
+            <>
+              <div className="flex flex-col gap-2 border-b border-slate-100 bg-slate-50/40 px-4 py-2.5 sm:flex-row sm:items-center dark:border-slate-800 dark:bg-slate-950/20">
+                <div className="relative min-w-0 flex-1 sm:max-w-xs">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="search"
+                    value={filters.query}
+                    onChange={(e) => setFilter("query", e.target.value)}
+                    placeholder="Search employee…"
+                    className={cn(crm.inputSm, "w-full pl-8")}
+                  />
+                </div>
+                <select
+                  value={filters.department}
+                  onChange={(e) => setFilter("department", e.target.value)}
+                  className={crm.select}
+                  aria-label="Department"
+                >
+                  <option value="">All departments</option>
+                  {departments.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={filters.status}
+                  onChange={(e) => setFilter("status", e.target.value as AttendanceFilters["status"])}
+                  className={crm.select}
+                  aria-label="Status"
+                >
+                  <option value="">All statuses</option>
+                  {ATTENDANCE_STATUSES.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="flex items-center gap-2 sm:ml-auto">
+                  <HrmDirectoryViewToggle viewMode={viewMode} onChange={setViewMode} />
+                  <span className="text-xs text-slate-500">
+                    <span className="font-semibold tabular-nums text-slate-800">{filtered.length}</span> records
+                  </span>
+                  <button type="button" className={crm.btnSecondarySm}>
+                    <Download className="h-3.5 w-3.5" />
+                    Export
+                  </button>
+                  <button type="button" className={crm.btnPrimarySm}>
+                    <Plus className="h-3.5 w-3.5" />
+                    Mark attendance
+                  </button>
+                </div>
               </div>
-            ))}
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={refreshing || !companyId}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-            >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-              Refresh
-            </button>
-          </div>
-        </div>
-      </header>
 
-      {!companyId ? (
-        <div className="mb-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          <p>{MISSING_COMPANY_CONTEXT_MESSAGE}</p>
-        </div>
-      ) : null}
-
-      {error ? (
-        <div className="mb-4 flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          <p>{error}</p>
-        </div>
-      ) : null}
-
-      <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <AttendanceDirectoryToolbar
-          filters={filters}
-          onChange={setFilters}
-          departments={departments}
-          resultCount={filtered.length}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          salaryMonthLabel={salaryMonthRange.label}
-          todayLabel={todayLabel}
+              <div className="p-3 md:p-4">
+                {loading ? (
+                  <div className="flex items-center justify-center gap-2 py-20 text-sm text-slate-500">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading attendance…
+                  </div>
+                ) : viewMode === "grid" ? (
+                  <AttendanceDirectoryGrid
+                    profiles={filtered}
+                    selectedId={null}
+                    onSelect={(p) => {
+                      const emp = employees.find((e) => e.id === p.id);
+                      if (emp) setSelectedEmployee(emp);
+                    }}
+                  />
+                ) : (
+                  <AttendanceTable
+                    profiles={filtered}
+                    selectedId={null}
+                    onSelect={(p) => {
+                      const emp = employees.find((e) => e.id === p.id);
+                      if (emp) setSelectedEmployee(emp);
+                    }}
+                  />
+                )}
+              </div>
+            </>
+          ) : (
+            <AttendancePlaceholderPanel tab={activeTab} />
+          )}
+        </CrmShell>
+      ) : (
+        <AttendanceEmployeeProfileView
+          companyId={companyId}
+          employee={selectedEmployee}
+          onBack={() => setSelectedEmployee(null)}
+          onRecordsChange={load}
         />
-        {loading ? (
-          <div className="flex items-center justify-center gap-2 px-4 py-20 text-sm text-slate-500">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading attendance…
-          </div>
-        ) : viewMode === "grid" ? (
-          <AttendanceDirectoryGrid
-            profiles={filtered}
-            selectedId={null}
-            onSelect={(p) => {
-              const emp = employees.find((e) => e.id === p.id);
-              if (emp) setSelectedEmployee(emp);
-            }}
-          />
-        ) : (
-          <AttendanceTable
-            profiles={filtered}
-            selectedId={null}
-            onSelect={(p) => {
-              const emp = employees.find((e) => e.id === p.id);
-              if (emp) setSelectedEmployee(emp);
-            }}
-          />
-        )}
-      </div>
+      )}
+    </div>
+  );
+}
+
+function AttendancePlaceholderPanel({ tab }: { tab: AttendanceTabId }) {
+  const copy: Record<string, { title: string; body: string }> = {
+    regularization: {
+      title: "Regularization requests",
+      body: "Pending clock corrections and manager approvals will appear here when the regularization API is connected.",
+    },
+    roster: {
+      title: "Shift roster",
+      body: "Weekly shift grid and team assignments will load from roster endpoints — same panel, no extra navigation.",
+    },
+  };
+
+  const info = copy[tab] ?? { title: "Coming online", body: "This view connects to live clock events when endpoints ship." };
+
+  return (
+    <div className="px-5 py-16 text-center">
+      <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{info.title}</p>
+      <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">{info.body}</p>
     </div>
   );
 }

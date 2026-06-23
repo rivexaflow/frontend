@@ -11,18 +11,22 @@ import {
 } from "@/features/workspace/components/enterprise/enterprise-data-table";
 import { EnterpriseSegmentTabs } from "@/features/workspace/components/enterprise/enterprise-segment-tabs";
 import { useDebouncedSearch } from "@/features/workspace/hooks/use-debounced-search";
-import type { LeadRecord, LeadStatus } from "@/features/workspace/data/crm-demo";
+import { isTerminalLeadStatus, LEAD_STATUS_LABELS, type LeadRecord, type LeadStatus } from "@/features/workspace/data/crm-demo";
 import { cn } from "@/lib/utils/cn";
 
-const statusTone = { new: "blue", qualified: "emerald", nurturing: "amber", lost: "rose" } as const;
+const statusTone = (status: LeadStatus): "blue" | "emerald" | "amber" | "rose" => {
+  if (status === "interested" || status === "document_received" || status === "move_to_activation" || status === "qualified") {
+    return "emerald";
+  }
+  if (isTerminalLeadStatus(status)) return "rose";
+  if (status === "callback" || status === "document_pending" || status === "not_pickup_call" || status === "nurturing") {
+    return "amber";
+  }
+  return "blue";
+};
 const slaTone = { on_track: "emerald", at_risk: "amber", breached: "rose" } as const;
 
-const statusLabel: Record<LeadStatus, string> = {
-  new: "New",
-  qualified: "Qualified",
-  nurturing: "Nurturing",
-  lost: "Not a fit",
-};
+const statusLabel = LEAD_STATUS_LABELS;
 
 function LeadAvatar({ name }: { name: string }) {
   const parts = name.trim().split(/\s+/);
@@ -44,9 +48,9 @@ function matchesView(row: LeadRecord, view: string): boolean {
     case "new":
       return row.status === "new";
     case "hot":
-      return (row.scoreBand === "A1" || row.scoreBand === "A2") && row.status !== "lost";
+      return (row.scoreBand === "A1" || row.scoreBand === "A2") && !isTerminalLeadStatus(row.status);
     case "attention":
-      return row.slaStatus !== "on_track" && row.status !== "lost" && row.status !== "qualified";
+      return row.slaStatus !== "on_track" && !isTerminalLeadStatus(row.status) && row.status !== "qualified" && row.status !== "interested";
     case "qualified":
       return row.status === "qualified";
     case "nurturing":
@@ -73,9 +77,9 @@ export function LeadsInboxPanel({ leads, search, onSelect, onStatusChange }: Pro
     () => ({
       all: leads.length,
       new: leads.filter((l) => l.status === "new").length,
-      hot: leads.filter((l) => (l.scoreBand === "A1" || l.scoreBand === "A2") && l.status !== "lost").length,
+      hot: leads.filter((l) => (l.scoreBand === "A1" || l.scoreBand === "A2") && !isTerminalLeadStatus(l.status)).length,
       attention: leads.filter(
-        (l) => l.slaStatus !== "on_track" && l.status !== "lost" && l.status !== "qualified",
+        (l) => l.slaStatus !== "on_track" && !isTerminalLeadStatus(l.status) && l.status !== "qualified" && l.status !== "interested",
       ).length,
       qualified: leads.filter((l) => l.status === "qualified").length,
       nurturing: leads.filter((l) => l.status === "nurturing").length,
@@ -145,7 +149,7 @@ export function LeadsInboxPanel({ leads, search, onSelect, onStatusChange }: Pro
           >
             {row.score}
           </span>
-          {(row.scoreBand === "A1" || row.scoreBand === "A2") && row.status !== "lost" ? (
+          {(row.scoreBand === "A1" || row.scoreBand === "A2") && !isTerminalLeadStatus(row.status) ? (
             <StatusBadge label="Hot" tone="emerald" />
           ) : null}
         </div>
@@ -154,14 +158,14 @@ export function LeadsInboxPanel({ leads, search, onSelect, onStatusChange }: Pro
     {
       key: "status",
       header: "Status",
-      render: (row) => <StatusBadge label={statusLabel[row.status]} tone={statusTone[row.status]} />,
+      render: (row) => <StatusBadge label={statusLabel[row.status]} tone={statusTone(row.status)} />,
     },
     {
       key: "followup",
       header: "Follow-up",
       render: (row) => (
         <div>
-          {row.slaStatus !== "on_track" && row.status !== "lost" ? (
+          {row.slaStatus !== "on_track" && !isTerminalLeadStatus(row.status) ? (
             <StatusBadge
               label={row.slaStatus === "breached" ? "Overdue" : "Due soon"}
               tone={slaTone[row.slaStatus]}
@@ -176,7 +180,7 @@ export function LeadsInboxPanel({ leads, search, onSelect, onStatusChange }: Pro
   ];
 
   return (
-    <div className="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:p-6">
+    <div className="space-y-4">
       <p className="text-sm text-slate-500">
         Click a row to see full details. Use <strong className="text-slate-700">Qualify</strong> when they’re
         ready for a deal, or <strong className="text-slate-700">Not a fit</strong> to close them out.
@@ -203,7 +207,7 @@ export function LeadsInboxPanel({ leads, search, onSelect, onStatusChange }: Pro
         rows={filtered}
         emptyMessage="No leads in this list. Try another tab or clear your search."
         renderActions={(row) =>
-          row.status !== "lost" ? (
+          !isTerminalLeadStatus(row.status) ? (
             <div className="flex justify-end gap-1">
               <button
                 type="button"

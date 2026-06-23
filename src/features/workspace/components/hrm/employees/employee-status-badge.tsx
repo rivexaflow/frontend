@@ -6,6 +6,7 @@ const STYLES: Record<HrmEmploymentStatus, string> = {
   probation: "bg-amber-50 text-amber-700 ring-amber-600/15 dark:bg-amber-950/40 dark:text-amber-300",
   on_leave: "bg-sky-50 text-sky-700 ring-sky-600/15 dark:bg-sky-950/40 dark:text-sky-300",
   offboarding: "bg-orange-50 text-orange-700 ring-orange-600/15 dark:bg-orange-950/40 dark:text-orange-300",
+  resigned: "bg-violet-50 text-violet-700 ring-violet-600/15 dark:bg-violet-950/40 dark:text-violet-300",
   terminated: "bg-slate-100 text-slate-600 ring-slate-500/15 dark:bg-slate-800 dark:text-slate-400",
   inactive: "bg-slate-100 text-slate-500 ring-slate-500/15 dark:bg-slate-800 dark:text-slate-500",
 };
@@ -14,7 +15,8 @@ const LABELS: Record<HrmEmploymentStatus, string> = {
   active: "Active",
   probation: "Probation",
   on_leave: "On leave",
-  offboarding: "Offboarding",
+  offboarding: "Notice period",
+  resigned: "Resigned",
   terminated: "Terminated",
   inactive: "Inactive",
 };

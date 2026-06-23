@@ -235,6 +235,72 @@ export async function changePassword(payload: ChangePasswordPayload): Promise<vo
   }
 }
 
+const postAuthAndNormalize = async (
+  endpoint: string,
+  payload: LoginPayload,
+): Promise<AuthResult> => {
+  const { data } = await apiClient.post<RawAuthResponse>(endpoint, payload);
+  const raw = data.data ?? {};
+  const token = pickToken(raw);
+  if (!token) {
+    throw new Error("Sign-in succeeded but no session token was returned. Please contact support.");
+  }
+  return {
+    token,
+    user: normalizeUser(raw, payload.email),
+    onboardingStep: raw.onboardingStep,
+    redirectTo: raw.redirectTo,
+  };
+};
+
+const mapLoginError = (err: unknown): never => {
+  if (err instanceof Error && !isAxiosError(err)) {
+    throw err;
+  }
+  if (isAxiosError(err)) {
+    const status = err.response?.status;
+    const body = err.response?.data as
+      | { message?: string; error?: string; errors?: Array<{ message?: string }> }
+      | undefined;
+    const serverMessage =
+      body?.message ?? body?.error ?? body?.errors?.[0]?.message ?? undefined;
+
+    if (status === 401 || status === 403) {
+      throw new Error(serverMessage ?? "Incorrect email or password.");
+    }
+    if (status === 404) {
+      throw new Error(serverMessage ?? "No account found with that email.");
+    }
+    if (status === 423) {
+      throw new Error(serverMessage ?? "This account is locked. Contact your workspace admin.");
+    }
+    if (status === 429) {
+      throw new Error(
+        serverMessage ?? "Too many sign-in attempts. Please wait a moment and try again.",
+      );
+    }
+    if (status === 400 || status === 422) {
+      throw new Error(serverMessage ?? "Please check the information you entered.");
+    }
+    if (status && status >= 500) {
+      throw new Error("Our service is temporarily unavailable. Please try again shortly.");
+    }
+    throw new Error(serverMessage ?? "We couldn't sign you in. Please try again.");
+  }
+  throw new Error("Network error — please check your connection and try again.");
+};
+
+/**
+ * Calls `POST /api/auth/super-admin-login` (SUPER_ADMIN only).
+ */
+export async function superAdminLoginUser(payload: LoginPayload): Promise<AuthResult> {
+  try {
+    return await postAuthAndNormalize(endpoints.auth.superAdminLogin, payload);
+  } catch (err) {
+    return mapLoginError(err);
+  }
+}
+
 /**
  * Calls `POST /api/auth/login`.
  *
@@ -243,53 +309,8 @@ export async function changePassword(payload: ChangePasswordPayload): Promise<vo
  */
 export async function loginUser(payload: LoginPayload): Promise<AuthResult> {
   try {
-    const { data } = await apiClient.post<RawAuthResponse>(endpoints.auth.login, payload);
-    const raw = data.data ?? {};
-    const token = pickToken(raw);
-    if (!token) {
-      throw new Error("Sign-in succeeded but no session token was returned. Please contact support.");
-    }
-    return {
-      token,
-      user: normalizeUser(raw, payload.email),
-      onboardingStep: raw.onboardingStep,
-      redirectTo: raw.redirectTo,
-    };
+    return await postAuthAndNormalize(endpoints.auth.login, payload);
   } catch (err) {
-    if (err instanceof Error && !isAxiosError(err)) {
-      // Preserve the message we threw above (e.g. "no session token").
-      throw err;
-    }
-    if (isAxiosError(err)) {
-      const status = err.response?.status;
-      const body = err.response?.data as
-        | { message?: string; error?: string; errors?: Array<{ message?: string }> }
-        | undefined;
-      const serverMessage =
-        body?.message ?? body?.error ?? body?.errors?.[0]?.message ?? undefined;
-
-      if (status === 401 || status === 403) {
-        throw new Error(serverMessage ?? "Incorrect email or password.");
-      }
-      if (status === 404) {
-        throw new Error(serverMessage ?? "No account found with that email.");
-      }
-      if (status === 423) {
-        throw new Error(serverMessage ?? "This account is locked. Contact your workspace admin.");
-      }
-      if (status === 429) {
-        throw new Error(
-          serverMessage ?? "Too many sign-in attempts. Please wait a moment and try again.",
-        );
-      }
-      if (status === 400 || status === 422) {
-        throw new Error(serverMessage ?? "Please check the information you entered.");
-      }
-      if (status && status >= 500) {
-        throw new Error("Our service is temporarily unavailable. Please try again shortly.");
-      }
-      throw new Error(serverMessage ?? "We couldn't sign you in. Please try again.");
-    }
-    throw new Error("Network error — please check your connection and try again.");
+    return mapLoginError(err);
   }
 }

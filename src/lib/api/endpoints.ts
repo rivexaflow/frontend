@@ -1,6 +1,7 @@
 export const endpoints = {
   auth: {
     login: "/auth/login",
+    superAdminLogin: "/auth/super-admin-login",
     logout: "/auth/logout",
     register: "/auth/register",
     refresh: "/auth/refresh",
@@ -38,6 +39,7 @@ export const endpoints = {
     orgChart: (companyId: string) => `/hr/${companyId}/org-chart`,
     departments: (companyId: string) => `/hr/${companyId}/departments`,
     roles: (companyId: string) => `/hr/${companyId}/roles`,
+    role: (companyId: string, id: string) => `/hr/${companyId}/roles/${id}`,
     payrollRuns: (companyId: string) => `/hr/${companyId}/payroll/runs`,
     payrollRun: (companyId: string, id: string) => `/hr/${companyId}/payroll/runs/${id}`,
     payrollRunStatus: (companyId: string, id: string) => `/hr/${companyId}/payroll/runs/${id}/status`,

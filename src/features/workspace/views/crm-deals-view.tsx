@@ -1,49 +1,48 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  Briefcase,
-  DollarSign,
-  Filter,
-  TrendingUp,
-  Trophy,
-} from "lucide-react";
+import { Eye } from "lucide-react";
 
+import { CrmPageHeader } from "@/features/workspace/components/crm/crm-workspace-header";
+import { CrmShell } from "@/features/workspace/components/crm/crm-panel";
+import type { CrmViewMode } from "@/features/workspace/components/crm/crm-view-toggle";
+import { DealDetailDrawer } from "@/features/workspace/components/crm/deals/deal-detail-drawer";
+import { DealFormModal } from "@/features/workspace/components/crm/deals/deal-form-modal";
+import { DealsDirectoryToolbar, type DealsFilters } from "@/features/workspace/components/crm/deals/deals-directory-toolbar";
+import { DealsKanbanBoard } from "@/features/workspace/components/crm/deals/deals-kanban-board";
 import {
   EnterpriseDataTable,
   StatusBadge,
   type TableColumn,
 } from "@/features/workspace/components/enterprise/enterprise-data-table";
-import { EnterprisePageShell } from "@/features/workspace/components/enterprise/enterprise-page-shell";
-import { EnterpriseToolbar } from "@/features/workspace/components/enterprise/enterprise-toolbar";
+import { useDebouncedSearch } from "@/features/workspace/hooks/use-debounced-search";
 import {
   DEAL_STAGE_META,
   DEMO_DEALS,
   formatDealValue,
   type DealRecord,
-  type DealStage,
 } from "@/features/workspace/data/deals-demo";
-import { cn } from "@/lib/utils/cn";
 
-const STAGE_FILTERS: { id: DealStage | "all"; label: string }[] = [
-  { id: "all", label: "All stages" },
-  { id: "qualification", label: "Qualification" },
-  { id: "discovery", label: "Discovery" },
-  { id: "proposal", label: "Proposal" },
-  { id: "negotiation", label: "Negotiation" },
-  { id: "closed_won", label: "Closed won" },
-  { id: "closed_lost", label: "Closed lost" },
-];
+const EMPTY_FILTERS: DealsFilters = { query: "", stage: "", owner: "" };
 
 export function CrmDealsView() {
-  const [deals] = useState<DealRecord[]>(DEMO_DEALS);
-  const [search, setSearch] = useState("");
-  const [stageFilter, setStageFilter] = useState<DealStage | "all">("all");
+  const [deals, setDeals] = useState<DealRecord[]>(DEMO_DEALS);
+  const [filters, setFilters] = useState<DealsFilters>(EMPTY_FILTERS);
+  const [viewMode, setViewMode] = useState<CrmViewMode>("board");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editDeal, setEditDeal] = useState<DealRecord | null>(null);
+  const [selectedDeal, setSelectedDeal] = useState<DealRecord | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const { effectiveQuery } = useDebouncedSearch(filters.query, { minLength: 0, debounceMs: 250 });
+
+  const owners = useMemo(() => [...new Set(deals.map((d) => d.owner))].sort(), [deals]);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = effectiveQuery.trim().toLowerCase();
     return deals.filter((d) => {
-      if (stageFilter !== "all" && d.stage !== stageFilter) return false;
+      if (filters.stage && d.stage !== filters.stage) return false;
+      if (filters.owner && d.owner !== filters.owner) return false;
       if (!q) return true;
       return (
         d.title.toLowerCase().includes(q) ||
@@ -52,23 +51,15 @@ export function CrmDealsView() {
         d.owner.toLowerCase().includes(q)
       );
     });
-  }, [deals, search, stageFilter]);
+  }, [deals, filters.stage, filters.owner, effectiveQuery]);
 
   const metrics = useMemo(() => {
-    const open = deals.filter(
-      (d) => d.stage !== "closed_won" && d.stage !== "closed_lost",
-    );
+    const open = deals.filter((d) => d.stage !== "closed_won" && d.stage !== "closed_lost");
     const openValue = open.reduce((s, d) => s + d.value, 0);
     const won = deals.filter((d) => d.stage === "closed_won");
     const wonValue = won.reduce((s, d) => s + d.value, 0);
     const weighted = open.reduce((s, d) => s + (d.value * d.probability) / 100, 0);
-    return {
-      openCount: open.length,
-      openValue,
-      wonCount: won.length,
-      wonValue,
-      weighted,
-    };
+    return { openCount: open.length, openValue, wonCount: won.length, wonValue, weighted };
   }, [deals]);
 
   const columns: TableColumn<DealRecord>[] = [
@@ -106,20 +97,13 @@ export function CrmDealsView() {
       render: (row) => (
         <div className="flex items-center gap-2">
           <div className="h-1.5 w-16 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-            <div
-              className="h-full rounded-full bg-blue-600"
-              style={{ width: `${row.probability}%` }}
-            />
+            <div className="h-full rounded-full bg-[#191970]" style={{ width: `${row.probability}%` }} />
           </div>
           <span className="text-xs font-semibold text-slate-600">{row.probability}%</span>
         </div>
       ),
     },
-    {
-      key: "owner",
-      header: "Owner",
-      render: (row) => <span className="text-sm text-slate-600">{row.owner}</span>,
-    },
+    { key: "owner", header: "Owner", render: (row) => <span className="text-sm text-slate-600">{row.owner}</span> },
     {
       key: "close",
       header: "Close date",
@@ -127,77 +111,101 @@ export function CrmDealsView() {
     },
   ];
 
-  return (
-    <EnterprisePageShell
-      eyebrow="Operations · CRM"
-      title="Deals"
-      description="Track revenue opportunities from qualification through close. Forecast with weighted pipeline and owner accountability."
-      metrics={[
-        {
-          label: "Open deals",
-          value: String(metrics.openCount),
-          hint: formatDealValue(metrics.openValue),
-          icon: Briefcase,
-          tone: "blue",
-        },
-        {
-          label: "Weighted pipeline",
-          value: formatDealValue(metrics.weighted),
-          hint: "Probability-adjusted",
-          icon: TrendingUp,
-          tone: "purple",
-        },
-        {
-          label: "Won (period)",
-          value: String(metrics.wonCount),
-          hint: formatDealValue(metrics.wonValue),
-          icon: Trophy,
-          tone: "purple",
-        },
-        {
-          label: "Avg. deal size",
-          value: formatDealValue(
-            Math.round(
-              deals.reduce((s, d) => s + d.value, 0) / Math.max(deals.length, 1),
-            ),
-          ),
-          hint: "All opportunities",
-          icon: DollarSign,
-          tone: "amber",
-        },
-      ]}
-      toolbar={
-        <div className="flex flex-wrap items-center gap-2">
-          <EnterpriseToolbar
-            searchValue={search}
-            onSearchChange={setSearch}
-            searchPlaceholder="Search deals, company, owner…"
-            primaryLabel="New deal"
-            onPrimaryClick={() => {}}
-          />
-        </div>
-      }
-    >
-      <div className="flex flex-wrap items-center gap-2">
-        <Filter className="h-4 w-4 text-slate-400" aria-hidden />
-        {STAGE_FILTERS.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            onClick={() => setStageFilter(f.id)}
-            className={cn(
-              "rounded-lg px-3 py-1.5 text-xs font-semibold transition",
-              stageFilter === f.id
-                ? "bg-blue-600 text-white shadow-sm"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300",
-            )}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+  const upsertDeal = (deal: DealRecord) => {
+    setDeals((prev) => {
+      const exists = prev.some((d) => d.id === deal.id);
+      return exists ? prev.map((d) => (d.id === deal.id ? deal : d)) : [deal, ...prev];
+    });
+    setSelectedDeal((sel) => (sel?.id === deal.id ? deal : sel));
+  };
 
-      <EnterpriseDataTable columns={columns} rows={filtered} />
-    </EnterprisePageShell>
+  const handleRefresh = () => {
+    setRefreshing(true);
+    window.setTimeout(() => setRefreshing(false), 400);
+  };
+
+  return (
+    <div className="pb-8">
+      <CrmPageHeader
+        eyebrow="Operations · CRM"
+        title="Deals"
+        description="Track revenue opportunities from qualification through close with weighted forecasting."
+        metrics={[
+          { label: "Open", value: metrics.openCount },
+          { label: "Weighted", value: formatDealValue(metrics.weighted) },
+          { label: "Won", value: metrics.wonCount },
+          { label: "Pipeline", value: formatDealValue(metrics.openValue) },
+        ]}
+      />
+
+      <CrmShell>
+        <DealsDirectoryToolbar
+          filters={filters}
+          onChange={setFilters}
+          owners={owners}
+          resultCount={filtered.length}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          onAdd={() => {
+            setEditDeal(null);
+            setModalOpen(true);
+          }}
+          onRefresh={handleRefresh}
+          refreshing={refreshing}
+        />
+
+        <div className="p-3 md:p-4">
+          {viewMode === "board" ? (
+            <DealsKanbanBoard
+                deals={filtered}
+                onChange={(next) => {
+                  const ids = new Set(filtered.map((d) => d.id));
+                  setDeals((prev) => {
+                    const updated = new Map(next.filter((d) => ids.has(d.id)).map((d) => [d.id, d]));
+                    return prev.map((d) => updated.get(d.id) ?? d);
+                  });
+                }}
+                onSelect={setSelectedDeal}
+                searchQuery={effectiveQuery}
+            />
+          ) : (
+            <EnterpriseDataTable
+              columns={columns}
+              rows={filtered}
+              emptyMessage="No deals match your filters."
+              renderActions={(row) => (
+                <button
+                  type="button"
+                  onClick={() => setSelectedDeal(row)}
+                  className="rounded-lg p-2 text-slate-400 hover:bg-blue-50 hover:text-[#191970]"
+                  aria-label="View deal"
+                >
+                  <Eye className="h-4 w-4" />
+                </button>
+              )}
+            />
+          )}
+        </div>
+      </CrmShell>
+
+      <DealFormModal
+        open={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setEditDeal(null);
+        }}
+        initial={editDeal}
+        onSubmit={upsertDeal}
+      />
+
+      <DealDetailDrawer
+        deal={selectedDeal}
+        onClose={() => setSelectedDeal(null)}
+        onEdit={(deal) => {
+          setEditDeal(deal);
+          setModalOpen(true);
+        }}
+      />
+    </div>
   );
 }

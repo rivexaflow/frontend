@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { AlertCircle, Loader2, MapPin, RefreshCw, UserCheck, UserPlus, Users } from "lucide-react";
+import { AlertCircle, Loader2, UserCheck } from "lucide-react";
 
+import { CrmShell } from "@/features/workspace/components/crm/crm-panel";
+import { HrmCompactBanner } from "@/features/workspace/components/hrm/hrm-compact-banner";
 import { AddEmployeeModal } from "@/features/workspace/components/hrm/employees/add-employee-modal";
 import { BulkImportModal } from "@/features/workspace/components/hrm/employees/bulk-import-modal";
 import { EmployeeDetailPanel } from "@/features/workspace/components/hrm/employees/employee-detail-panel";
@@ -45,6 +47,16 @@ function nextEmployeeCode(employees: HrmEmployeeRecord[]) {
   return `EMP-${String((nums.length ? Math.max(...nums) : 0) + 1).padStart(3, "0")}`;
 }
 
+function hasActiveFilters(filters: EmployeesFilters) {
+  return Boolean(
+    filters.query.trim() ||
+      filters.department ||
+      filters.location ||
+      filters.status ||
+      filters.employmentType,
+  );
+}
+
 export function HrmEmployeesView() {
   const companyId = useHrCompanyId();
   const [employees, setEmployees] = useState<HrmEmployeeRecord[]>([]);
@@ -56,7 +68,8 @@ export function HrmEmployeesView() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [importMessage, setImportMessage] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<HrmViewMode>("grid");
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<HrmViewMode>("list");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -109,6 +122,7 @@ export function HrmEmployeesView() {
   }, [employees, filters]);
 
   const selected = selectedId ? employees.find((e) => e.id === selectedId) ?? null : null;
+  const filtersActive = hasActiveFilters(filters);
 
   const departmentNames = useMemo(() => {
     const fromApi = departments.map((d) => d.name);
@@ -123,7 +137,7 @@ export function HrmEmployeesView() {
 
   const activeCount = employees.filter((e) => e.status === "active").length;
   const probationCount = employees.filter((e) => e.status === "probation").length;
-  const locationCount = new Set(employees.map((e) => e.location)).size;
+  const locationCount = new Set(employees.map((e) => e.location).filter((l) => l && l !== "—")).size;
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -135,6 +149,8 @@ export function HrmEmployeesView() {
     const created = await createHrEmployee(companyId, payload);
     setEmployees((prev) => [created, ...prev]);
     setSelectedId(created.id);
+    setSuccessMessage(`${created.name} added · starts in probation until onboarding is complete.`);
+    window.setTimeout(() => setSuccessMessage(null), 6000);
   };
 
   const handleUpdate = async (patch: Partial<HrmEmployeeRecord>) => {
@@ -183,47 +199,9 @@ export function HrmEmployeesView() {
   };
 
   return (
-    <div className="pb-10">
-      <header className="mb-6">
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">People · HRM</p>
-        <div className="mt-1 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Employees</h1>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-              Employee directory with employment status, reporting lines, and contact details.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {[
-              { label: "Headcount", value: employees.length, icon: Users },
-              { label: "Active", value: activeCount, icon: UserCheck },
-              { label: "Probation", value: probationCount, icon: UserPlus },
-              { label: "Locations", value: locationCount, icon: MapPin },
-            ].map((stat) => (
-              <div
-                key={stat.label}
-                className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white px-3 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-900"
-              >
-                <stat.icon className="h-3.5 w-3.5 text-slate-400" />
-                <span className="text-xs text-slate-500">{stat.label}</span>
-                <span className="text-sm font-bold text-slate-900 dark:text-white">{stat.value}</span>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={refreshing || !companyId}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
-            >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-              Refresh
-            </button>
-          </div>
-        </div>
-      </header>
-
+    <div className="pb-8">
       {!companyId ? (
-        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <div className="mb-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <p>{MISSING_COMPANY_CONTEXT_MESSAGE}</p>
         </div>
@@ -236,13 +214,30 @@ export function HrmEmployeesView() {
         </div>
       ) : null}
 
+      {successMessage ? (
+        <div className="mb-4 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          <UserCheck className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>{successMessage}</p>
+        </div>
+      ) : null}
+
       {importMessage ? (
         <div className="mb-4 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           <p>{importMessage}</p>
         </div>
       ) : null}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <CrmShell>
+        <HrmCompactBanner
+          title="Employees"
+          subtitle="Workforce directory · status, reporting lines, contact"
+          stats={[
+            { label: "Headcount", value: employees.length },
+            { label: "Active", value: activeCount, tone: "success" },
+            { label: "Probation", value: probationCount, tone: "warning" },
+            { label: "Locations", value: locationCount },
+          ]}
+        />
         <EmployeesDirectoryToolbar
           filters={filters}
           onChange={setFilters}
@@ -251,33 +246,43 @@ export function HrmEmployeesView() {
           onAdd={() => setAddOpen(true)}
           onExport={companyId ? handleExport : undefined}
           onBulkImport={companyId ? () => setBulkOpen(true) : undefined}
+          onRefresh={companyId ? handleRefresh : undefined}
+          refreshing={refreshing}
           exporting={exporting}
           resultCount={filtered.length}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
         />
-        {loading ? (
-          <div className="flex items-center justify-center gap-2 px-4 py-20 text-sm text-slate-500">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading employees…
-          </div>
-        ) : viewMode === "grid" ? (
-          <EmployeesDirectoryGrid
-            employees={filtered}
-            allEmployees={employees}
-            selectedId={selectedId}
-            onSelect={(emp) => setSelectedId(emp.id)}
-            onAdd={() => setAddOpen(true)}
-          />
-        ) : (
-          <EmployeesDirectoryTable
-            employees={filtered}
-            allEmployees={employees}
-            selectedId={selectedId}
-            onSelect={(emp) => setSelectedId(emp.id)}
-          />
-        )}
-      </div>
+
+        <div className="p-3 md:p-4">
+          {loading ? (
+            <div className="flex items-center justify-center gap-2 py-20 text-sm text-slate-500">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading employees…
+            </div>
+          ) : viewMode === "grid" ? (
+            <EmployeesDirectoryGrid
+              employees={filtered}
+              allEmployees={employees}
+              selectedId={selectedId}
+              onSelect={(emp) => setSelectedId(emp.id)}
+              onClearFilters={() => setFilters(EMPTY_FILTERS)}
+              isFiltered={filtersActive}
+              totalCount={employees.length}
+            />
+          ) : (
+            <EmployeesDirectoryTable
+              employees={filtered}
+              allEmployees={employees}
+              selectedId={selectedId}
+              onSelect={(emp) => setSelectedId(emp.id)}
+              onClearFilters={() => setFilters(EMPTY_FILTERS)}
+              isFiltered={filtersActive}
+              totalCount={employees.length}
+            />
+          )}
+        </div>
+      </CrmShell>
 
       <AnimatePresence>
         {selected ? (
@@ -304,11 +309,7 @@ export function HrmEmployeesView() {
         nextEmployeeCode={nextEmployeeCode(employees)}
       />
 
-      <BulkImportModal
-        open={bulkOpen}
-        onClose={() => setBulkOpen(false)}
-        onSubmit={handleBulkImport}
-      />
+      <BulkImportModal open={bulkOpen} onClose={() => setBulkOpen(false)} onSubmit={handleBulkImport} />
     </div>
   );
 }

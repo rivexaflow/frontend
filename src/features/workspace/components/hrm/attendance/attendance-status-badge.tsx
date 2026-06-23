@@ -6,7 +6,7 @@ const STYLES: Record<AttendanceStatus, string> = {
   remote: "bg-sky-50 text-sky-700 ring-sky-600/15 dark:bg-sky-950/40 dark:text-sky-300",
   late: "bg-amber-50 text-amber-700 ring-amber-600/15 dark:bg-amber-950/40 dark:text-amber-300",
   half_day: "bg-orange-50 text-orange-700 ring-orange-600/15 dark:bg-orange-950/40 dark:text-orange-300",
-  on_leave: "bg-violet-50 text-violet-700 ring-violet-600/15 dark:bg-violet-950/40 dark:text-violet-300",
+  on_leave: "bg-[#2277ff]/10 text-[#0056ff] ring-[#2277ff]/20 dark:bg-blue-950/40 dark:text-sky-300",
   absent: "bg-rose-50 text-rose-700 ring-rose-600/15 dark:bg-rose-950/40 dark:text-rose-300",
 };
 

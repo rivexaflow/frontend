@@ -4,6 +4,7 @@ import { ReactNode } from "react";
 import { Inter } from "next/font/google";
 import { AppProvider } from "@/providers/app-provider";
 import { AuthProvider } from "@/providers/auth-provider";
+import { BRAND_ASSETS } from "@/lib/marketing/brand-assets";
 
 /**
  * Default app font (workspace, admin, auth, etc.).
@@ -18,7 +19,11 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Rivexaflow",
-  description: "AI-driven B2B multi-tenant workspace"
+  description: "AI-driven B2B multi-tenant workspace",
+  icons: {
+    icon: [{ url: BRAND_ASSETS.favicon, type: "image/png" }],
+    apple: [{ url: BRAND_ASSETS.favicon, type: "image/png" }],
+  },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

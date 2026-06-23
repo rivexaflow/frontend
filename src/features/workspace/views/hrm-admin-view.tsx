@@ -1,163 +1,341 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
-import { AlertCircle, Loader2, Plus, RefreshCw, Shield } from "lucide-react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  KeyRound,
+  Loader2,
+  RefreshCw,
+  Shield,
+  Users,
+} from "lucide-react";
 
+import { CrmPanel, CrmShell } from "@/features/workspace/components/crm/crm-panel";
 import {
   EnterpriseFormModal,
   FormField,
   inputClassName,
 } from "@/features/workspace/components/enterprise/enterprise-form-modal";
+import {
+  HrmRoleEditorPanel,
+  type RoleDraft,
+} from "@/features/workspace/components/hrm/settings/hrm-role-editor-panel";
+import { HrmRolesCatalogList } from "@/features/workspace/components/hrm/settings/hrm-roles-catalog-list";
+import {
+  HrmRolesToolbar,
+  type HrmRoleTypeFilter,
+} from "@/features/workspace/components/hrm/settings/hrm-roles-toolbar";
+import { HrmCompactBanner } from "@/features/workspace/components/hrm/hrm-compact-banner";
+import { OrgChartStatStrip } from "@/features/workspace/components/hrm/org-chart-stat-strip";
+import {
+  enrichHrmRoles,
+  getHrmRoleStats,
+  type HrmRoleRecord,
+} from "@/features/workspace/data/hrm-roles-demo";
 import { useHrCompanyId } from "@/features/workspace/hooks/use-hr-company-id";
+import { createHrRole, deleteHrRole, fetchHrRoles, updateHrRole } from "@/lib/api/hrm";
 import { MISSING_COMPANY_CONTEXT_MESSAGE } from "@/lib/workspace/company-context";
-import { createHrRole, fetchHrRoles } from "@/lib/api/hrm";
+import { authStore } from "@/stores/auth.store";
+import { duplicateHrmRole, hrmRolesStore } from "@/stores/hrm-roles.store";
+import { effectiveNavRole, type CurrentUser, type Role } from "@/types/auth";
 import type { HrmRole } from "@/types/hrm";
+import { cn } from "@/lib/utils/cn";
+
+/** Workspace owners/admins — or any session with HR company context on this settings page. */
+function canManageHrmRoleSettings(
+  user: CurrentUser | null,
+  role: Role | null,
+  hasCompanyContext: boolean,
+): boolean {
+  const effective = effectiveNavRole(user) ?? role;
+  if (effective === "SUPER_ADMIN" || effective === "ADMIN") return true;
+  if (hasCompanyContext && user?.id && user.id !== "unknown") return true;
+  return false;
+}
 
 export function HrmAdminView() {
   const companyId = useHrCompanyId();
-  const [roles, setRoles] = useState<HrmRole[]>([]);
+  const user = authStore((s) => s.user);
+  const authRole = authStore((s) => s.role);
+  const canManage = canManageHrmRoleSettings(user, authRole, Boolean(companyId));
+
+  const roles = hrmRolesStore((s) => s.roles);
+  const hydrate = hrmRolesStore((s) => s.hydrate);
+  const upsertRole = hrmRolesStore((s) => s.upsertRole);
+  const removeRole = hrmRolesStore((s) => s.removeRole);
+
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<HrmRoleTypeFilter>("all");
+  const [roleModalOpen, setRoleModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [roleModalOpen, setRoleModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (force = false) => {
     if (!companyId) {
+      setLoading(false);
+      return;
+    }
+    if (hrmRolesStore.getState().hydrated && !force) {
       setLoading(false);
       return;
     }
     setError(null);
     try {
       const roleList = await fetchHrRoles(companyId);
-      setRoles(roleList);
+      hydrate(enrichHrmRoles(roleList));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load HR roles.");
+      hydrate(enrichHrmRoles([]));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [companyId]);
+  }, [companyId, hydrate]);
 
   useEffect(() => {
     setLoading(true);
     void load();
   }, [load]);
 
+  const stats = useMemo(() => getHrmRoleStats(roles), [roles]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return roles.filter((r) => {
+      if (q && !`${r.name} ${r.description ?? ""} ${r.scope}`.toLowerCase().includes(q)) return false;
+      if (typeFilter === "system" && !r.isSystem) return false;
+      if (typeFilter === "custom" && r.isSystem) return false;
+      return true;
+    });
+  }, [roles, query, typeFilter]);
+
+  const selected = selectedId ? roles.find((r) => r.id === selectedId) ?? null : null;
+
+  useEffect(() => {
+    if (filtered.length === 0) {
+      setSelectedId(null);
+      return;
+    }
+    if (!selectedId || !filtered.some((r) => r.id === selectedId)) {
+      setSelectedId(filtered[0]!.id);
+    }
+  }, [filtered, selectedId]);
+
+  const showSuccess = (msg: string) => {
+    setSuccessMessage(msg);
+    window.setTimeout(() => setSuccessMessage(null), 4000);
+  };
+
   const handleRefresh = () => {
     setRefreshing(true);
-    void load();
+    void load(true);
+  };
+
+  const handleRoleCreated = (role: HrmRole) => {
+    const record = enrichHrmRoles([role]).find((r) => r.id === role.id) ?? {
+      ...role,
+      isSystem: false,
+      scope: "organization" as const,
+      memberCount: 0,
+      permissionKeys: role.permissions ?? [],
+    };
+    upsertRole(record);
+    setSelectedId(record.id);
+    showSuccess(`Role "${record.name}" created.`);
+  };
+
+  const handleSaveRole = async (draft: RoleDraft) => {
+    if (!selected || !companyId) return;
+    setSaving(true);
+    setError(null);
+    const permissionKeys = [...draft.permissionKeys];
+    try {
+      await updateHrRole(companyId, selected.id, {
+        name: selected.isSystem ? undefined : draft.name.trim(),
+        description: draft.description.trim() || undefined,
+        permissions: permissionKeys,
+      });
+      const updated: HrmRoleRecord = {
+        ...selected,
+        name: selected.isSystem ? selected.name : draft.name.trim(),
+        description: draft.description.trim() || undefined,
+        scope: draft.scope,
+        permissionKeys,
+        permissions: permissionKeys,
+      };
+      upsertRole(updated);
+      showSuccess(`Permissions saved for "${updated.name}".`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save role.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDuplicate = () => {
+    if (!selected) return;
+    const copy = duplicateHrmRole(selected);
+    upsertRole(copy);
+    setSelectedId(copy.id);
+    showSuccess(`Duplicated as "${copy.name}".`);
+  };
+
+  const handleDelete = async () => {
+    if (!selected || !companyId || selected.isSystem) return;
+    setError(null);
+    try {
+      await deleteHrRole(companyId, selected.id);
+      removeRole(selected.id);
+      showSuccess(`Role "${selected.name}" deleted.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete role.");
+    }
   };
 
   return (
-    <div className="pb-10">
-      <header className="mb-6">
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">People · HRM</p>
-        <div className="mt-1 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">HR roles</h1>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-              Custom HR roles for payroll, recruiting, and compliance operations.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white px-3 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <Shield className="h-3.5 w-3.5 text-slate-400" />
-              <span className="text-xs text-slate-500">HR roles</span>
-              <span className="text-sm font-bold text-slate-900 dark:text-white">{roles.length}</span>
-            </div>
+    <div className="pb-8">
+      <CrmShell>
+        <HrmCompactBanner
+          title="Roles & permissions"
+          subtitle="Super admin defines HR access policies · module matrix · least privilege"
+          stats={[
+            { label: "Roles", value: stats.total },
+            { label: "Templates", value: stats.system },
+            { label: "Custom", value: stats.custom },
+            { label: "Members", value: stats.members },
+          ]}
+          actions={
             <button
               type="button"
               onClick={handleRefresh}
-              disabled={refreshing || !companyId}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+              disabled={refreshing}
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-white/15 px-3 text-xs font-semibold text-white ring-1 ring-white/20 hover:bg-white/25 disabled:opacity-50"
             >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
               Refresh
             </button>
-          </div>
-        </div>
-      </header>
+          }
+        />
 
-      {!companyId ? (
-        <div className="mb-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          <p>{MISSING_COMPANY_CONTEXT_MESSAGE}</p>
-        </div>
-      ) : null}
+        <div className="space-y-4 p-3 md:p-4">
+          {!companyId ? (
+            <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>{MISSING_COMPANY_CONTEXT_MESSAGE}</p>
+            </div>
+          ) : null}
 
-      {error ? (
-        <div className="mb-4 flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          <p>{error}</p>
-        </div>
-      ) : null}
+          {!canManage && companyId ? (
+            <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+              <Shield className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+              <p>Sign in as a workspace admin to edit HR role permissions.</p>
+            </div>
+          ) : null}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/90 px-4 py-4 dark:border-slate-800">
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white">Role directory</h2>
-          <button
-            type="button"
-            onClick={() => setRoleModalOpen(true)}
-            disabled={!companyId}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#191970] px-4 text-sm font-semibold text-white transition hover:bg-[#12124a] disabled:opacity-50"
-          >
-            <Plus className="h-4 w-4" />
-            Add role
-          </button>
-        </div>
+          {successMessage ? (
+            <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              {successMessage}
+            </div>
+          ) : null}
 
-        {loading ? (
-          <div className="flex items-center justify-center gap-2 px-4 py-20 text-sm text-slate-500">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading…
-          </div>
-        ) : (
-          <RolesTable roles={roles} />
-        )}
-      </div>
+          {error ? (
+            <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {error}
+            </div>
+          ) : null}
+
+          <OrgChartStatStrip
+            stats={[
+              {
+                label: "Permission grants",
+                value: roles.reduce((s, r) => s + r.permissionKeys.length, 0),
+                hint: "Across all roles",
+                icon: KeyRound,
+                tone: "blue",
+              },
+              {
+                label: "Role templates",
+                value: stats.system,
+                hint: "Editable defaults",
+                icon: Shield,
+                tone: "emerald",
+              },
+              {
+                label: "Assigned members",
+                value: stats.members,
+                hint: "Workforce coverage",
+                icon: Users,
+                tone: "amber",
+              },
+            ]}
+          />
+
+          <CrmPanel className="overflow-hidden">
+            <HrmRolesToolbar
+              query={query}
+              onQueryChange={setQuery}
+              typeFilter={typeFilter}
+              onTypeFilterChange={setTypeFilter}
+              resultCount={filtered.length}
+              onCreateRole={() => setRoleModalOpen(true)}
+              canManage={canManage}
+            />
+
+            {loading ? (
+              <div className="flex items-center justify-center gap-2 py-24 text-sm text-slate-500">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Loading roles…
+              </div>
+            ) : (
+              <div className="grid min-h-[620px] lg:grid-cols-[minmax(300px,360px)_1fr]">
+                <div className="max-h-[min(780px,75vh)] overflow-y-auto border-b border-slate-200/90 lg:border-b-0 lg:border-r dark:border-slate-800">
+                  <HrmRolesCatalogList
+                    roles={filtered}
+                    selectedId={selectedId}
+                    onSelect={(role) => setSelectedId(role.id)}
+                  />
+                </div>
+
+                <div className="min-h-[480px]">
+                  {selected ? (
+                    <HrmRoleEditorPanel
+                      key={selected.id}
+                      role={selected}
+                      canManage={canManage}
+                      saving={saving}
+                      onSave={handleSaveRole}
+                      onDuplicate={canManage ? handleDuplicate : undefined}
+                      onDelete={canManage && !selected.isSystem ? handleDelete : undefined}
+                    />
+                  ) : (
+                    <div className="flex h-full min-h-[480px] flex-col items-center justify-center px-8 text-center">
+                      <Shield className="h-10 w-10 text-slate-300" />
+                      <p className="mt-4 text-sm font-semibold text-slate-800">Select an HR role</p>
+                      <p className="mt-1 max-w-sm text-sm text-slate-500">
+                        Choose a role from the catalog to configure module permissions, scope, and member assignments.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </CrmPanel>
+        </div>
+      </CrmShell>
 
       <CreateRoleModal
         open={roleModalOpen}
         onClose={() => setRoleModalOpen(false)}
-        onCreated={(role) => setRoles((prev) => [role, ...prev])}
+        onCreated={handleRoleCreated}
         companyId={companyId}
       />
-    </div>
-  );
-}
-
-function RolesTable({ roles }: { roles: HrmRole[] }) {
-  if (roles.length === 0) {
-    return (
-      <div className="px-4 py-16 text-center">
-        <p className="text-sm font-medium text-slate-700 dark:text-slate-300">No HR roles yet</p>
-        <p className="mt-1 text-sm text-slate-500">Define custom roles for payroll, recruiting, and HR ops.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[640px] text-left text-sm">
-        <thead>
-          <tr className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:border-slate-800 dark:bg-slate-950/40">
-            <th className="px-4 py-3">Role</th>
-            <th className="px-4 py-3">Description</th>
-            <th className="px-4 py-3">Permissions</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-          {roles.map((role) => (
-            <tr key={role.id} className="transition hover:bg-slate-50/60 dark:hover:bg-slate-900/40">
-              <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white">{role.name}</td>
-              <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{role.description ?? "—"}</td>
-              <td className="px-4 py-3 text-slate-500">
-                {role.permissions?.length ? role.permissions.join(", ") : "—"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }
@@ -179,12 +357,10 @@ function CreateRoleModal({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (open) {
-      setName("");
-      setDescription("");
-      setError(null);
-      setSubmitting(false);
-    }
+    if (!open) return;
+    setName("");
+    setDescription("");
+    setError(null);
   }, [open]);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -200,6 +376,7 @@ function CreateRoleModal({
       const created = await createHrRole(companyId, {
         name: name.trim(),
         description: description.trim() || undefined,
+        permissions: [],
       });
       onCreated(created);
       onClose();
@@ -213,8 +390,8 @@ function CreateRoleModal({
   return (
     <EnterpriseFormModal
       open={open}
-      title="Add HR role"
-      description="Define a custom role for HR operations (recruiting, payroll, compliance)."
+      title="Create HR role"
+      description="Start with a blank policy, then assign module permissions from the editor."
       onClose={onClose}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -222,12 +399,9 @@ function CreateRoleModal({
           <input
             id="role-name"
             value={name}
-            onChange={(e) => {
-              setName(e.target.value);
-              if (error) setError(null);
-            }}
+            onChange={(e) => setName(e.target.value)}
             className={inputClassName}
-            placeholder="e.g. Payroll Specialist"
+            placeholder="e.g. Regional HR Partner"
             disabled={submitting}
           />
         </FormField>
@@ -237,24 +411,24 @@ function CreateRoleModal({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             className={inputClassName}
-            placeholder="Optional scope summary"
+            placeholder="Job function and data scope summary"
             disabled={submitting}
           />
         </FormField>
         {error ? <p className="text-sm font-medium text-rose-600">{error}</p> : null}
-        <div className="flex justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
+        <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
           <button
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="h-10 rounded-lg px-4 text-sm font-medium text-slate-600 transition hover:bg-slate-100 disabled:opacity-50"
+            className="h-10 rounded-lg px-4 text-sm font-medium text-slate-600 hover:bg-slate-100"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#191970] px-5 text-sm font-semibold text-white transition hover:bg-[#12124a] disabled:opacity-60"
+            className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#191970] px-5 text-sm font-semibold text-white disabled:opacity-60"
           >
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Create role
