@@ -35,6 +35,7 @@ type SyncWorkspaceInput = {
   workspaceSlug?: string;
   workspaceName?: string;
   plan?: string;
+  modules?: string[];
   token?: string | null;
 };
 
@@ -63,6 +64,7 @@ export function syncWorkspaceContext(input: SyncWorkspaceInput = {}): string | n
       workspaceName,
       workspaceSlug: workspaceSlug ?? workspaceStore.getState().workspaceSlug ?? "",
       plan: input.plan ?? workspaceStore.getState().plan ?? undefined,
+      modules: input.modules ?? workspaceStore.getState().modules ?? undefined,
     });
   }
 

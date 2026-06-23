@@ -7,6 +7,7 @@ import { onboardingApi } from "@/lib/api/onboarding";
 import { applyOnboardingStateToAuthUser } from "@/lib/api/onboarding-sync";
 import { resolveCompanyId, syncWorkspaceContext } from "@/lib/workspace/company-context";
 import { authStore } from "@/stores/auth.store";
+import { apiClient } from "@/lib/api/client";
 
 /**
  * Silent client-side hydrator.
@@ -53,6 +54,24 @@ export function SessionHydrator() {
           workspaceName: profile.workspaceName ?? profile.workspaceSlug,
           plan: profile.plan,
         });
+
+        if (merged.workspaceId) {
+          try {
+            const { data } = await apiClient.get(`/company/${merged.workspaceId}`);
+            if (!cancelled && data.success && data.data) {
+              const c = data.data;
+              syncWorkspaceContext({
+                workspaceId: c.id,
+                workspaceSlug: c.slug,
+                workspaceName: c.name,
+                plan: c.size,
+                modules: c.modules || [],
+              });
+            }
+          } catch (companyErr) {
+            console.error("Failed to load company details on hydration:", companyErr);
+          }
+        }
 
         if (!resolveCompanyId() && merged.id && merged.id !== "unknown") {
           try {

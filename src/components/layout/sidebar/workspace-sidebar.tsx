@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { authStore } from "@/stores/auth.store";
+import { workspaceStore } from "@/stores/workspace.store";
 import { effectiveNavRole } from "@/types/auth";
 import { cn } from "@/lib/utils/cn";
 
@@ -34,8 +35,23 @@ const userNav = (slug: string): NavItem[] => [
 export function WorkspaceSidebar({ slug }: { slug: string }) {
   const pathname = usePathname();
   const user = authStore((s) => s.user);
+  const modules = workspaceStore((s) => s.modules);
   const navRole = effectiveNavRole(user);
-  const items = navRole === "USER" ? userNav(slug) : adminNav(slug);
+
+  const rawItems = navRole === "USER" ? userNav(slug) : adminNav(slug);
+
+  const items = modules === null
+    ? rawItems
+    : rawItems.filter((item) => {
+        const href = item.href;
+        if (href.includes("/crm")) return modules.includes("crm");
+        if (href.includes("/team")) return modules.includes("team");
+        if (href.includes("/kyc")) return modules.includes("kyc");
+        if (href.includes("/invoices")) return modules.includes("invoices");
+        if (href.includes("/ai")) return modules.includes("ai");
+        if (href.includes("/reports")) return modules.includes("reports");
+        return true;
+      });
 
   return (
     <aside className="w-64 shrink-0 border-r border-[var(--rvx-midnight)]/10 bg-[var(--rvx-white)] p-4">

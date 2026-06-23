@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils/cn";
 type Props = {
   entries: CallLogEntry[];
   maxItems?: number;
+  onEntryClick?: (entry: CallLogEntry) => void;
 };
 
 type LogFilter = "all" | "connected" | "missed";
@@ -39,7 +40,7 @@ function matchesFilter(entry: CallLogEntry, filter: LogFilter): boolean {
   return entry.disposition === "no_answer" || entry.disposition === "busy";
 }
 
-export function DialerCallHistoryPanel({ entries, maxItems = 14 }: Props) {
+export function DialerCallHistoryPanel({ entries, maxItems = 14, onEntryClick }: Props) {
   const [filter, setFilter] = useState<LogFilter>("all");
 
   const visible = useMemo(() => {
@@ -112,7 +113,20 @@ export function DialerCallHistoryPanel({ entries, maxItems = 14 }: Props) {
                 )}
               />
 
-              <div className="mb-2 rounded-xl border border-slate-200/70 bg-white p-3 shadow-sm transition hover:border-[#191970]/20 dark:border-slate-800 dark:bg-slate-900">
+              <div
+                onClick={() => onEntryClick?.(entry)}
+                className="group relative overflow-hidden mb-2 rounded-xl border border-slate-200/70 bg-white p-3 pl-4 shadow-sm transition-all duration-200 hover:-translate-y-[1px] hover:shadow-md hover:border-[#191970]/25 dark:border-slate-800 dark:bg-slate-900 cursor-pointer"
+              >
+                <span
+                  className={cn(
+                    "absolute left-0 top-0 bottom-0 w-1 transition-all duration-200",
+                    isMissed
+                      ? "bg-rose-400 group-hover:bg-rose-500"
+                      : entry.disposition === "voicemail" || entry.disposition === "callback"
+                        ? "bg-blue-400 group-hover:bg-blue-500"
+                        : "bg-emerald-400 group-hover:bg-emerald-500",
+                  )}
+                />
                 <div className="flex items-start gap-2.5">
                   <span
                     className={cn(

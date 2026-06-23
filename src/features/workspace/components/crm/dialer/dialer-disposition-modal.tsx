@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CheckCircle2, Phone } from "lucide-react";
 
 import { crm } from "@/features/workspace/components/crm/crm-styles";
@@ -16,6 +16,7 @@ type Props = {
   phone: string;
   onClose: () => void;
   onSubmit: (disposition: CallDisposition, notes?: string) => void;
+  onSaveOnly: (disposition: CallDisposition, notes?: string) => void;
   initialNotes?: string;
 };
 
@@ -45,17 +46,12 @@ export function DialerDispositionModal({
   phone,
   onClose,
   onSubmit,
+  onSaveOnly,
   initialNotes = "",
 }: Props) {
   const [selected, setSelected] = useState<CallDisposition>("connected");
   const [notes, setNotes] = useState(initialNotes);
 
-  useEffect(() => {
-    if (open) {
-      setNotes(initialNotes);
-      setSelected("connected");
-    }
-  }, [open, initialNotes]);
 
   if (!open) return null;
 
@@ -132,8 +128,12 @@ export function DialerDispositionModal({
         </div>
 
         <div className="flex justify-end gap-2 border-t border-slate-100 bg-slate-50/80 px-5 py-4 dark:border-slate-800 dark:bg-slate-950/40">
-          <button type="button" onClick={onClose} className={crm.btnSecondarySm}>
-            Skip logging
+          <button
+            type="button"
+            onClick={() => onSaveOnly(selected, notes.trim() || undefined)}
+            className={crm.btnSecondarySm}
+          >
+            Save
           </button>
           <button
             type="button"

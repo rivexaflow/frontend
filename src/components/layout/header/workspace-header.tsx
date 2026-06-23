@@ -107,7 +107,7 @@ export function WorkspaceHeader() {
             </button>
 
             <div className="hidden sm:block">
-              <WorkspaceSwitcher />
+              <WorkspaceSwitcher onAddWorkspace={() => setCreateOpen(true)} />
             </div>
 
             <Link

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -34,6 +34,7 @@ import { CRM_NAV_CHILDREN, isCrmNavSubGroup } from "@/features/workspace/data/cr
 import { HRM_NAV_CHILDREN, isHrmNavSubGroup } from "@/features/workspace/data/hrm-nav";
 import { workspacePaths } from "@/lib/workspace/paths";
 import { authStore } from "@/stores/auth.store";
+import { workspaceStore } from "@/stores/workspace.store";
 import { UserAccountDropdown } from "./user-account-dropdown";
 
 interface NavItem {
@@ -146,9 +147,34 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const [isHovered, setIsHovered] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const user = authStore((s) => s.user);
+  const modules = workspaceStore((s) => s.modules);
 
-  const items = isAdmin ? adminNavItems : workspaceNavItems;
-  const groups = isAdmin ? [] : workspaceNavGroups;
+  const items = useMemo(() => {
+    return isAdmin
+      ? adminNavItems
+      : modules === null
+      ? workspaceNavItems
+      : workspaceNavItems.filter((item) => {
+          if (item.href === "/kyc") return modules.includes("kyc");
+          if (item.href === "/invoices") return modules.includes("invoices");
+          if (item.href === "/ai") return modules.includes("ai");
+          if (item.href === "/reports") return modules.includes("reports");
+          return true;
+        });
+  }, [isAdmin, modules]);
+
+  const groups = useMemo(() => {
+    return isAdmin
+      ? []
+      : modules === null
+      ? workspaceNavGroups
+      : workspaceNavGroups.filter((group) => {
+          if (group.isCrm) return modules.includes("crm");
+          if (group.isHrm) return modules.includes("team");
+          return true;
+        });
+  }, [isAdmin, modules]);
+
   const footerItems = isAdmin ? [] : workspaceNavFooter;
   const CATEGORY_ORDER = ["General", "Operations", "People", "Governance", "Intelligence", "System"] as const;
   const categorySet = new Set([
@@ -215,6 +241,7 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
           : isNavGroupActive(pathname, group.children);
       if (active) nextGroups[group.name] = true;
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpenGroups(nextGroups);
 
     const nextCrmSubs = Object.fromEntries(CRM_SUBGROUP_NAMES.map((n) => [n, false]));
@@ -235,6 +262,7 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const effectiveCollapsed = isCollapsed && !isHovered;
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (effectiveCollapsed) closeAllNavGroups();
   }, [effectiveCollapsed]);
 

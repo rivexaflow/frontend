@@ -49,6 +49,8 @@ export type DialerSession = {
   cancelCall: () => void;
   endCall: () => void;
   submitDisposition: (disposition: CallDisposition, notesOverride?: string) => void;
+  saveDisposition: (disposition: CallDisposition, notesOverride?: string) => void;
+  updateLogDisposition: (logId: string, disposition: CallDisposition, notes?: string) => void;
   skipQueueItem: (contactId: string) => void;
   startNextInQueue: () => void;
 };
@@ -75,7 +77,7 @@ export function useDialerSession(): DialerSession {
   const durationTimerRef = useRef<number | null>(null);
   const connectStartRef = useRef<number>(0);
   const queueRef = useRef(queue);
-  queueRef.current = queue;
+  useEffect(() => { queueRef.current = queue; }, [queue]);
 
   const clearTimers = useCallback(() => {
     timersRef.current.forEach((id) => window.clearTimeout(id));
@@ -237,11 +239,86 @@ export function useDialerSession(): DialerSession {
     ],
   );
 
+  // Save disposition only — no auto-dial next lead
+  const saveDisposition = useCallback(
+    (disposition: CallDisposition, notesOverride?: string) => {
+      const resolvedNotes = (notesOverride ?? callNotes).trim();
+      const phone =
+        activeTarget?.kind === "contact"
+          ? activeTarget.contact.phone
+          : activeTarget?.kind === "manual"
+            ? activeTarget.phone
+            : dialedNumber;
+      const name =
+        activeTarget?.kind === "contact"
+          ? activeTarget.contact.name
+          : activeTarget?.kind === "manual"
+            ? activeTarget.label ?? "Manual dial"
+            : "Unknown";
+      const company = activeTarget?.kind === "contact" ? activeTarget.contact.company : "—";
+      const contactId = activeTarget?.kind === "contact" ? activeTarget.contact.id : `manual-${Date.now()}`;
+
+      const entry: CallLogEntry = {
+        id: `cl-${Date.now()}`,
+        contactId,
+        contactName: name,
+        phone,
+        company,
+        direction: "outbound",
+        disposition,
+        durationSec: callDurationSec,
+        notes: resolvedNotes || undefined,
+        startedAt: "Just now",
+      };
+
+      setCallLog((prev) => [entry, ...prev]);
+
+      if (activeTarget?.kind === "contact") {
+        const nextStatus: DialerContact["queueStatus"] =
+          disposition === "no_answer" || disposition === "busy"
+            ? "no_answer"
+            : disposition === "not_interested" || disposition === "wrong_number"
+              ? "skipped"
+              : "completed";
+        markQueueStatus(activeTarget.contact.id, nextStatus);
+      }
+
+      setPhase("idle");
+      setActiveTarget(null);
+      setPendingDisposition(false);
+      setCallNotes("");
+      resetCallControls();
+      setDialedNumberState("");
+      // No powerDial auto-advance
+    },
+    [
+      activeTarget,
+      callDurationSec,
+      callNotes,
+      dialedNumber,
+      markQueueStatus,
+      resetCallControls,
+    ],
+  );
+
   const skipQueueItem = useCallback((contactId: string) => {
     setQueue((prev) =>
       prev.map((c) => (c.id === contactId ? { ...c, queueStatus: "skipped" as const } : c)),
     );
   }, []);
+
+  const updateLogDisposition = useCallback(
+    (logId: string, disposition: CallDisposition, notes?: string) => {
+      setCallLog((prev) =>
+        prev.map((entry) =>
+          entry.id === logId
+            ? { ...entry, disposition, notes: notes !== undefined ? notes : entry.notes }
+            : entry,
+        ),
+      );
+    },
+    [],
+  );
 
   const startNextInQueue = useCallback(() => {
     const next = queue.find((c) => c.queueStatus === "pending");
@@ -260,7 +337,7 @@ export function useDialerSession(): DialerSession {
     setDialedNumberState((prev) => prev.slice(0, -1));
   }, []);
 
-  const todayLog = callLog.filter((c) => c.startedAt.startsWith("Today") || c.startedAt === "Just now");
+  const todayLog = callLog; // all session entries are today's calls
   const connected = todayLog.filter((c) => c.disposition === "connected").length;
   const talkTimeSec = todayLog.reduce((sum, c) => sum + c.durationSec, 0);
   const queueRemaining = queue.filter((c) => c.queueStatus === "pending").length;
@@ -297,6 +374,8 @@ export function useDialerSession(): DialerSession {
     cancelCall,
     endCall,
     submitDisposition,
+    saveDisposition,
+    updateLogDisposition,
     skipQueueItem,
     startNextInQueue,
   };
