@@ -16,6 +16,7 @@ import {
   Bell, 
   LogOut,
   ChevronLeft,
+  ChevronRight,
   ChevronDown,
   Menu,
   Search,
@@ -28,6 +29,7 @@ import {
   Activity,
   History,
   CreditCard,
+  Database,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { CRM_NAV_CHILDREN, isCrmNavSubGroup } from "@/features/workspace/data/crm-nav";
@@ -35,6 +37,7 @@ import { HRM_NAV_CHILDREN, isHrmNavSubGroup } from "@/features/workspace/data/hr
 import { workspacePaths } from "@/lib/workspace/paths";
 import { authStore } from "@/stores/auth.store";
 import { workspaceStore } from "@/stores/workspace.store";
+import { effectiveNavRole } from "@/types/auth";
 import { UserAccountDropdown } from "./user-account-dropdown";
 
 interface NavItem {
@@ -145,12 +148,13 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [isHoverDisabled, setIsHoverDisabled] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const user = authStore((s) => s.user);
   const modules = workspaceStore((s) => s.modules);
 
   const items = useMemo(() => {
-    return isAdmin
+    const rawItems = isAdmin
       ? adminNavItems
       : modules === null
       ? workspaceNavItems
@@ -161,12 +165,24 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
           if (item.href === "/reports") return modules.includes("reports");
           return true;
         });
+
+    if (!isAdmin) {
+      const navRole = effectiveNavRole(authStore.getState().user);
+      const isOwnerOrAdmin = navRole === "ADMIN" || navRole === "SUPER_ADMIN";
+      if (isOwnerOrAdmin) {
+        return [
+          ...rawItems,
+          { name: "Data Merge", href: workspacePaths.migration, icon: Database, category: "Operations" } as NavItem
+        ];
+      }
+    }
+    return rawItems;
   }, [isAdmin, modules]);
 
   const groups = useMemo(() => {
-    return isAdmin
-      ? []
-      : modules === null
+    if (isAdmin) return [];
+    
+    return modules === null
       ? workspaceNavGroups
       : workspaceNavGroups.filter((group) => {
           if (group.isCrm) return modules.includes("crm");
@@ -259,12 +275,23 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
     setOpenHrmSubGroups(nextHrmSubs);
   }, [pathname, groups]);
 
-  const effectiveCollapsed = isCollapsed && !isHovered;
+  const effectiveCollapsed = isCollapsed && !(isHovered && !isHoverDisabled);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (effectiveCollapsed) closeAllNavGroups();
   }, [effectiveCollapsed]);
+
+  const handleToggleCollapse = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const nextCollapsed = !isCollapsed;
+    setIsCollapsed(nextCollapsed);
+    if (nextCollapsed) {
+      setIsHoverDisabled(true);
+    } else {
+      setIsHoverDisabled(false);
+    }
+  };
 
   const getHref = (baseHref: string) => baseHref;
 
@@ -277,9 +304,12 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
           transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] }
         }}
         onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseLeave={() => {
+          setIsHovered(false);
+          setIsHoverDisabled(false);
+        }}
         className={cn(
-          "relative flex h-screen flex-col border-r border-slate-200/60 bg-white/80 backdrop-blur-xl transition-colors duration-300 z-30",
+          "relative flex h-screen flex-col border-r border-slate-200/60 bg-white/80 backdrop-blur-xl transition-colors duration-300 z-40",
           "dark:border-slate-800/50 dark:bg-slate-950/90"
         )}
       >
@@ -681,10 +711,10 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
 
         {/* Collapse Toggle Button */}
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-3 top-24 z-50 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition-all hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400"
+          onClick={handleToggleCollapse}
+          className="absolute -right-4 top-24 z-50 flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-md transition-all hover:scale-105 active:scale-95 hover:bg-slate-50 hover:text-slate-950 dark:border-slate-850 dark:bg-slate-900 dark:text-slate-400"
         >
-          {isCollapsed ? <Menu className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+          {effectiveCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </button>
       </motion.aside>
 

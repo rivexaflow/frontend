@@ -14,6 +14,7 @@ export const WORKSPACE_ROOT_SEGMENTS = [
   "role",
   "hrm",
   "workforce",
+  "migration",
 ] as const;
 
 export type WorkspaceRootSegment = (typeof WORKSPACE_ROOT_SEGMENTS)[number];
@@ -23,6 +24,7 @@ export const workspacePaths = {
   contacts: "/crm/contacts",
   leads: "/crm/leads",
   deals: "/crm/deals",
+  migration: "/migration",
   pipelines: "/crm/pipelines",
   crmTasks: "/crm/tasks",
   crmMyTasks: "/crm/my-tasks",
@@ -33,7 +35,7 @@ export const workspacePaths = {
   crmLayoutBuilder: "/crm/layout-builder",
   crmFacebookLeads: "/crm/facebook-leads",
   crmDuplicates: "/crm/duplicates",
-  crmImport: "/crm/import",
+  crmImport: "/migration",
   crmReports: "/crm/reports/leads",
   crmLeadReports: "/crm/reports/leads",
   crmDealReports: "/crm/reports/deals",

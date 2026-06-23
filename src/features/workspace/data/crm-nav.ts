@@ -27,7 +27,6 @@ export const CRM_NAV_CHILDREN: CrmNavChild[] = [
   { type: "link", name: "Form builder", href: workspacePaths.crmLayoutBuilder },
   { type: "link", name: "Facebook leads", href: workspacePaths.crmFacebookLeads },
   { type: "link", name: "Duplicates", href: workspacePaths.crmDuplicates },
-  { type: "link", name: "Bulk import", href: workspacePaths.crmImport },
   {
     type: "group",
     name: "Report",

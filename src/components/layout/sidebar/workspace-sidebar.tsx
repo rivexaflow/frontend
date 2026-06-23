@@ -20,6 +20,7 @@ const adminNav = (slug: string): NavItem[] => [
   { href: `/${slug}/invoices`, label: "Invoices" },
   { href: `/${slug}/ai`, label: "AI" },
   { href: `/${slug}/reports`, label: "Reports" },
+  { href: `/${slug}/migration`, label: "Data Migration" },
   { href: `/${slug}/notifications`, label: "Notifications" },
   { href: `/${slug}/settings`, label: "Settings" }
 ];
