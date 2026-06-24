@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
+import { AlertCircle, Loader2, RefreshCw, AlertTriangle, Server } from "lucide-react";
+import { apiClient } from "@/lib/api/client";
+import Link from "next/link";
+import { cn } from "@/lib/utils/cn";
 
 import { HrmDashboardDailyTasks } from "@/features/workspace/components/hrm/dashboard/hrm-dashboard-daily-tasks";
 import { HrmDashboardKpiCards } from "@/features/workspace/components/hrm/dashboard/hrm-dashboard-kpi-cards";
@@ -37,6 +40,29 @@ export function HrmDashboardView() {
   const [employees, setEmployees] = useState<HrmEmployeeRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [localServer, setLocalServer] = useState<{
+    active: boolean;
+    ip?: string;
+    port?: number;
+    isOnline?: boolean;
+    backupTimestamp?: string;
+    compromised?: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!companyId) return;
+    const fetchStatus = async () => {
+      try {
+        const res = await apiClient.get(`/auth/cli/status?companyId=${companyId}`);
+        if (res.data?.success) {
+          setLocalServer(res.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch local server status", err);
+      }
+    };
+    void fetchStatus();
+  }, [companyId]);
 
   const [candidates, setCandidates] = useState<HrmCandidate[]>(DEMO_HRM_CANDIDATES);
   const [tasks, setTasks] = useState<HrmDailyTask[]>(HRM_DAILY_TASKS);
@@ -141,12 +167,71 @@ export function HrmDashboardView() {
         }
       />
 
-      {error ? (
+       {error ? (
         <div className="mb-4 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           {error}
         </div>
       ) : null}
+
+      {localServer && localServer.active && (
+        <div className={cn(
+          "mb-6 flex flex-col justify-between gap-4 rounded-2xl border p-5 shadow-sm md:flex-row md:items-center",
+          localServer.compromised
+            ? "border-rose-200 bg-rose-50/50 dark:border-rose-900/30 dark:from-rose-950/20"
+            : localServer.isOnline
+              ? "border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/30 dark:from-emerald-950/20"
+              : "border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-900"
+        )}>
+          <div className="flex items-start gap-4">
+            <div className={cn(
+              "flex h-12 w-12 items-center justify-center rounded-xl text-white shadow-md",
+              localServer.compromised
+                ? "bg-rose-500"
+                : localServer.isOnline
+                  ? "bg-emerald-500"
+                  : "bg-slate-400"
+            )}>
+              {localServer.compromised ? (
+                <AlertTriangle className="h-6 w-6 animate-pulse" />
+              ) : (
+                <Server className="h-6 w-6" />
+              )}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="font-bold text-slate-900 dark:text-white">Local Premises Hosting Server</h4>
+                <span className={cn(
+                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                  localServer.compromised
+                    ? "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400"
+                    : localServer.isOnline
+                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
+                      : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400"
+                )}>
+                  {localServer.compromised ? "🚨 compromised / wiped" : localServer.isOnline ? "🟢 active & online" : "🔴 disconnected"}
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                Running locally at: <code className="rounded bg-slate-100 px-1 py-0.5 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono">{localServer.ip}:{localServer.port}</code>
+              </p>
+              {localServer.backupTimestamp && (
+                <p className="mt-1 text-[11px] text-slate-400">
+                  Last secure cloud sync backup: <span className="font-semibold text-slate-600 dark:text-slate-300">{new Date(localServer.backupTimestamp).toLocaleString()}</span>
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/lucky-neo-enterprise?portal=integrations" 
+              className="inline-flex h-9 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+            >
+              Configure Deployment
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] xl:items-start">
         <div className="space-y-6">

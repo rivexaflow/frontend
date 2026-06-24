@@ -94,4 +94,17 @@ export const endpoints = {
       `/company/${companyId}/departments/${deptId}/teams/${teamId}`,
     memberScope: (companyId: string, memberId: string) => `/company/${companyId}/members/${memberId}/scope`,
   },
+  crm: {
+    leads: "/crm/leads",
+    lead: (id: string) => `/crm/leads/${id}`,
+    leadActivities: (id: string) => `/crm/leads/${id}/activities`,
+    dashboard: "/crm/dashboard",
+    exportCsv: "/crm/leads/export/csv",
+    bulkStage: "/crm/leads/bulk/stage",
+    pipelines: "/crm/pipelines",
+    pipeline: (id: string) => `/crm/pipelines/${id}`,
+    stages: (pipelineId: string) => `/crm/pipelines/${pipelineId}/stages`,
+    stage: (pipelineId: string, stageId: string) => `/crm/pipelines/${pipelineId}/stages/${stageId}`,
+    reorderStages: (pipelineId: string) => `/crm/pipelines/${pipelineId}/stages/reorder`,
+  },
 };

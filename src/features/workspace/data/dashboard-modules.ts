@@ -98,21 +98,43 @@ const MODULE_REGISTRY: Record<string, Omit<DashboardModuleDef, "id">> = {
 
 export function resolveDashboardModules(selected: string[]): DashboardModuleDef[] {
   const source = selected.length > 0 ? selected : ["CRM", "KYC", "Analytics"];
-  return source.map((id) => {
-    const meta = MODULE_REGISTRY[id] ?? {
-      label: id,
-      description: "Workspace module",
-      icon: Target,
-      href: "dashboard",
-      color: "blue",
-      todoHint: `Open ${id} workspace`,
-    };
-    return {
-      id,
-      ...meta,
-      href: `/${meta.href}`,
-    };
-  });
+  
+  const resolved: DashboardModuleDef[] = [];
+  const seenLabels = new Set<string>();
+
+  for (const id of source) {
+    const registryKey = Object.keys(MODULE_REGISTRY).find(
+      (key) =>
+        key.toLowerCase() === id.toLowerCase() ||
+        MODULE_REGISTRY[key].label.toLowerCase() === id.toLowerCase()
+    );
+
+    if (registryKey) {
+      const meta = MODULE_REGISTRY[registryKey];
+      const normalizedLabel = meta.label.toLowerCase();
+      if (!seenLabels.has(normalizedLabel)) {
+        seenLabels.add(normalizedLabel);
+        resolved.push({
+          id: registryKey,
+          ...meta,
+          href: `/${meta.href}`,
+        });
+      }
+    }
+  }
+
+  if (resolved.length === 0) {
+    return ["CRM", "KYC", "Analytics"].map((key) => {
+      const meta = MODULE_REGISTRY[key];
+      return {
+        id: key,
+        ...meta,
+        href: `/${meta.href}`,
+      };
+    });
+  }
+
+  return resolved;
 }
 
 export function buildTodosFromModules(modules: DashboardModuleDef[]) {

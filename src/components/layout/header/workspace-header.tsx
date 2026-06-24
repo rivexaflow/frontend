@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Bell, Filter, Plus, Search, Settings2 } from "lucide-react";
+import { Bell, Filter, Plus, Search, Settings2, Loader2 } from "lucide-react";
 
 import { Breadcrumbs } from "@/components/layout/breadcrumbs/breadcrumbs";
 import { WorkspaceAdvancedFiltersModal } from "@/components/layout/header/workspace-advanced-filters-modal";
@@ -16,6 +16,8 @@ import { workspacePaths } from "@/lib/workspace/paths";
 import { workspaceTopbarStore } from "@/stores/workspace-topbar.store";
 import { uiStore } from "@/stores/ui.store";
 import { cn } from "@/lib/utils/cn";
+import { apiClient } from "@/lib/api/client";
+import { useHrCompanyId } from "@/features/workspace/hooks/use-hr-company-id";
 
 const iconBtn =
   "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200/90 bg-white text-slate-500 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-[#191970] dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800";
@@ -34,6 +36,86 @@ export function WorkspaceHeader() {
   const [fieldsOpen, setFieldsOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+
+  const companyId = useHrCompanyId();
+  const [clockStatus, setClockStatus] = useState<{
+    isClockedIn: boolean;
+    isClockedOut: boolean;
+    checkIn: string | null;
+    checkOut: string | null;
+    hoursWorked?: number | null;
+  } | null>(null);
+  const [loadingClock, setLoadingClock] = useState(false);
+  const [currentTime, setCurrentTime] = useState("");
+
+  const getLiveHoursWorked = () => {
+    if (!clockStatus) return null;
+    if (clockStatus.isClockedIn && !clockStatus.isClockedOut && clockStatus.checkIn) {
+      const checkInTime = new Date(clockStatus.checkIn).getTime();
+      const now = new Date().getTime();
+      const diffMs = Math.max(0, now - checkInTime);
+      return diffMs / (1000 * 60 * 60);
+    }
+    return clockStatus.hoursWorked ?? null;
+  };
+
+  const formatHours = (hours: number | null) => {
+    if (hours === null) return "";
+    const totalMinutes = Math.floor(hours * 60);
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    return `${h}h ${m}m`;
+  };
+
+  // Live running clock
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString("en-US", { hour12: false }));
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Fetch status of clock in/out
+  useEffect(() => {
+    if (!companyId) {
+      setClockStatus(null);
+      return;
+    }
+    const getStatus = async () => {
+      try {
+        const res = await apiClient.get(`/hr/${companyId}/attendance/today-status`);
+        if (res.data?.success) {
+          setClockStatus(res.data.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch today clock status", err);
+      }
+    };
+    void getStatus();
+  }, [companyId]);
+
+  const handleClockAction = async () => {
+    if (!companyId || !clockStatus || loadingClock) return;
+    setLoadingClock(true);
+    try {
+      const action = clockStatus.isClockedIn ? "clock-out" : "clock-in";
+      const res = await apiClient.post(`/hr/${companyId}/attendance/${action}`, {});
+      if (res.data?.success) {
+        const statusRes = await apiClient.get(`/hr/${companyId}/attendance/today-status`);
+        if (statusRes.data?.success) {
+          setClockStatus(statusRes.data.data);
+          window.location.reload();
+        }
+      }
+    } catch (err) {
+      console.error("Clock action failed", err);
+    } finally {
+      setLoadingClock(false);
+    }
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -109,6 +191,54 @@ export function WorkspaceHeader() {
             <div className="hidden sm:block">
               <WorkspaceSwitcher onAddWorkspace={() => setCreateOpen(true)} />
             </div>
+
+            {/* CLOCK IN/OUT PORTAL */}
+            {companyId && clockStatus && (
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-mono text-sm font-semibold">
+                  <span className="relative flex h-2 w-2">
+                    <span className={cn(
+                      "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75",
+                      clockStatus.isClockedIn && !clockStatus.isClockedOut ? "bg-emerald-400" : "bg-slate-400"
+                    )}></span>
+                    <span className={cn(
+                      "relative inline-flex rounded-full h-2 w-2",
+                      clockStatus.isClockedIn && !clockStatus.isClockedOut ? "bg-emerald-500" : "bg-slate-500"
+                    )}></span>
+                  </span>
+                  {currentTime}
+                  {clockStatus.isClockedIn && (
+                    <span className="text-xs text-slate-500 font-medium ml-1">
+                      ({formatHours(getLiveHoursWorked())})
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  disabled={clockStatus.isClockedIn && clockStatus.isClockedOut || loadingClock}
+                  onClick={handleClockAction}
+                  className={cn(
+                    "inline-flex h-9 items-center gap-1.5 rounded-xl px-4 text-xs font-bold transition-all shadow-sm active:scale-95 border",
+                    loadingClock && "opacity-80 cursor-not-allowed",
+                    !clockStatus.isClockedIn 
+                      ? "bg-emerald-600 border-emerald-600 hover:bg-emerald-500 text-white" 
+                      : clockStatus.isClockedOut 
+                        ? "bg-slate-100 border-slate-200 text-slate-400 dark:bg-slate-900 dark:border-slate-800 cursor-not-allowed" 
+                        : "bg-rose-600 border-rose-600 hover:bg-rose-500 text-white"
+                  )}
+                >
+                  {loadingClock ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : !clockStatus.isClockedIn ? (
+                    "Clock In"
+                  ) : clockStatus.isClockedOut ? (
+                    "Clocked Out"
+                  ) : (
+                    "Clock Out"
+                  )}
+                </button>
+              </div>
+            )}
 
             <Link
               href={workspacePaths.notifications}
