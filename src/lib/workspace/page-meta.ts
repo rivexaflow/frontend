@@ -2,6 +2,7 @@ export type BreadcrumbItem = { label: string; href?: string };
 
 const SEGMENT_LABELS: Record<string, string> = {
   dashboard: "Dashboard",
+  "workspace-graph": "Workspace graph",
   crm: "CRM",
   contacts: "Contacts",
   leads: "Leads",

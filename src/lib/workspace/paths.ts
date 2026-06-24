@@ -3,6 +3,7 @@ import { RESERVED_ROOT_SEGMENTS } from "@/lib/constants/routes";
 /** Canonical workspace URLs (no tenant slug in the path). */
 export const WORKSPACE_ROOT_SEGMENTS = [
   "dashboard",
+  "workspace-graph",
   "crm",
   "kyc",
   "invoices",
@@ -21,6 +22,7 @@ export type WorkspaceRootSegment = (typeof WORKSPACE_ROOT_SEGMENTS)[number];
 
 export const workspacePaths = {
   dashboard: "/dashboard",
+  workspaceGraph: "/workspace-graph",
   contacts: "/crm/contacts",
   leads: "/crm/leads",
   deals: "/crm/deals",

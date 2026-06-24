@@ -30,6 +30,7 @@ import {
   History,
   CreditCard,
   Database,
+  Waypoints,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { CRM_NAV_CHILDREN, isCrmNavSubGroup } from "@/features/workspace/data/crm-nav";
@@ -167,12 +168,37 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
         });
 
     if (!isAdmin) {
-      const navRole = effectiveNavRole(authStore.getState().user);
-      const isOwnerOrAdmin = navRole === "ADMIN" || navRole === "SUPER_ADMIN";
+      const currentUser = authStore.getState().user;
+      const navRole = effectiveNavRole(currentUser);
+      const isOwnerOrAdmin =
+        navRole === "ADMIN" ||
+        navRole === "SUPER_ADMIN" ||
+        currentUser?.profileRole === "owner" ||
+        currentUser?.profileRole === "manager";
       if (isOwnerOrAdmin) {
+        const dashboardIdx = rawItems.findIndex((i) => i.href === workspacePaths.dashboard);
+        const graphItem: NavItem = {
+          name: "Workspace graph",
+          href: workspacePaths.workspaceGraph,
+          icon: Waypoints,
+          category: "General",
+        };
+        const withGraph =
+          dashboardIdx >= 0
+            ? [
+                ...rawItems.slice(0, dashboardIdx + 1),
+                graphItem,
+                ...rawItems.slice(dashboardIdx + 1),
+              ]
+            : [graphItem, ...rawItems];
         return [
-          ...rawItems,
-          { name: "Data Merge", href: workspacePaths.migration, icon: Database, category: "Operations" } as NavItem
+          ...withGraph,
+          {
+            name: "Data Merge",
+            href: workspacePaths.migration,
+            icon: Database,
+            category: "Operations",
+          } as NavItem,
         ];
       }
     }

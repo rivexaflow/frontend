@@ -6,7 +6,12 @@ import { workspaceStore } from "@/stores/workspace.store";
 import { crm } from "@/features/workspace/components/crm/crm-styles";
 import { cn } from "@/lib/utils/cn";
 import { uiStore } from "@/stores/ui.store";
-import { Target, Network, ShieldCheck, FileText, Sparkles, Zap } from "lucide-react";
+import {
+  SettingsErrorBanner,
+  SettingsLoading,
+  SettingsSection,
+} from "@/features/workspace/components/settings/settings-ui-primitives";
+import { FileText, Network, ShieldCheck, Sparkles, Target, Zap } from "lucide-react";
 
 type Props = {
   companyId: string;
@@ -118,30 +123,22 @@ export function SettingsModulesTab({ companyId }: Props) {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-48 items-center justify-center">
-        <svg className="h-8 w-8 animate-spin text-[#191970]" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.4" strokeOpacity="0.3" />
-          <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
-        </svg>
-      </div>
-    );
-  }
+  if (loading) return <SettingsLoading />;
 
   return (
-    <div className={cn(crm.panel, "p-6")}>
-      <div className="border-b border-slate-100 pb-4 dark:border-slate-800">
-        <h2 className="text-base font-bold text-slate-900 dark:text-white">Workspace Modules</h2>
-        <p className="text-xs text-slate-500">Enable or disable specific features for this workspace portal.</p>
-      </div>
-
-      <form onSubmit={handleSaveChanges} className="mt-6 space-y-6">
-        {error && (
-          <div className="rounded-xl border border-rose-100 bg-rose-50 p-3.5 text-xs font-semibold text-rose-700 dark:border-rose-950/30 dark:bg-rose-950/20">
-            {error}
-          </div>
-        )}
+    <SettingsSection
+      title="Product modules"
+      description="Enable or disable specific features for this workspace portal."
+      footer={
+        <div className="flex justify-end">
+          <button type="submit" form="modules-form" disabled={saving} className={cn(crm.btnPrimary, "px-6")}>
+            {saving ? "Saving configurations…" : "Save configurations"}
+          </button>
+        </div>
+      }
+    >
+      <form id="modules-form" onSubmit={handleSaveChanges} className="space-y-6">
+        {error ? <SettingsErrorBanner message={error} /> : null}
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {AVAILABLE_MODULES.map((mod) => {
@@ -217,17 +214,7 @@ export function SettingsModulesTab({ companyId }: Props) {
             );
           })}
         </div>
-
-        <div className="border-t border-slate-100 pt-4 dark:border-slate-800 flex justify-end">
-          <button
-            type="submit"
-            disabled={saving}
-            className={cn(crm.btnPrimary, "px-6")}
-          >
-            {saving ? "Saving Configurations..." : "Save Configurations"}
-          </button>
-        </div>
       </form>
-    </div>
+    </SettingsSection>
   );
 }

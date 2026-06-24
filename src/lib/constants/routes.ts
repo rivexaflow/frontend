@@ -14,6 +14,7 @@ export const RESERVED_ROOT_SEGMENTS = new Set([
   "forbidden",
   "onboarding",
   "dashboard",
+  "workspace-graph",
   "crm",
   "kyc",
   "invoices",

@@ -15,6 +15,7 @@ import {
 
 import { authStore } from "@/stores/auth.store";
 import { effectiveNavRole } from "@/types/auth";
+import { WorkspaceGraphPanel } from "@/features/workspace/components/workspace-graph/workspace-graph-panel";
 import { DashboardHeader } from "@/features/workspace/components/dashboard/dashboard-header";
 import { StatsGrid } from "@/features/workspace/components/dashboard/stats-grid";
 import { RecentActivity } from "@/features/workspace/components/dashboard/activity-feed";
@@ -181,6 +182,10 @@ export function RoleDashboard({ workspaceSlug }: { workspaceSlug: string }) {
           )}
         </div>
       </div>
+
+      {(navRole === "ADMIN" || navRole === "SUPER_ADMIN" || profile === "owner") && (
+        <WorkspaceGraphPanel canManage={navRole === "ADMIN" || navRole === "SUPER_ADMIN" || profile === "owner"} />
+      )}
     </div>
   );
 }
