@@ -40,6 +40,9 @@ apiClient.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  if (typeof window !== "undefined" && window.location) {
+    config.headers["X-Tenant-Domain"] = window.location.hostname;
+  }
   return config;
 });
 

@@ -63,10 +63,16 @@ export function SessionHydrator() {
               syncWorkspaceContext({
                 workspaceId: c.id,
                 workspaceSlug: c.slug,
-                workspaceName: c.name,
+                workspaceName: c.brandName || c.name,
                 plan: c.size,
                 modules: c.modules || [],
+                logo: c.logo,
+                brandName: c.brandName,
+                themeConfig: c.themeConfig,
               });
+              if (c.themeConfig && typeof c.themeConfig === 'object' && c.themeConfig.primaryColor) {
+                document.documentElement.style.setProperty('--primary-color', c.themeConfig.primaryColor as string);
+              }
             }
           } catch (companyErr) {
             console.error("Failed to load company details on hydration:", companyErr);

@@ -36,6 +36,9 @@ type SyncWorkspaceInput = {
   workspaceName?: string;
   plan?: string;
   modules?: string[];
+  logo?: string | null;
+  brandName?: string | null;
+  themeConfig?: Record<string, any> | null;
   token?: string | null;
 };
 
@@ -65,6 +68,9 @@ export function syncWorkspaceContext(input: SyncWorkspaceInput = {}): string | n
       workspaceSlug: workspaceSlug ?? workspaceStore.getState().workspaceSlug ?? "",
       plan: input.plan ?? workspaceStore.getState().plan ?? undefined,
       modules: input.modules ?? workspaceStore.getState().modules ?? undefined,
+      logo: input.logo ?? workspaceStore.getState().logo,
+      brandName: input.brandName ?? workspaceStore.getState().brandName,
+      themeConfig: input.themeConfig ?? workspaceStore.getState().themeConfig,
     });
   }
 

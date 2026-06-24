@@ -18,6 +18,7 @@ import {
 import { loginSchema } from "@/schemas/auth.schema";
 import { LoginBrandPanel } from "@/components/auth/login-brand-panel";
 import { cn } from "@/lib/utils";
+import { apiClient } from "@/lib/api/client";
 
 function EyeIcon() {
   return (
@@ -80,6 +81,30 @@ function BackArrowIcon() {
   );
 }
 
+function isCustomDomain(hostname: string): boolean {
+  const h = hostname.toLowerCase();
+  if (h === "localhost" || h === "127.0.0.1") return false;
+  if (h === "rivexaflow.com" || h === "rivexaflow.in") return false;
+  if (h.endsWith(".rivexaflow.com") || h.endsWith(".rivexaflow.in")) return false;
+  return true;
+}
+
+function hexToRgb(hex: string): string {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`
+    : "34, 119, 255";
+}
+
+function darkenColor(hex: string, percent: number): string {
+  let num = parseInt(hex.replace("#", ""), 16),
+      amt = Math.round(2.55 * percent),
+      r = (num >> 16) - amt,
+      g = (num >> 8 & 0x00FF) - amt,
+      b = (num & 0x0000FF) - amt;
+  return "#" + (0x1000000 + (r < 0 ? 0 : r > 255 ? 255 : r) * 0x10000 + (g < 0 ? 0 : g > 255 ? 255 : g) * 0x100 + (b < 0 ? 0 : b > 255 ? 255 : b)).toString(16).slice(1);
+}
+
 function LoginPageFallback() {
   return (
     <main className="grid min-h-screen w-full place-items-center bg-white">
@@ -87,6 +112,14 @@ function LoginPageFallback() {
     </main>
   );
 }
+
+type CompanyBranding = {
+  id: string;
+  name: string;
+  logo: string | null;
+  brandName: string | null;
+  themeConfig: Record<string, any> | null;
+};
 
 function LoginPageContent() {
   const router = useRouter();
@@ -103,6 +136,30 @@ function LoginPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [signedOutNotice, setSignedOutNotice] = useState(false);
+
+  // White-label states
+  const [branding, setBranding] = useState<CompanyBranding | null>(null);
+  const [isBtnHovered, setIsBtnHovered] = useState(false);
+
+  // Fetch company branding if custom domain
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hostname = window.location.hostname;
+    if (isCustomDomain(hostname)) {
+      apiClient.get("/company/public/branding")
+        .then((res) => {
+          if (res.data.success && res.data.data) {
+            setBranding(res.data.data);
+            if (res.data.data.themeConfig?.primaryColor) {
+              document.documentElement.style.setProperty("--primary-color", res.data.data.themeConfig.primaryColor);
+            }
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to load branding info for login page:", err);
+        });
+    }
+  }, []);
 
   /** If we arrive via /login?signout=1, clear any stale persisted session before showing the form. */
   useEffect(() => {
@@ -158,8 +215,11 @@ function LoginPageContent() {
         token: result.token,
         workspaceId: sessionUser.workspaceId,
         workspaceSlug: resolvedSlug,
-        workspaceName: result.user.workspaceName ?? resolvedSlug ?? "Workspace",
-        plan: result.user.plan,
+        workspaceName: (result.user as any).workspaceName ?? resolvedSlug ?? "Workspace",
+        plan: (result.user as any).plan,
+        logo: branding?.logo || (result.user as any).logo,
+        brandName: branding?.brandName || (result.user as any).brandName,
+        themeConfig: branding?.themeConfig || (result.user as any).themeConfig,
       });
 
       router.push(
@@ -172,6 +232,9 @@ function LoginPageContent() {
     }
   };
 
+  const primaryColor = branding?.themeConfig?.primaryColor || "#0a0e2c";
+  const companyName = branding?.brandName || branding?.name || "Rivexaflow";
+
   return (
     <main className="grid min-h-screen w-full grid-cols-1 bg-white font-sans lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.18fr)_minmax(0,1fr)]">
       <section className="relative flex min-h-screen flex-col bg-white px-5 pb-10 pt-6 sm:px-10 lg:px-14 lg:pt-8 xl:px-20">
@@ -180,30 +243,55 @@ function LoginPageContent() {
             href="/"
             className="inline-flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[#2277FF]/40"
           >
-            <span
-              className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-[#191970] to-[#2277FF] text-sm font-bold text-white shadow-sm"
-              aria-hidden
-            >
-              R
-            </span>
-            <span className="text-[1.05rem] font-semibold tracking-tight text-slate-900">Rivexaflow</span>
+            {branding?.logo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={branding.logo}
+                alt={companyName}
+                className="h-9 object-contain max-w-[200px]"
+              />
+            ) : (
+              <>
+                <span
+                  className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-[#191970] to-[#2277FF] text-sm font-bold text-white shadow-sm"
+                  style={{
+                    background: branding?.themeConfig?.primaryColor
+                      ? `linear-gradient(135deg, ${branding.themeConfig.primaryColor}, #2277ff)`
+                      : undefined
+                  }}
+                  aria-hidden
+                >
+                  {companyName[0].toUpperCase()}
+                </span>
+                <span className="text-[1.05rem] font-semibold tracking-tight text-slate-900">
+                  {companyName}
+                </span>
+              </>
+            )}
           </Link>
 
-          <Link
-            href="/"
-            className="hidden items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-slate-500 transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2277FF]/40 sm:inline-flex"
-          >
-            <BackArrowIcon /> Back to website
-          </Link>
+          {!branding && (
+            <Link
+              href="/"
+              className="hidden items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-slate-500 transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2277FF]/40 sm:inline-flex"
+            >
+              <BackArrowIcon /> Back to website
+            </Link>
+          )}
         </header>
 
         <div className="mx-auto w-full max-w-[28rem] flex-1 py-10 sm:py-14 lg:py-16">
-          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#2277FF]">Welcome back</p>
+          <p
+            className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#2277FF]"
+            style={{ color: branding?.themeConfig?.primaryColor || undefined }}
+          >
+            Welcome back
+          </p>
           <h1 className="mt-1.5 text-[1.85rem] font-semibold leading-[1.1] tracking-tight text-slate-900 sm:text-[2.05rem]">
             Sign in to your workspace
           </h1>
           <p className="mt-2 text-[15px] leading-relaxed text-slate-500">
-            Access your Rivexaflow workspace — CRM, KYC, billing, and workflows in one place.
+            Access your {companyName} workspace — CRM, KYC, billing, and workflows in one place.
           </p>
 
           {signedOutNotice ? (
@@ -259,6 +347,11 @@ function LoginPageContent() {
                 required
                 aria-invalid={!!error && !email.includes("@")}
                 className="mt-1.5 h-11 w-full rounded-lg border border-slate-200 bg-white px-3.5 text-[14.5px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#2277FF] focus:ring-2 focus:ring-[#2277FF]/15"
+                style={{
+                  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                  // @ts-ignore
+                  "--tw-focus-border": primaryColor,
+                }}
               />
             </div>
 
@@ -270,6 +363,7 @@ function LoginPageContent() {
                 <Link
                   href="/forgot-password"
                   className="text-[12px] font-semibold text-[#2277FF] hover:text-[#0056FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2277FF]/40 rounded"
+                  style={{ color: branding?.themeConfig?.primaryColor || undefined }}
                 >
                   Forgot password?
                 </Link>
@@ -307,6 +401,9 @@ function LoginPageContent() {
                 className="h-4 w-4 rounded border-slate-300 text-[#2277FF] outline-none focus:ring-2 focus:ring-[#2277FF]/30"
                 checked={remember}
                 onChange={(e) => setRemember(e.target.checked)}
+                style={{
+                  accentColor: primaryColor,
+                }}
               />
               Keep me signed in for 30 days
             </label>
@@ -320,9 +417,18 @@ function LoginPageContent() {
             <button
               type="submit"
               disabled={isSubmitting}
+              onMouseEnter={() => setIsBtnHovered(true)}
+              onMouseLeave={() => setIsBtnHovered(false)}
+              style={{
+                backgroundColor: isBtnHovered ? darkenColor(primaryColor, 10) : primaryColor,
+                boxShadow: branding?.themeConfig?.primaryColor
+                  ? `0 10px 24px -12px rgba(${hexToRgb(branding.themeConfig.primaryColor)}, 0.55)`
+                  : undefined
+              }}
               className={cn(
-                "mt-1 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#0a0e2c] px-5 text-[14.5px] font-semibold text-white shadow-[0_10px_24px_-12px_rgba(34,119,255,0.55)] transition",
-                "hover:bg-[#101537] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2277FF]/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70",
+                "mt-1 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg px-5 text-[14.5px] font-semibold text-white shadow-[0_10px_24px_-12px_rgba(34,119,255,0.55)] transition",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70",
+                !branding?.themeConfig?.primaryColor && "bg-[#0a0e2c] hover:bg-[#101537]"
               )}
             >
               {isSubmitting ? (
@@ -342,16 +448,18 @@ function LoginPageContent() {
             </button>
           </form>
 
-          <p className="mt-7 text-center text-[13px] text-slate-500">
-            New to Rivexaflow?{" "}
-            <Link href="/signup" className="font-semibold text-[#2277FF] hover:text-[#0056FF]">
-              Create an account
-            </Link>
-          </p>
+          {!branding && (
+            <p className="mt-7 text-center text-[13px] text-slate-500">
+              New to Rivexaflow?{" "}
+              <Link href="/signup" className="font-semibold text-[#2277FF] hover:text-[#0056FF]">
+                Create an account
+              </Link>
+            </p>
+          )}
         </div>
 
         <footer className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5 text-[11.5px] text-slate-500">
-          <p className="text-slate-400">© {new Date().getFullYear()} Rivexaflow</p>
+          <p className="text-slate-400">© {new Date().getFullYear()} {companyName}</p>
           <div className="flex items-center gap-3.5">
             <Link href="#" className="hover:text-slate-700">
               Privacy

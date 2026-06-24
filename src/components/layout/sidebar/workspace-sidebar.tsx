@@ -37,6 +37,11 @@ export function WorkspaceSidebar({ slug }: { slug: string }) {
   const pathname = usePathname();
   const user = authStore((s) => s.user);
   const modules = workspaceStore((s) => s.modules);
+  const logo = workspaceStore((s) => s.logo);
+  const brandName = workspaceStore((s) => s.brandName);
+  const workspaceName = workspaceStore((s) => s.workspaceName);
+  const themeConfig = workspaceStore((s) => s.themeConfig);
+  const primaryColor = themeConfig?.primaryColor || "#191970";
   const navRole = effectiveNavRole(user);
 
   const rawItems = navRole === "USER" ? userNav(slug) : adminNav(slug);
@@ -56,9 +61,26 @@ export function WorkspaceSidebar({ slug }: { slug: string }) {
 
   return (
     <aside className="w-64 shrink-0 border-r border-[var(--rvx-midnight)]/10 bg-[var(--rvx-white)] p-4">
-      <div className="mb-6">
-        <p className="text-lg font-bold text-[var(--rvx-azure)]">Rivexaflow</p>
-        <p className="text-xs text-[var(--rvx-midnight)]/60">{slug}</p>
+      <div className="mb-6 flex items-center gap-3">
+        {logo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logo} alt={brandName || workspaceName || "Logo"} className="h-9 w-9 object-contain rounded-lg" />
+        ) : (
+          <div
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white font-black text-sm"
+            style={{
+              background: `linear-gradient(135deg, ${primaryColor}, #2277ff)`,
+            }}
+          >
+            {(brandName || workspaceName || "R")[0].toUpperCase()}
+          </div>
+        )}
+        <div>
+          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+            {brandName || workspaceName || "Rivexaflow"}
+          </p>
+          <p className="text-xs text-slate-400">{slug}</p>
+        </div>
       </div>
       <nav className="space-y-1">
         {items.map((item) => {

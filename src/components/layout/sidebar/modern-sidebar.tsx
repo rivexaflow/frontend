@@ -153,6 +153,11 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const user = authStore((s) => s.user);
   const modules = workspaceStore((s) => s.modules);
+  const logo = workspaceStore((s) => s.logo);
+  const brandName = workspaceStore((s) => s.brandName);
+  const workspaceName = workspaceStore((s) => s.workspaceName);
+  const themeConfig = workspaceStore((s) => s.themeConfig);
+  const primaryColor = themeConfig?.primaryColor || "#191970";
 
   const items = useMemo(() => {
     const rawItems = isAdmin
@@ -342,9 +347,23 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
         {/* Logo Section */}
         <div className="flex h-20 items-center px-6">
           <Link href={getHref("/dashboard")} className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#191970] to-[#2277ff] shadow-lg shadow-[#191970]/25">
-              <span className="text-xl font-black text-white">R</span>
-            </div>
+            {logo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logo}
+                alt={brandName || workspaceName || "Logo"}
+                className="h-10 w-10 shrink-0 object-contain rounded-xl"
+              />
+            ) : (
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white font-black text-xl shadow-lg"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}, #2277ff)`,
+                }}
+              >
+                {(brandName || workspaceName || "R")[0].toUpperCase()}
+              </div>
+            )}
             <AnimatePresence mode="wait">
               {!effectiveCollapsed && (
                 <motion.span
@@ -353,7 +372,7 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                   exit={{ opacity: 0, x: -10 }}
                   className="text-xl font-bold tracking-tight text-slate-900 dark:text-white"
                 >
-                  Rivexa<span className="text-[#2277ff]">flow</span>
+                  {brandName || workspaceName || "Rivexaflow"}
                 </motion.span>
               )}
             </AnimatePresence>
