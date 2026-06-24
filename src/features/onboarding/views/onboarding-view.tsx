@@ -40,6 +40,7 @@ export function OnboardingView() {
             businessName: flow.state?.company?.name,
             industry: flow.state?.company?.industry as never,
             teamSize: flow.state?.company?.teamSize,
+            logo: flow.state?.company?.logo,
           }}
           isLoading={flow.isLoading}
           error={flow.error}

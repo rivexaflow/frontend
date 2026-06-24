@@ -33,6 +33,7 @@ export const businessInfoSchema = z.object({
     .min(1, "Team size must be at least 1.")
     .max(100_000, "Team size seems too large."),
   monthlyLeads: z.coerce.number().int().min(0).max(10_000_000).optional(),
+  logo: z.string().optional(),
 });
 
 export type BasicInfoForm = z.infer<typeof basicInfoSchema>;

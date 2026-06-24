@@ -164,6 +164,7 @@ export function useOnboardingFlow() {
         industry: values.industry,
         teamSize: values.teamSize,
         monthlyLeads: values.monthlyLeads,
+        logo: values.logo,
       }),
     );
     if (!next) return;

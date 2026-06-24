@@ -121,6 +121,7 @@ function normalizeCompany(
     industry: String(pick(r, "industry") ?? "other") as OnboardingIndustry,
     teamSize: Number(pick(r, "teamSize", "team_size") ?? 0),
     modules: modules.length ? modules : fallbackModules,
+    logo: pick(r, "logo") ? String(pick(r, "logo")) : undefined,
   };
 }
 

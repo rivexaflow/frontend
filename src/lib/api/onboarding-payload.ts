@@ -50,6 +50,9 @@ export function toBusinessInfoBody(
     body.monthlyLeads = values.monthlyLeads;
     body.monthly_leads = values.monthlyLeads;
   }
+  if (values.logo !== undefined) {
+    body.logo = values.logo;
+  }
   return body;
 }
 

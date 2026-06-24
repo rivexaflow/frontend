@@ -40,6 +40,7 @@ export type OnboardingCompany = {
   industry: OnboardingIndustry | string;
   teamSize: number;
   modules: string[];
+  logo?: string;
 };
 
 export type OnboardingState = {

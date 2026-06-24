@@ -2,9 +2,13 @@
 
 import React from "react";
 import { authStore } from "@/stores/auth.store";
+import { workspaceStore } from "@/stores/workspace.store";
 
 export function DashboardHeader() {
   const user = authStore((s) => s.user);
+  const logo = workspaceStore((s) => s.logo);
+  const brandName = workspaceStore((s) => s.brandName);
+  const workspaceName = workspaceStore((s) => s.workspaceName);
   
   const greeting = () => {
     const hour = new Date().getHours();
@@ -14,14 +18,22 @@ export function DashboardHeader() {
   };
 
   return (
-    <div className="mb-10 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-          {greeting()}, <span className="text-blue-600">{user?.fullName?.split(" ")[0] || "there"}!</span>
-        </h1>
-        <p className="mt-1 text-slate-500">
-          Here&apos;s what&apos;s happening with your workspace today.
-        </p>
+    <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex items-center gap-4">
+        {logo && (
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-slate-200/80 bg-white p-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={logo} alt={brandName || workspaceName || "Logo"} className="max-h-full max-w-full object-contain" />
+          </div>
+        )}
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+            {greeting()}, <span className="text-blue-600">{user?.fullName?.split(" ")[0] || "there"}!</span>
+          </h1>
+          <p className="mt-1 text-slate-500">
+            Here&apos;s what&apos;s happening with {brandName || workspaceName || "your workspace"} today.
+          </p>
+        </div>
       </div>
       
       <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/50 px-4 py-2 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/50">

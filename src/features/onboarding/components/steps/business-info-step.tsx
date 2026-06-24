@@ -35,15 +35,48 @@ export function BusinessInfoStep({ initial, isLoading, error, onSubmit }: Busine
   const [monthlyLeads, setMonthlyLeads] = useState(
     initial?.monthlyLeads !== undefined ? String(initial.monthlyLeads) : "",
   );
+  const [logo, setLogo] = useState(initial?.logo ?? "");
+  const [logoError, setLogoError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<string, string>>>({});
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLogoError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ["image/png", "image/svg+xml"];
+    if (!validTypes.includes(file.type)) {
+      setLogoError("Please upload a PNG or SVG image.");
+      return;
+    }
+
+    const maxSize = 1 * 1024 * 1024; // 1MB
+    if (file.size > maxSize) {
+      setLogoError("Logo size must be less than 1MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (typeof event.target?.result === "string") {
+        setLogo(event.target.result);
+      }
+    };
+    reader.onerror = () => {
+      setLogoError("Failed to read logo file.");
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (logoError) return;
     const parsed = businessInfoSchema.safeParse({
       businessName,
       industry,
       teamSize,
       monthlyLeads: monthlyLeads === "" ? undefined : monthlyLeads,
+      logo: logo || undefined,
     });
     if (!parsed.success) {
       const errs: Partial<Record<string, string>> = {};
@@ -144,6 +177,52 @@ export function BusinessInfoStep({ initial, isLoading, error, onSubmit }: Busine
             placeholder="e.g. 50"
             className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
           />
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="logo-upload" className="text-sm font-semibold text-slate-700 block">
+            Company logo <span className="font-normal text-slate-400">(optional)</span>
+          </label>
+          <div className="mt-1 flex items-center gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white p-1">
+              {logo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logo} alt="Company logo preview" className="max-h-full max-w-full object-contain" />
+              ) : (
+                <Building2 className="h-6 w-6 text-slate-400" />
+              )}
+            </div>
+            <div className="flex-1 space-y-1">
+              <input
+                id="logo-upload"
+                type="file"
+                accept="image/png, image/svg+xml"
+                onChange={handleLogoChange}
+                className="hidden"
+              />
+              <label
+                htmlFor="logo-upload"
+                className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none"
+              >
+                Choose logo file
+              </label>
+              <p className="text-[10px] text-slate-400">
+                Recommended: Square (PNG or SVG, Max 1MB)
+              </p>
+            </div>
+            {logo && (
+              <button
+                type="button"
+                onClick={() => setLogo("")}
+                className="text-xs text-rose-500 font-semibold hover:text-rose-600 transition"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+          {logoError && (
+            <p className="text-sm text-rose-600">{logoError}</p>
+          )}
         </div>
 
         {error && (
