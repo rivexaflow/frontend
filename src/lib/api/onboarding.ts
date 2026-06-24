@@ -2,6 +2,7 @@
 
 import { isAxiosError } from "axios";
 
+import { assertApiSuccess } from "@/lib/api/api-envelope";
 import { apiClient } from "@/lib/api/client";
 import {
   toBasicInfoBody,
@@ -13,7 +14,9 @@ import {
   normalizeModulesCatalog,
   normalizeOnboardingState,
   unwrapOnboarding,
+  type NormalizeOnboardingContext,
 } from "@/lib/api/onboarding-normalize";
+import { authStore } from "@/stores/auth.store";
 import type { BasicInfoForm, BusinessInfoForm } from "@/features/onboarding/schemas/onboarding.schema";
 import type { OnboardingState } from "@/types/onboarding";
 
@@ -57,10 +60,22 @@ const onboardingError = (err: unknown, fallback: string): Error => {
   return new Error(fallback);
 };
 
+function readNormalizeContext(): NormalizeOnboardingContext {
+  const user = authStore.getState().user;
+  if (!user) return {};
+  return {
+    fallbackUserId: user.id && user.id !== "unknown" ? user.id : undefined,
+    fallbackEmail: user.email,
+    fallbackFullName: user.fullName ?? user.name,
+    fallbackRole: user.profileRole,
+  };
+}
+
 async function postState(path: string, body?: unknown): Promise<OnboardingState> {
   try {
     const { data } = await apiClient.post(path, body);
-    const state = normalizeOnboardingState(unwrapOnboarding(data));
+    assertApiSuccess(data as { success?: boolean; message?: string; error?: string });
+    const state = normalizeOnboardingState(unwrapOnboarding(data), readNormalizeContext());
     if (!state) throw new Error("Invalid response from onboarding service.");
     return state;
   } catch (err) {
@@ -105,7 +120,11 @@ export const onboardingApi = {
   getOnboardingState: async (userId: string): Promise<OnboardingState> => {
     try {
       const { data } = await apiClient.get(`/onboarding/state/${userId}`);
-      const state = normalizeOnboardingState(unwrapOnboarding(data));
+      assertApiSuccess(data as { success?: boolean; message?: string; error?: string });
+      const state = normalizeOnboardingState(unwrapOnboarding(data), {
+        ...readNormalizeContext(),
+        fallbackUserId: userId,
+      });
       if (!state) throw new Error("Could not load onboarding progress.");
       return state;
     } catch (err) {

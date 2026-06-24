@@ -6,6 +6,12 @@ import { crm } from "@/features/workspace/components/crm/crm-styles";
 import { cn } from "@/lib/utils/cn";
 import { uiStore } from "@/stores/ui.store";
 import { AdminModal } from "@/features/super-admin/components/admin-modal";
+import {
+  SettingsErrorBanner,
+  SettingsField,
+  SettingsLoading,
+  SettingsSection,
+} from "@/features/workspace/components/settings/settings-ui-primitives";
 import { AlertTriangle } from "lucide-react";
 
 type Props = {
@@ -185,70 +191,45 @@ export function SettingsProfileTab({ companyId }: Props) {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-48 items-center justify-center">
-        <svg className="h-8 w-8 animate-spin text-[#191970]" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.4" strokeOpacity="0.3" />
-          <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
-        </svg>
-      </div>
-    );
-  }
+  if (loading) return <SettingsLoading />;
 
   return (
-    <div className="space-y-6">
-      <div className={cn(crm.panel, "p-6")}>
-      <div className="border-b border-slate-100 pb-4 dark:border-slate-800">
-        <h2 className="text-base font-bold text-slate-900 dark:text-white">General Settings</h2>
-        <p className="text-xs text-slate-500">Configure your company name, website, timezone, and defaults.</p>
-      </div>
+    <div className="space-y-5">
+      <SettingsSection
+        title="Company profile"
+        description="Configure your company name, website, timezone, and regional defaults."
+      >
+        <form onSubmit={handleSubmit} className="max-w-2xl space-y-4">
+          {error ? <SettingsErrorBanner message={error} /> : null}
 
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4 max-w-xl">
-        {error && (
-          <div className="rounded-xl border border-rose-100 bg-rose-50 p-3.5 text-xs font-semibold text-rose-700 dark:border-rose-950/30 dark:bg-rose-950/20">
-            {error}
-          </div>
-        )}
+          <SettingsField label="Company name" htmlFor="company-name">
+            <input
+              id="company-name"
+              type="text"
+              className={cn(crm.input, "w-full")}
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              required
+              placeholder="e.g. Acme Corporation"
+            />
+          </SettingsField>
 
-        <div>
-          <label htmlFor="company-name" className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
-            Company Name
-          </label>
-          <input
-            id="company-name"
-            type="text"
-            className={cn(crm.input, "w-full")}
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            required
-            placeholder="e.g. Acme Corporation"
-          />
-        </div>
+          <SettingsField label="Website URL" htmlFor="company-website">
+            <input
+              id="company-website"
+              type="url"
+              className={cn(crm.input, "w-full")}
+              value={formData.website}
+              onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+              placeholder="https://example.com"
+            />
+          </SettingsField>
 
-        <div>
-          <label htmlFor="company-website" className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
-            Website URL
-          </label>
-          <input
-            id="company-website"
-            type="url"
-            className={cn(crm.input, "w-full")}
-            value={formData.website}
-            onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-            placeholder="https://example.com"
-          />
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label htmlFor="company-industry" className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
-              Industry
-            </label>
-            <div className="relative">
+          <div className="grid gap-4 md:grid-cols-2">
+            <SettingsField label="Industry" htmlFor="company-industry">
               <select
                 id="company-industry"
-                className={cn(crm.select, "w-full h-9 text-sm")}
+                className={cn(crm.select, "h-9 w-full text-sm")}
                 value={formData.industry}
                 onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
               >
@@ -258,17 +239,12 @@ export function SettingsProfileTab({ companyId }: Props) {
                   </option>
                 ))}
               </select>
-            </div>
-          </div>
+            </SettingsField>
 
-          <div>
-            <label htmlFor="company-size" className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
-              Company Size
-            </label>
-            <div className="relative">
+            <SettingsField label="Company size" htmlFor="company-size">
               <select
                 id="company-size"
-                className={cn(crm.select, "w-full h-9 text-sm")}
+                className={cn(crm.select, "h-9 w-full text-sm")}
                 value={formData.size}
                 onChange={(e) => setFormData({ ...formData, size: e.target.value })}
               >
@@ -278,20 +254,14 @@ export function SettingsProfileTab({ companyId }: Props) {
                   </option>
                 ))}
               </select>
-            </div>
+            </SettingsField>
           </div>
-        </div>
 
-        {/* Timezone, Default Language & Currency */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <div>
-            <label htmlFor="company-language" className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
-              Default Language
-            </label>
-            <div className="relative">
+          <div className="grid gap-4 md:grid-cols-3">
+            <SettingsField label="Default language" htmlFor="company-language">
               <select
                 id="company-language"
-                className={cn(crm.select, "w-full h-9 text-sm")}
+                className={cn(crm.select, "h-9 w-full text-sm")}
                 value={formData.defaultLanguage}
                 onChange={(e) => setFormData({ ...formData, defaultLanguage: e.target.value })}
               >
@@ -301,17 +271,12 @@ export function SettingsProfileTab({ companyId }: Props) {
                   </option>
                 ))}
               </select>
-            </div>
-          </div>
+            </SettingsField>
 
-          <div>
-            <label htmlFor="company-currency" className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
-              Default Currency
-            </label>
-            <div className="relative">
+            <SettingsField label="Default currency" htmlFor="company-currency">
               <select
                 id="company-currency"
-                className={cn(crm.select, "w-full h-9 text-sm")}
+                className={cn(crm.select, "h-9 w-full text-sm")}
                 value={formData.defaultCurrency}
                 onChange={(e) => setFormData({ ...formData, defaultCurrency: e.target.value })}
               >
@@ -321,17 +286,12 @@ export function SettingsProfileTab({ companyId }: Props) {
                   </option>
                 ))}
               </select>
-            </div>
-          </div>
+            </SettingsField>
 
-          <div>
-            <label htmlFor="company-timezone" className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
-              Timezone
-            </label>
-            <div className="relative">
+            <SettingsField label="Timezone" htmlFor="company-timezone">
               <select
                 id="company-timezone"
-                className={cn(crm.select, "w-full h-9 text-sm")}
+                className={cn(crm.select, "h-9 w-full text-sm")}
                 value={formData.timezone}
                 onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
               >
@@ -341,65 +301,54 @@ export function SettingsProfileTab({ companyId }: Props) {
                   </option>
                 ))}
               </select>
-            </div>
+            </SettingsField>
           </div>
-        </div>
 
-        <div>
-          <label htmlFor="company-description" className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
-            Description
-          </label>
-          <textarea
-            id="company-description"
-            rows={4}
-            className={cn(crm.input, "w-full h-auto py-2 px-3 text-sm resize-none")}
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            placeholder="Brief description of your business..."
-          />
-        </div>
+          <SettingsField label="Description" htmlFor="company-description">
+            <textarea
+              id="company-description"
+              rows={4}
+              className={cn(crm.input, "h-auto w-full resize-none py-2")}
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Brief description of your business..."
+            />
+          </SettingsField>
 
-        <div className="pt-2">
+          <div className="pt-1">
+            <button type="submit" disabled={saving || !formData.name.trim()} className={cn(crm.btnPrimary, "px-6")}>
+              {saving ? "Saving changes…" : "Save changes"}
+            </button>
+          </div>
+        </form>
+      </SettingsSection>
+
+      <SettingsSection
+        title="Danger zone"
+        description="Irreversible operations on your workspace."
+        icon={AlertTriangle}
+        tone="danger"
+      >
+        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+          <div className="max-w-xl">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Delete workspace</h3>
+            <p className="mt-1 text-xs text-slate-500">
+              Soft-deletes this workspace. You can request recovery from a Super Admin within 30 days. You can
+              optionally download a backup configuration first.
+            </p>
+          </div>
           <button
-            type="submit"
-            disabled={saving || !formData.name.trim()}
-            className={cn(crm.btnPrimary, "px-6")}
+            type="button"
+            onClick={() => {
+              setConfirmName("");
+              setShowDeleteModal(true);
+            }}
+            className="shrink-0 rounded-xl bg-rose-600 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition duration-200 hover:bg-rose-700"
           >
-            {saving ? "Saving Changes..." : "Save Changes"}
+            Delete workspace
           </button>
         </div>
-      </form>
-    </div>
-
-    {/* Danger Zone */}
-    <div className={cn(crm.panel, "p-6 border-rose-200 bg-rose-50/5 dark:bg-rose-950/5 dark:border-rose-900/30")}>
-      <div className="border-b border-rose-100 pb-4 dark:border-rose-950/20">
-        <h2 className="text-base font-bold text-rose-700 dark:text-rose-400 flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 text-rose-600" />
-          Danger Zone
-        </h2>
-        <p className="text-xs text-slate-500 mt-1">Irreversible operations on your workspace.</p>
-      </div>
-
-      <div className="mt-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="max-w-xl">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white">Delete Workspace</h3>
-          <p className="text-xs text-slate-500 mt-1">
-            Soft-deletes this workspace. You can request recovery from a Super Admin within 30 days. You can optionally download a backup configuration first.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            setConfirmName("");
-            setShowDeleteModal(true);
-          }}
-          className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold uppercase tracking-wider py-2.5 px-5 transition duration-200 shrink-0 shadow-sm"
-        >
-          Delete Workspace
-        </button>
-      </div>
-    </div>
+      </SettingsSection>
 
     {/* Delete Workspace Confirmation Modal */}
     <AdminModal

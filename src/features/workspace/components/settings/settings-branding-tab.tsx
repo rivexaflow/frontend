@@ -5,7 +5,13 @@ import { apiClient } from "@/lib/api/client";
 import { crm } from "@/features/workspace/components/crm/crm-styles";
 import { cn } from "@/lib/utils/cn";
 import { uiStore } from "@/stores/ui.store";
-import { Globe, Trash2, ShieldCheck, Info, Palette } from "lucide-react";
+import {
+  SettingsErrorBanner,
+  SettingsField,
+  SettingsLoading,
+  SettingsSection,
+} from "@/features/workspace/components/settings/settings-ui-primitives";
+import { Globe, Info, Palette, ShieldCheck, Trash2 } from "lucide-react";
 
 type Props = {
   companyId: string;
@@ -169,41 +175,20 @@ export function SettingsBrandingTab({ companyId }: Props) {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-48 items-center justify-center">
-        <svg className="h-8 w-8 animate-spin text-[#191970]" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.4" strokeOpacity="0.3" />
-          <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
-        </svg>
-      </div>
-    );
-  }
+  if (loading) return <SettingsLoading />;
 
   return (
-    <div className="space-y-6">
-      {error && (
-        <div className="rounded-xl border border-rose-100 bg-rose-50 p-3.5 text-xs font-semibold text-rose-700 dark:border-rose-950/30 dark:bg-rose-950/20">
-          {error}
-        </div>
-      )}
+    <div className="space-y-5">
+      {error ? <SettingsErrorBanner message={error} /> : null}
 
-      {/* Visual Identity / Colors & Logo */}
-      <div className={cn(crm.panel, "p-6")}>
-        <div className="border-b border-slate-100 pb-4 dark:border-slate-800">
-          <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Palette className="h-5 w-5 text-purple-600" />
-            Visual Branding & Theme
-          </h2>
-          <p className="text-xs text-slate-500">Configure logo branding, branding label, and primary portal themes.</p>
-        </div>
-
-        <form onSubmit={handleSaveBranding} className="mt-5 space-y-4 max-w-xl">
+      <SettingsSection
+        title="Visual branding & theme"
+        description="Configure logo branding, brand label, and primary portal themes."
+        icon={Palette}
+      >
+        <form onSubmit={handleSaveBranding} className="max-w-2xl space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label htmlFor="brand-name" className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
-                Brand Name
-              </label>
+            <SettingsField label="Brand name" htmlFor="brand-name">
               <input
                 id="brand-name"
                 type="text"
@@ -212,36 +197,30 @@ export function SettingsBrandingTab({ companyId }: Props) {
                 onChange={(e) => setBrandName(e.target.value)}
                 placeholder="e.g. Acme Inc."
               />
-            </div>
+            </SettingsField>
 
-            <div>
-              <label htmlFor="theme-color" className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
-                Primary Theme Color
-              </label>
+            <SettingsField label="Primary theme color" htmlFor="theme-color">
               <div className="flex gap-2">
                 <input
                   id="theme-color"
                   type="color"
-                  className="h-9 w-12 shrink-0 cursor-pointer rounded-lg border border-slate-200 p-0.5 dark:border-slate-700 bg-white dark:bg-slate-900"
+                  className="h-9 w-12 shrink-0 cursor-pointer rounded-lg border border-slate-200 bg-white p-0.5 dark:border-slate-700 dark:bg-slate-900"
                   value={primaryColor}
                   onChange={(e) => setPrimaryColor(e.target.value)}
                 />
                 <input
                   type="text"
-                  className={cn(crm.input, "flex-1 uppercase font-mono")}
+                  className={cn(crm.input, "flex-1 font-mono uppercase")}
                   value={primaryColor}
                   onChange={(e) => setPrimaryColor(e.target.value)}
                   placeholder="#191970"
                   maxLength={7}
                 />
               </div>
-            </div>
+            </SettingsField>
           </div>
 
-          <div>
-            <label htmlFor="logo-url" className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
-              Logo Image URL
-            </label>
+          <SettingsField label="Logo image URL" htmlFor="logo-url">
             <input
               id="logo-url"
               type="url"
@@ -250,7 +229,7 @@ export function SettingsBrandingTab({ companyId }: Props) {
               onChange={(e) => setLogoUrl(e.target.value)}
               placeholder="https://example.com/logo.png"
             />
-          </div>
+          </SettingsField>
 
           {logoUrl.trim() && (
             <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 dark:border-slate-800 flex items-center gap-4">
@@ -272,36 +251,22 @@ export function SettingsBrandingTab({ companyId }: Props) {
             </div>
           )}
 
-          <div className="pt-2 flex justify-end">
-            <button
-              type="submit"
-              disabled={savingBranding}
-              className={cn(crm.btnPrimary, "px-6")}
-            >
-              {savingBranding ? "Saving Identity..." : "Save Identity Settings"}
+          <div className="flex justify-end pt-1">
+            <button type="submit" disabled={savingBranding} className={cn(crm.btnPrimary, "px-6")}>
+              {savingBranding ? "Saving identity…" : "Save identity settings"}
             </button>
           </div>
         </form>
-      </div>
+      </SettingsSection>
 
-      {/* Main Custom Domain */}
-      <div className={cn(crm.panel, "p-6")}>
-        <div className="border-b border-slate-100 pb-4 dark:border-slate-800">
-          <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Globe className="h-5 w-5 text-blue-600" />
-            Main Custom Domain
-          </h2>
-          <p className="text-xs text-slate-500">
-            Map a custom domain to point directly to your primary workspace portal (e.g. <code>mycompany.com</code>).
-          </p>
-        </div>
-
-        <form onSubmit={handleUpdateMainDomain} className="mt-5 max-w-xl space-y-4">
-          <div>
-            <label htmlFor="main-custom-domain" className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
-              Custom Domain URL
-            </label>
-            <div className="flex gap-3">
+      <SettingsSection
+        title="Main custom domain"
+        description="Map a custom domain to point directly to your primary workspace portal."
+        icon={Globe}
+      >
+        <form onSubmit={handleUpdateMainDomain} className="max-w-2xl space-y-4">
+          <SettingsField label="Custom domain URL" htmlFor="main-custom-domain">
+            <div className="flex flex-col gap-3 sm:flex-row">
               <input
                 id="main-custom-domain"
                 type="text"
@@ -310,36 +275,21 @@ export function SettingsBrandingTab({ companyId }: Props) {
                 onChange={(e) => setMainDomain(e.target.value)}
                 placeholder="e.g. portal.mycompany.com"
               />
-              <button
-                type="submit"
-                disabled={updatingMain}
-                className={cn(crm.btnPrimary)}
-              >
-                {updatingMain ? "Saving..." : "Save Domain"}
+              <button type="submit" disabled={updatingMain} className={cn(crm.btnPrimary, "shrink-0")}>
+                {updatingMain ? "Saving…" : "Save domain"}
               </button>
             </div>
-          </div>
+          </SettingsField>
         </form>
-      </div>
+      </SettingsSection>
 
-      {/* Module Specific Custom Domains */}
-      <div className={cn(crm.panel, "p-6")}>
-        <div className="border-b border-slate-100 pb-4 dark:border-slate-800">
-          <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-emerald-600" />
-            Module-Specific Domains
-          </h2>
-          <p className="text-xs text-slate-500">
-            Connect distinct domains to specific modules (e.g. pointing <code>crm.mycompany.com</code> only to the CRM platform).
-          </p>
-        </div>
-
-        {/* Connect Domain Form */}
-        <form onSubmit={handleConnectModuleDomain} className="mt-5 grid gap-4 md:grid-cols-3 items-end max-w-3xl">
-          <div>
-            <label htmlFor="module-domain" className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
-              Domain / Subdomain
-            </label>
+      <SettingsSection
+        title="Module-specific domains"
+        description="Connect distinct domains to specific modules (e.g. crm.mycompany.com → CRM only)."
+        icon={ShieldCheck}
+      >
+        <form onSubmit={handleConnectModuleDomain} className="grid max-w-3xl items-end gap-4 md:grid-cols-3">
+          <SettingsField label="Domain / subdomain" htmlFor="module-domain">
             <input
               id="module-domain"
               type="text"
@@ -349,15 +299,12 @@ export function SettingsBrandingTab({ companyId }: Props) {
               placeholder="e.g. crm.mycompany.com"
               required
             />
-          </div>
+          </SettingsField>
 
-          <div>
-            <label htmlFor="module-target" className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
-              Target Module Scope
-            </label>
+          <SettingsField label="Target module scope" htmlFor="module-target">
             <select
               id="module-target"
-              className={cn(crm.select, "w-full h-9 text-sm")}
+              className={cn(crm.select, "h-9 w-full text-sm")}
               value={newModule}
               onChange={(e) => setNewModule(e.target.value)}
             >
@@ -367,14 +314,14 @@ export function SettingsBrandingTab({ companyId }: Props) {
                 </option>
               ))}
             </select>
-          </div>
+          </SettingsField>
 
           <button
             type="submit"
             disabled={connectingModule || !newDomain.trim()}
             className={cn(crm.btnPrimary, "w-full")}
           >
-            {connectingModule ? "Connecting..." : "Connect Domain"}
+            {connectingModule ? "Connecting…" : "Connect domain"}
           </button>
         </form>
 
@@ -444,7 +391,7 @@ export function SettingsBrandingTab({ companyId }: Props) {
             </div>
           )}
         </div>
-      </div>
+      </SettingsSection>
     </div>
   );
 }

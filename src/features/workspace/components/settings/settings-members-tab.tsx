@@ -4,7 +4,13 @@ import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/api/client";
 import { crm } from "@/features/workspace/components/crm/crm-styles";
 import { cn } from "@/lib/utils/cn";
-import { Users, Mail, Award, Target, Activity, Clock, Shield } from "lucide-react";
+import {
+  SettingsErrorBanner,
+  SettingsLoading,
+  SettingsSection,
+  SettingsStatPill,
+} from "@/features/workspace/components/settings/settings-ui-primitives";
+import { Activity, Award, Clock, Mail, Shield, Target, Users } from "lucide-react";
 
 type Props = {
   companyId: string;
@@ -88,81 +94,34 @@ export function SettingsMembersTab({ companyId }: Props) {
     loadTeamData();
   }, [companyId]);
 
-  if (loading) {
-    return (
-      <div className="flex h-48 items-center justify-center">
-        <svg className="h-8 w-8 animate-spin text-[#191970]" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.4" strokeOpacity="0.3" />
-          <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
-        </svg>
-      </div>
-    );
-  }
+  if (loading) return <SettingsLoading />;
 
   const stats = orgData?.stats || { total: 0, online: 0, away: 0, offline: 0, totalLeads: 0, totalWon: 0 };
   const members = orgData?.members || [];
 
   const teamCards = [
-    {
-      title: "Total Team",
-      value: stats.total,
-      icon: Users,
-      color: "text-blue-600 bg-blue-50 dark:bg-blue-950/30 dark:text-blue-400",
-    },
-    {
-      title: "Online Now",
-      value: stats.online,
-      icon: Activity,
-      color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400",
-    },
-    {
-      title: "Away",
-      value: stats.away,
-      icon: Clock,
-      color: "text-amber-600 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400",
-    },
-    {
-      title: "Offline",
-      value: stats.offline,
-      icon: Shield,
-      color: "text-slate-600 bg-slate-50 dark:bg-slate-800 dark:text-slate-400",
-    },
+    { title: "Total team", value: stats.total, icon: Users, tone: "blue" as const },
+    { title: "Online now", value: stats.online, icon: Activity, tone: "emerald" as const },
+    { title: "Away", value: stats.away, icon: Clock, tone: "amber" as const },
+    { title: "Offline", value: stats.offline, icon: Shield, tone: "slate" as const },
   ];
 
   return (
-    <div className="space-y-6">
-      {error && (
-        <div className="rounded-xl border border-rose-100 bg-rose-50 p-3.5 text-xs font-semibold text-rose-700 dark:border-rose-950/30 dark:bg-rose-950/20">
-          {error}
-        </div>
-      )}
+    <div className="space-y-5">
+      {error ? <SettingsErrorBanner message={error} /> : null}
 
-      {/* Team Stats Summary */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {teamCards.map((c) => (
-          <div key={c.title} className={cn(crm.panel, "p-4 flex items-center gap-3.5 hover:shadow-md transition")}>
-            <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", c.color)}>
-              <c.icon className="h-4.5 w-4.5" />
-            </span>
-            <div>
-              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">{c.title}</span>
-              <span className="block text-xl font-black text-slate-800 dark:text-white mt-0.5">{c.value}</span>
-            </div>
-          </div>
+          <SettingsStatPill key={c.title} label={c.title} value={c.value} icon={c.icon} tone={c.tone} />
         ))}
       </div>
 
-      {/* Team Member Listing Dashboard */}
-      <div className={cn(crm.panel, "p-6")}>
-        <div className="border-b border-slate-100 pb-4 dark:border-slate-800 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">Active Team Directory</h2>
-            <p className="text-xs text-slate-500">Track active sessions, platform role permissions, and CRM metrics.</p>
-          </div>
-        </div>
-
-        <div className="mt-6 overflow-x-auto rounded-xl border border-slate-200/90 dark:border-slate-800">
-          <table className="w-full text-left border-collapse">
+      <SettingsSection
+        title="Active team directory"
+        description="Track active sessions, platform role permissions, and CRM metrics."
+      >
+        <div className="overflow-x-auto rounded-xl border border-slate-200/90 dark:border-slate-800">
+          <table className="w-full border-collapse text-left">
             <thead>
               <tr className="border-b border-slate-200/90 bg-slate-50/70 text-xs font-bold uppercase tracking-wider text-slate-400 dark:border-slate-800 dark:bg-slate-900/50">
                 <th className="px-6 py-3.5">Member</th>
@@ -305,7 +264,7 @@ export function SettingsMembersTab({ companyId }: Props) {
             </tbody>
           </table>
         </div>
-      </div>
+      </SettingsSection>
     </div>
   );
 }

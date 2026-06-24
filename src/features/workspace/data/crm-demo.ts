@@ -40,6 +40,8 @@ export type LeadRecord = {
   lastActivity: string;
   updatedAt: string;
   touchCount: number;
+  /** Kanban column override when using custom pipeline stages. */
+  boardStage?: string;
 };
 
 export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
@@ -60,10 +62,59 @@ export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
 };
 
 export type LeadBoardStage = {
-  id: LeadStatus;
+  id: string;
   name: string;
   tone: "blue" | "amber" | "emerald" | "slate" | "rose";
 };
+
+export type LeadPipelinePhase = {
+  id: string;
+  label: string;
+  description: string;
+  stageIds: string[];
+};
+
+export const LEAD_PIPELINE_PHASES: LeadPipelinePhase[] = [
+  {
+    id: "intake",
+    label: "Intake",
+    description: "New inquiries & first contact",
+    stageIds: ["new", "not_pickup_call", "callback"],
+  },
+  {
+    id: "engagement",
+    label: "Engagement",
+    description: "Interest qualification",
+    stageIds: ["not_interested", "interested"],
+  },
+  {
+    id: "onboarding",
+    label: "Account opening",
+    description: "Documentation & KYC prep",
+    stageIds: ["ready_to_open_account", "document_pending", "document_received"],
+  },
+  {
+    id: "activation",
+    label: "Activation",
+    description: "Final review & go-live",
+    stageIds: ["technical_error_kyc", "account_rejected", "move_to_activation"],
+  },
+];
+
+export function resolveLeadBoardStageId(lead: LeadRecord, stageIds: Set<string>): string {
+  if (lead.boardStage && stageIds.has(lead.boardStage)) return lead.boardStage;
+  if (stageIds.has(lead.status)) return lead.status;
+  return "new";
+}
+
+export function slugifyLeadStageId(name: string): string {
+  const base = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
+  return base || `stage_${Date.now()}`;
+}
 
 export const LEAD_BOARD_STAGES: LeadBoardStage[] = [
   { id: "new", name: "New leads", tone: "blue" },

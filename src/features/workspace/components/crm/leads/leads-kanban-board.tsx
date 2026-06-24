@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -24,6 +24,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { LeadKanbanCard } from "@/features/workspace/components/crm/leads/lead-kanban-card";
 import {
   LEAD_BOARD_STAGES,
+  resolveLeadBoardStageId,
   type LeadBoardStage,
   type LeadRecord,
   type LeadStatus,
@@ -40,19 +41,21 @@ const stageAccent: Record<LeadBoardStage["tone"], string> = {
   rose: "border-t-rose-500",
 };
 
-function emptyLeadsByStage(): Record<LeadStatus, LeadRecord[]> {
-  const map = {} as Record<LeadStatus, LeadRecord[]>;
-  for (const stage of LEAD_BOARD_STAGES) {
+function emptyLeadsByStage(stages: LeadBoardStage[]): Record<string, LeadRecord[]> {
+  const map: Record<string, LeadRecord[]> = {};
+  for (const stage of stages) {
     map[stage.id] = [];
   }
   return map;
 }
 
 type Props = {
+  stages: LeadBoardStage[];
   leads: LeadRecord[];
   onChange: (next: LeadRecord[]) => void;
   onSelect: (lead: LeadRecord) => void;
   searchQuery?: string;
+  highlightStageId?: string | null;
 };
 
 function SortableLeadCard({
@@ -87,10 +90,14 @@ function KanbanColumn({
   stage,
   leads,
   onSelect,
+  highlighted,
+  columnRef,
 }: {
   stage: LeadBoardStage;
   leads: LeadRecord[];
   onSelect: (lead: LeadRecord) => void;
+  highlighted?: boolean;
+  columnRef?: (node: HTMLDivElement | null) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: stage.id,
@@ -101,11 +108,15 @@ function KanbanColumn({
 
   return (
     <div
-      ref={setNodeRef}
+      ref={(node) => {
+        setNodeRef(node);
+        columnRef?.(node);
+      }}
       className={cn(
         "flex w-[min(100%,288px)] shrink-0 flex-col rounded-xl border border-slate-200/80 border-t-[3px] bg-slate-50/40 dark:border-slate-800 dark:bg-slate-950/30",
         stageAccent[stage.tone],
         isOver && "ring-2 ring-[#2277FF]/25 ring-offset-1",
+        highlighted && "ring-2 ring-[#2277FF]/40 ring-offset-2",
       )}
     >
       <div className="flex items-center justify-between gap-2 border-b border-slate-200/70 bg-white/80 px-3.5 py-3 dark:border-slate-800 dark:bg-slate-900/80">
@@ -143,8 +154,22 @@ function KanbanColumn({
   );
 }
 
-export function LeadsKanbanBoard({ leads, onChange, onSelect, searchQuery = "" }: Props) {
+export function LeadsKanbanBoard({
+  stages,
+  leads,
+  onChange,
+  onSelect,
+  searchQuery = "",
+  highlightStageId = null,
+}: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const columnRefs = useRef(new Map<string, HTMLDivElement>());
+
+  useEffect(() => {
+    if (!highlightStageId) return;
+    const el = columnRefs.current.get(highlightStageId);
+    el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [highlightStageId]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -163,36 +188,71 @@ export function LeadsKanbanBoard({ leads, onChange, onSelect, searchQuery = "" }
     );
   }, [leads, searchQuery]);
 
+  const stageIdSet = useMemo(() => new Set(stages.map((s) => s.id)), [stages]);
+
   const leadsByStage = useMemo(() => {
-    const map = emptyLeadsByStage();
+    const map = emptyLeadsByStage(stages);
     for (const lead of filtered) {
-      const stageId = LEAD_BOARD_STAGES.some((s) => s.id === lead.status) ? lead.status : "new";
-      map[stageId].push(lead);
+      const stageId = resolveLeadBoardStageId(lead, stageIdSet);
+      if (map[stageId]) {
+        map[stageId].push(lead);
+      } else if (map.new) {
+        map.new.push(lead);
+      }
     }
     return map;
-  }, [filtered]);
+  }, [filtered, stages, stageIdSet]);
 
   const activeLead = activeId ? leads.find((l) => l.id === activeId) : null;
 
   const findStageForLead = useCallback(
-    (leadId: string) => leads.find((l) => l.id === leadId)?.status,
-    [leads],
+    (leadId: string) => {
+      const lead = leads.find((l) => l.id === leadId);
+      if (!lead) return undefined;
+      return resolveLeadBoardStageId(lead, stageIdSet);
+    },
+    [leads, stageIdSet],
   );
 
-  const moveLead = (leadId: string, targetStatus: LeadStatus) => {
+  const moveLead = (leadId: string, targetStageId: string) => {
+    const knownStatuses = new Set<string>([
+      "new",
+      "not_interested",
+      "not_pickup_call",
+      "callback",
+      "interested",
+      "ready_to_open_account",
+      "document_pending",
+      "document_received",
+      "technical_error_kyc",
+      "account_rejected",
+      "move_to_activation",
+      "nurturing",
+      "qualified",
+      "lost",
+    ]);
+
     onChange(
-      leads.map((l) =>
-        l.id === leadId
-          ? {
-              ...l,
-              status: targetStatus,
-              updatedAt: "Just now",
-              slaStatus: targetStatus === "interested" || targetStatus === "move_to_activation" ? "on_track" : l.slaStatus,
-            }
-          : l,
-      ),
+      leads.map((l) => {
+        if (l.id !== leadId) return l;
+        const next: LeadRecord = {
+          ...l,
+          boardStage: targetStageId,
+          updatedAt: "Just now",
+        };
+        if (knownStatuses.has(targetStageId)) {
+          next.status = targetStageId as LeadStatus;
+          if (targetStageId === "interested" || targetStageId === "move_to_activation") {
+            next.slaStatus = "on_track";
+          }
+        }
+        return next;
+      }),
     );
   };
+
+  const resolveDropStage = (overId: string) =>
+    stageIdSet.has(overId) ? overId : findStageForLead(overId);
 
   const handleDragStart = (event: DragStartEvent) => setActiveId(String(event.active.id));
 
@@ -201,12 +261,10 @@ export function LeadsKanbanBoard({ leads, onChange, onSelect, searchQuery = "" }
     if (!over) return;
     const leadId = String(active.id);
     const overId = String(over.id);
-    const targetStatus = LEAD_BOARD_STAGES.some((s) => s.id === overId)
-      ? (overId as LeadStatus)
-      : findStageForLead(overId);
+    const targetStageId = resolveDropStage(overId);
     const current = findStageForLead(leadId);
-    if (!targetStatus || !current || targetStatus === current) return;
-    moveLead(leadId, targetStatus);
+    if (!targetStageId || !current || targetStageId === current) return;
+    moveLead(leadId, targetStageId);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -215,10 +273,8 @@ export function LeadsKanbanBoard({ leads, onChange, onSelect, searchQuery = "" }
     if (!over) return;
     const leadId = String(active.id);
     const overId = String(over.id);
-    const targetStatus = LEAD_BOARD_STAGES.some((s) => s.id === overId)
-      ? (overId as LeadStatus)
-      : findStageForLead(overId);
-    if (targetStatus) moveLead(leadId, targetStatus);
+    const targetStageId = resolveDropStage(overId);
+    if (targetStageId) moveLead(leadId, targetStageId);
   };
 
   return (
@@ -230,12 +286,17 @@ export function LeadsKanbanBoard({ leads, onChange, onSelect, searchQuery = "" }
       onDragEnd={handleDragEnd}
     >
       <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
-        {LEAD_BOARD_STAGES.map((stage) => (
+        {stages.map((stage) => (
           <KanbanColumn
             key={stage.id}
             stage={stage}
-            leads={leadsByStage[stage.id]}
+            leads={leadsByStage[stage.id] ?? []}
             onSelect={onSelect}
+            highlighted={highlightStageId === stage.id}
+            columnRef={(node) => {
+              if (node) columnRefs.current.set(stage.id, node);
+              else columnRefs.current.delete(stage.id);
+            }}
           />
         ))}
       </div>
