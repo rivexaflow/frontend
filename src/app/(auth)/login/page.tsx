@@ -128,6 +128,7 @@ function LoginPageContent() {
   const wantsSignout = searchParams.get("signout") === "1";
   const onboardingComplete = searchParams.get("onboarding") === "complete";
   const justRegistered = searchParams.get("registered") === "1";
+  const companyParam = searchParams.get("companyId") || searchParams.get("company");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -141,17 +142,34 @@ function LoginPageContent() {
   const [branding, setBranding] = useState<CompanyBranding | null>(null);
   const [isBtnHovered, setIsBtnHovered] = useState(false);
 
-  // Fetch company branding if custom domain
+  // Fetch company branding if subdomain, custom domain, or query parameter is set
   useEffect(() => {
     if (typeof window === "undefined") return;
     const hostname = window.location.hostname;
-    if (isCustomDomain(hostname)) {
-      apiClient.get("/company/public/branding")
+
+    const shouldFetch = () => {
+      if (companyParam) return true;
+      const h = hostname.toLowerCase();
+      if (h === "localhost" || h === "127.0.0.1") return false;
+      if (h === "rivexaflow.com" || h === "www.rivexaflow.com") return false;
+      if (h === "rivexaflow.in" || h === "www.rivexaflow.in") return false;
+      return true;
+    };
+
+    if (shouldFetch()) {
+      apiClient.get("/company/public/branding", {
+        params: companyParam ? { companyId: companyParam } : undefined
+      })
         .then((res) => {
           if (res.data.success && res.data.data) {
             setBranding(res.data.data);
             if (res.data.data.themeConfig?.primaryColor) {
-              document.documentElement.style.setProperty("--primary-color", res.data.data.themeConfig.primaryColor);
+              const hex = res.data.data.themeConfig.primaryColor;
+              document.documentElement.style.setProperty("--primary-color", hex);
+              const rgb = hexToRgb(hex);
+              if (rgb) {
+                document.documentElement.style.setProperty("--primary-color-rgb", rgb);
+              }
             }
           }
         })
@@ -159,7 +177,7 @@ function LoginPageContent() {
           console.error("Failed to load branding info for login page:", err);
         });
     }
-  }, []);
+  }, [companyParam]);
 
   /** If we arrive via /login?signout=1, clear any stale persisted session before showing the form. */
   useEffect(() => {

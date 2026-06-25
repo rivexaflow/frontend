@@ -182,7 +182,7 @@
   position: relative;
   overflow: hidden;
   isolation: isolate;
-  background: linear-gradient(135deg, #0b1432 0%, #121040 48%, #1f0f3f 100%);
+  background: linear-gradient(135deg, var(--primary-color, #0b1432) 0%, #121040 48%, #1f0f3f 100%);
 }
 
 /* Blue top-left + purple bottom-right glow — opacity pulse only (no slide from bottom) */
@@ -193,7 +193,7 @@
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(900px 540px at 18% 18%, rgba(34, 119, 255, 0.42), transparent 60%),
+    radial-gradient(900px 540px at 18% 18%, rgba(var(--primary-color-rgb, 34, 119, 255), 0.42), transparent 60%),
     radial-gradient(700px 440px at 86% 82%, rgba(126, 86, 246, 0.38), transparent 62%);
   animation: login-brand-glow-pulse 9s ease-in-out infinite;
 }
