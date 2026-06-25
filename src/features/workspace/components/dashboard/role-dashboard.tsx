@@ -19,7 +19,7 @@ import { WorkspaceGraphPanel } from "@/features/workspace/components/workspace-g
 import { DashboardHeader } from "@/features/workspace/components/dashboard/dashboard-header";
 import { StatsGrid } from "@/features/workspace/components/dashboard/stats-grid";
 import { RecentActivity } from "@/features/workspace/components/dashboard/activity-feed";
-
+import { EmployeeWorkingPanel } from "@/features/workspace/components/dashboard/employee-working-panel";
 import { DashboardTodoPanel } from "@/features/workspace/components/dashboard/dashboard-todo-panel";
 import {
   buildTodosFromModules,
@@ -127,7 +127,11 @@ export function RoleDashboard({ workspaceSlug }: { workspaceSlug: string }) {
         </div>
 
         <div className="space-y-8">
-          <DashboardTodoPanel todos={todos} />
+          {navRole === "ADMIN" ? (
+            <EmployeeWorkingPanel workspaceSlug={workspaceSlug} />
+          ) : (
+            <DashboardTodoPanel todos={todos} />
+          )}
 
           {navRole === "ADMIN" ? (
             <RecentActivity />
