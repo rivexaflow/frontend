@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   LayoutDashboard, 
@@ -147,6 +147,7 @@ const adminNavItems: NavItem[] = [
 
 export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isHoverDisabled, setIsHoverDisabled] = useState(false);
@@ -158,6 +159,13 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const workspaceName = workspaceStore((s) => s.workspaceName);
   const themeConfig = workspaceStore((s) => s.themeConfig);
   const primaryColor = themeConfig?.primaryColor || "#191970";
+  
+  const getGroupRedirectPath = (groupName: string): string | null => {
+    if (groupName === "CRM") return workspacePaths.leads;
+    if (groupName === "HRM") return workspacePaths.hrmDashboard;
+    if (groupName === "User Management") return workspacePaths.user;
+    return null;
+  };
 
   const items = useMemo(() => {
     const rawItems = isAdmin
@@ -468,7 +476,13 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                           <button
                             type="button"
                             aria-expanded={isOpen}
-                            onClick={() => toggleTopGroup(group.name, isOpen)}
+                            onClick={() => {
+                              toggleTopGroup(group.name, isOpen);
+                              const targetPath = getGroupRedirectPath(group.name);
+                              if (targetPath) {
+                                router.push(targetPath);
+                              }
+                            }}
                             className={cn(
                               "group relative flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-left transition-all duration-200",
                               groupActive
@@ -515,7 +529,12 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                                             <button
                                               type="button"
                                               aria-expanded={subOpen}
-                                              onClick={() => toggleCrmSubGroup(item.name, subOpen)}
+                                              onClick={() => {
+                                                toggleCrmSubGroup(item.name, subOpen);
+                                                if (item.children?.[0]?.href) {
+                                                  router.push(item.children[0].href);
+                                                }
+                                              }}
                                               className={cn(
                                                 "flex w-full items-center gap-2 rounded-lg py-2 pl-4 pr-3 text-sm font-semibold transition",
                                                 subActive
@@ -593,7 +612,12 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                                               <button
                                                 type="button"
                                                 aria-expanded={subOpen}
-                                                onClick={() => toggleHrmSubGroup(item.name, subOpen)}
+                                                onClick={() => {
+                                                   toggleHrmSubGroup(item.name, subOpen);
+                                                   if (item.children?.[0]?.href) {
+                                                     router.push(item.children[0].href);
+                                                   }
+                                                 }}
                                                 className={cn(
                                                   "flex w-full items-center gap-2 rounded-lg py-2 pl-4 pr-3 text-sm font-semibold transition",
                                                   subActive
