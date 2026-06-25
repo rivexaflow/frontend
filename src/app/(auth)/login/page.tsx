@@ -142,7 +142,14 @@ function LoginPageContent() {
 
   // White-label states
   const [branding, setBranding] = useState<CompanyBranding | null>(null);
+  const [isBrandingLoading, setIsBrandingLoading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const [isBtnHovered, setIsBtnHovered] = useState(false);
+
+  // Set mounted on client mount
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Fetch company branding if subdomain, custom domain, or query parameter is set
   useEffect(() => {
@@ -159,6 +166,7 @@ function LoginPageContent() {
     };
 
     if (shouldFetch()) {
+      setIsBrandingLoading(true);
       apiClient.get("/company/public/branding", {
         params: companyParam ? { companyId: companyParam } : undefined
       })
@@ -177,6 +185,9 @@ function LoginPageContent() {
         })
         .catch((err) => {
           console.error("Failed to load branding info for login page:", err);
+        })
+        .finally(() => {
+          setIsBrandingLoading(false);
         });
     }
   }, [companyParam]);
@@ -307,6 +318,10 @@ function LoginPageContent() {
     const last = modulesArray.pop();
     return `${modulesArray.join(", ")}, and ${last}`;
   };
+
+  if (!isMounted || isBrandingLoading) {
+    return <LoginPageFallback />;
+  }
 
   return (
     <main className="grid min-h-screen w-full grid-cols-1 bg-white font-sans lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.18fr)_minmax(0,1fr)]">
