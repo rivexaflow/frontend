@@ -99,14 +99,16 @@ const normalizeUser = (raw: RawAuthResponse["data"], fallbackEmail: string): Aut
     (PROFILE_ROLE_SET.has(rawRole) ? rawRole : undefined);
   const modulesRaw = u.selectedModules ?? u.selected_modules;
 
+  const company = (raw as any).company;
+
   return {
     id: u.id ?? "unknown",
     email: u.email ?? fallbackEmail,
     name: u.fullName ?? u.full_name ?? u.name ?? (u.email ?? fallbackEmail).split("@")[0],
     role: coerceRole(u.role),
-    workspaceId: pickWorkspaceId(u) ?? pickWorkspaceId(raw),
-    workspaceSlug: u.workspaceSlug ?? u.workspace_slug ?? undefined,
-    workspaceName: u.workspaceName ?? u.workspace_name ?? undefined,
+    workspaceId: pickWorkspaceId(u) ?? pickWorkspaceId(raw) ?? company?.id ?? undefined,
+    workspaceSlug: u.workspaceSlug ?? u.workspace_slug ?? company?.slug ?? undefined,
+    workspaceName: u.workspaceName ?? u.workspace_name ?? company?.name ?? undefined,
     plan: u.plan ?? undefined,
     profileRole,
     onboardingStep: u.onboardingStep ?? u.onboarding_step ?? raw.onboardingStep,
@@ -314,3 +316,28 @@ export async function loginUser(payload: LoginPayload): Promise<AuthResult> {
     return mapLoginError(err);
   }
 }
+
+export type WorkspaceLoginPayload = LoginPayload & { slug: string };
+
+/**
+ * Calls `POST /api/auth/workspace-login` (White-labeled login).
+ */
+export async function workspaceLoginUser(payload: WorkspaceLoginPayload): Promise<AuthResult> {
+  try {
+    const { data } = await apiClient.post<RawAuthResponse>("/auth/workspace-login", payload);
+    const raw = data.data ?? {};
+    const token = pickToken(raw);
+    if (!token) {
+      throw new Error("Sign-in succeeded but no session token was returned. Please contact support.");
+    }
+    return {
+      token,
+      user: normalizeUser(raw, payload.email),
+      onboardingStep: raw.onboardingStep,
+      redirectTo: raw.redirectTo,
+    };
+  } catch (err) {
+    return mapLoginError(err);
+  }
+}
+

@@ -9,7 +9,7 @@ import { syncWorkspaceContext } from "@/lib/workspace/company-context";
 import { workspaceStore } from "@/stores/workspace.store";
 import { clearSessionCookie } from "@/lib/auth/session";
 import { appConfig } from "@/config/app";
-import { loginUser } from "@/lib/api/auth";
+import { loginUser, workspaceLoginUser } from "@/lib/api/auth";
 import { onboardingApi } from "@/lib/api/onboarding";
 import {
   mergeAuthWithOnboarding,
@@ -116,6 +116,7 @@ function LoginPageFallback() {
 type CompanyBranding = {
   id: string;
   name: string;
+  slug: string;
   logo: string | null;
   brandName: string | null;
   themeConfig: Record<string, any> | null;
@@ -206,7 +207,9 @@ function LoginPageContent() {
 
     setIsSubmitting(true);
     try {
-      const result = await loginUser(parsed.data);
+      const result = branding?.slug
+        ? await workspaceLoginUser({ ...parsed.data, slug: branding.slug })
+        : await loginUser(parsed.data);
 
       const fallbackSlug = appConfig.defaultWorkspaceSlug;
       const slug = result.user.workspaceSlug ?? fallbackSlug;
