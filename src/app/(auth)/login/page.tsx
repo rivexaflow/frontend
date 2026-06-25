@@ -120,6 +120,7 @@ type CompanyBranding = {
   logo: string | null;
   brandName: string | null;
   themeConfig: Record<string, any> | null;
+  modules?: string[];
 };
 
 function LoginPageContent() {
@@ -256,6 +257,57 @@ function LoginPageContent() {
   const primaryColor = branding?.themeConfig?.primaryColor || "#0a0e2c";
   const companyName = branding?.brandName || branding?.name || "Rivexaflow";
 
+  const getModulesListString = () => {
+    if (!branding?.modules || branding.modules.length === 0) {
+      return "CRM, KYC, billing, and workflows";
+    }
+
+    const knownModulesMap: Record<string, string> = {
+      crm: "CRM",
+      crm_module: "CRM",
+      kyc: "KYC",
+      kyc_module: "KYC",
+      hr: "HRM",
+      hrm: "HRM",
+      hrm_module: "HRM",
+      billing: "billing",
+      invoice: "billing",
+      workflow: "workflows",
+      workflows: "workflows",
+      whatsapp: "WhatsApp",
+      calling: "Calling Agent",
+      ai: "AI Agents",
+    };
+
+    const formattedModules = new Set<string>();
+    branding.modules.forEach((mod) => {
+      const lower = mod.toLowerCase();
+      if (knownModulesMap[lower]) {
+        formattedModules.add(knownModulesMap[lower]);
+      } else {
+        if (mod.length > 2 && !["team", "ai"].includes(lower)) {
+          formattedModules.add(mod);
+        }
+      }
+    });
+
+    const modulesArray = Array.from(formattedModules);
+    if (modulesArray.length === 0) {
+      return "CRM, KYC, billing, and workflows";
+    }
+
+    if (modulesArray.length === 1) {
+      return modulesArray[0];
+    }
+    
+    if (modulesArray.length === 2) {
+      return `${modulesArray[0]} and ${modulesArray[1]}`;
+    }
+
+    const last = modulesArray.pop();
+    return `${modulesArray.join(", ")}, and ${last}`;
+  };
+
   return (
     <main className="grid min-h-screen w-full grid-cols-1 bg-white font-sans lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.18fr)_minmax(0,1fr)]">
       <section className="relative flex min-h-screen flex-col bg-white px-5 pb-10 pt-6 sm:px-10 lg:px-14 lg:pt-8 xl:px-20">
@@ -312,7 +364,7 @@ function LoginPageContent() {
             Sign in to your workspace
           </h1>
           <p className="mt-2 text-[15px] leading-relaxed text-slate-500">
-            Access your {companyName} workspace — CRM, KYC, billing, and workflows in one place.
+            Access your {companyName} workspace — {getModulesListString()} in one place.
           </p>
 
           {signedOutNotice ? (
