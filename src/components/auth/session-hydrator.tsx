@@ -20,10 +20,25 @@ import { apiClient } from "@/lib/api/client";
  *    already takes care of redirecting expired sessions to /login.
  *  - Pure side-effect; renders nothing.
  */
+function getCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return decodeURIComponent(parts.pop()?.split(";").shift() || "");
+  return null;
+}
+
 export function SessionHydrator() {
   useEffect(() => {
-    const state = authStore.getState();
-    if (!state.token) return;
+    let token = authStore.getState().token;
+    if (!token) {
+      const cookieToken = getCookie("rvx_access_token");
+      if (cookieToken) {
+        authStore.setState({ token: cookieToken });
+        token = cookieToken;
+      }
+    }
+    if (!token) return;
 
     let cancelled = false;
 

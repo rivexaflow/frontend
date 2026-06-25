@@ -12,7 +12,7 @@ import {
   SettingsLoading,
   SettingsSection,
 } from "@/features/workspace/components/settings/settings-ui-primitives";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Link as LinkIcon } from "lucide-react";
 
 type Props = {
   companyId: string;
@@ -74,6 +74,12 @@ export function SettingsProfileTab({ companyId }: Props) {
   const [confirmName, setConfirmName] = useState("");
   const [deleting, setDeleting] = useState(false);
 
+  // Workspace Access Link States
+  const [slug, setSlug] = useState("");
+  const [customDomain, setCustomDomain] = useState("");
+  const [moduleDomains, setModuleDomains] = useState<any[]>([]);
+  const [copiedLink, setCopiedLink] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -92,6 +98,8 @@ export function SettingsProfileTab({ companyId }: Props) {
         const { data } = await apiClient.get(`/company/${companyId}`);
         if (data.success && data.data) {
           const c = data.data;
+          setSlug(c.slug || "");
+          setCustomDomain(c.customDomain || "");
           const configObj = c.themeConfig && typeof c.themeConfig === "object"
             ? (c.themeConfig as Record<string, unknown>)
             : {};
@@ -107,6 +115,15 @@ export function SettingsProfileTab({ companyId }: Props) {
             defaultCurrency: c.defaultCurrency || "INR",
             timezone: (configObj.timezone as string) || "IST",
           });
+        }
+
+        try {
+          const domainsRes = await apiClient.get(`/company/${companyId}/custom-domains`);
+          if (domainsRes.data.success) {
+            setModuleDomains(domainsRes.data.data || []);
+          }
+        } catch (domainErr) {
+          console.error("Failed to load module domains:", domainErr);
         }
       } catch (err: unknown) {
         const errorMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || (err as Error).message || "Failed to load company profile.";
@@ -321,6 +338,105 @@ export function SettingsProfileTab({ companyId }: Props) {
             </button>
           </div>
         </form>
+      </SettingsSection>
+
+      <SettingsSection
+        title="Workspace access links"
+        description="Copy and share these URLs to let your team members log in directly to your white-labeled workspace."
+        icon={LinkIcon}
+      >
+        <div className="max-w-2xl space-y-4">
+          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/50 p-4 dark:border-slate-800 space-y-4">
+            <div>
+              <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Primary Login URL</span>
+              <p className="text-[11px] text-slate-400 mt-0.5">Use this unified portal to access CRM, HRM, and KYC in one place.</p>
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={(() => {
+                    if (typeof window === "undefined") return "";
+                    const host = window.location.host;
+                    if (host.startsWith("localhost") || host.startsWith("127.0.0.1")) {
+                      return `${window.location.protocol}//${slug}.${host}/login`;
+                    }
+                    if (customDomain) {
+                      return `${window.location.protocol}//${customDomain}/login`;
+                    }
+                    const base = host.includes("rivexaflow.in") ? "rivexaflow.in" : "rivexaflow.com";
+                    return `https://${slug}.${base}/login`;
+                  })()}
+                  className={cn(crm.input, "flex-1 bg-slate-100 font-mono text-xs select-all")}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const url = (() => {
+                      if (typeof window === "undefined") return "";
+                      const host = window.location.host;
+                      if (host.startsWith("localhost") || host.startsWith("127.0.0.1")) {
+                        return `${window.location.protocol}//${slug}.${host}/login`;
+                      }
+                      if (customDomain) {
+                        return `${window.location.protocol}//${customDomain}/login`;
+                      }
+                      const base = host.includes("rivexaflow.in") ? "rivexaflow.in" : "rivexaflow.com";
+                      return `https://${slug}.${base}/login`;
+                    })();
+                    navigator.clipboard.writeText(url);
+                    setCopiedLink(url);
+                    setTimeout(() => setCopiedLink(null), 2000);
+                  }}
+                  className={cn(crm.btnSecondary, "shrink-0 py-1.5 px-3.5 text-xs font-bold")}
+                >
+                  {copiedLink === (() => {
+                    if (typeof window === "undefined") return "";
+                    const host = window.location.host;
+                    if (host.startsWith("localhost") || host.startsWith("127.0.0.1")) {
+                      return `${window.location.protocol}//${slug}.${host}/login`;
+                    }
+                    if (customDomain) {
+                      return `${window.location.protocol}//${customDomain}/login`;
+                    }
+                    const base = host.includes("rivexaflow.in") ? "rivexaflow.in" : "rivexaflow.com";
+                    return `https://${slug}.${base}/login`;
+                  })() ? "Copied!" : "Copy"}
+                </button>
+              </div>
+            </div>
+
+            {moduleDomains.map((d) => {
+              const url = `${window.location.protocol}//${d.domain}/login`;
+              return (
+                <div key={d.id} className="border-t border-slate-200/60 dark:border-slate-800/80 pt-4">
+                  <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    {d.module === "ALL" ? "Unified Custom Portal" : `${d.module} Portal`} Login URL
+                  </span>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Custom domain mapping dedicated for this module scope.</p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={url}
+                      className={cn(crm.input, "flex-1 bg-slate-100 font-mono text-xs select-all")}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(url);
+                        setCopiedLink(url);
+                        setTimeout(() => setCopiedLink(null), 2000);
+                      }}
+                      className={cn(crm.btnSecondary, "shrink-0 py-1.5 px-3.5 text-xs font-bold")}
+                    >
+                      {copiedLink === url ? "Copied!" : "Copy"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </SettingsSection>
 
       <SettingsSection
