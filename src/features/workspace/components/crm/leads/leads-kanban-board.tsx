@@ -41,6 +41,14 @@ const stageAccent: Record<LeadBoardStage["tone"], string> = {
   rose: "border-t-rose-500",
 };
 
+const stageHeaderTone: Record<LeadBoardStage["tone"], string> = {
+  blue: "bg-gradient-to-r from-blue-50/60 to-white text-blue-900 border-b-blue-100 dark:from-blue-950/40 dark:to-slate-900/80 dark:text-blue-200 dark:border-b-blue-950/40",
+  amber: "bg-gradient-to-r from-amber-50/70 to-white text-amber-900 border-b-amber-100 dark:from-amber-950/40 dark:to-slate-900/80 dark:text-amber-200 dark:border-b-amber-950/40",
+  emerald: "bg-gradient-to-r from-emerald-50/70 to-white text-emerald-900 border-b-emerald-100 dark:from-emerald-950/40 dark:to-slate-900/80 dark:text-emerald-200 dark:border-b-emerald-950/40",
+  slate: "bg-gradient-to-r from-slate-50/70 to-white text-slate-900 border-b-slate-100 dark:from-slate-800/40 dark:to-slate-900/80 dark:text-slate-200 dark:border-b-slate-850/40",
+  rose: "bg-gradient-to-r from-rose-50/70 to-white text-rose-900 border-b-rose-100 dark:from-rose-950/40 dark:to-slate-900/80 dark:text-rose-200 dark:border-b-rose-950/40",
+};
+
 function emptyLeadsByStage(stages: LeadBoardStage[]): Record<string, LeadRecord[]> {
   const map: Record<string, LeadRecord[]> = {};
   for (const stage of stages) {
@@ -119,20 +127,26 @@ function KanbanColumn({
         highlighted && "ring-2 ring-[#2277FF]/40 ring-offset-2",
       )}
     >
-      <div className="flex items-center justify-between gap-2 border-b border-slate-200/70 bg-white/80 px-3.5 py-3 dark:border-slate-800 dark:bg-slate-900/80">
+      <div className={cn(
+        "flex items-center justify-between gap-2 border-b px-3.5 py-3 rounded-t-xl",
+        stageHeaderTone[stage.tone]
+      )}>
         <div className="min-w-0">
-          <h3 className="truncate text-[13px] font-bold text-slate-900 dark:text-white">{stage.name}</h3>
+          <h3 className="truncate text-[13px] font-extrabold leading-tight">{stage.name}</h3>
           {atRisk > 0 ? (
-            <p className="mt-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400">
-              {atRisk} need follow-up
+            <p className="mt-0.5 text-[10px] font-bold text-amber-850 dark:text-amber-300">
+              ⚠️ {atRisk} need follow-up
             </p>
           ) : (
-            <p className="mt-0.5 text-[10px] text-slate-500">
+            <p className="mt-0.5 text-[10px] opacity-75">
               {leads.length === 1 ? "1 lead" : `${leads.length} leads`}
             </p>
           )}
         </div>
-        <span className="inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-md bg-[#191970] px-1.5 text-[10px] font-bold tabular-nums text-white">
+        <span className={cn(
+          "inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-md px-1.5 text-[10.5px] font-extrabold tabular-nums text-white shadow-sm",
+          stage.tone === "blue" ? "bg-blue-650" : stage.tone === "amber" ? "bg-amber-650" : stage.tone === "emerald" ? "bg-emerald-650" : stage.tone === "rose" ? "bg-rose-650" : "bg-slate-650"
+        )}>
           {leads.length}
         </span>
       </div>

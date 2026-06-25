@@ -40,16 +40,16 @@ function StatCell({
   tooltip: string;
 }) {
   const toneClass = {
-    brand: "text-[#191970] bg-[#191970]/[0.07]",
-    rose: "text-rose-600 bg-rose-50",
-    sky: "text-sky-700 bg-sky-50",
+    brand: "text-[#191970] bg-[#191970]/[0.07] border-transparent dark:text-blue-300 dark:bg-blue-950/30",
+    rose: "text-rose-700 bg-rose-50 border-rose-100 dark:bg-rose-950/40 dark:text-rose-350 dark:border-rose-900/30 animate-pulse border",
+    sky: "text-sky-700 bg-sky-50 border-transparent dark:text-sky-300 dark:bg-sky-950/30",
   }[tone];
 
   return (
     <CrmTooltip label={tooltip}>
       <span
         className={cn(
-          "inline-flex min-w-0 flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold tabular-nums",
+          "inline-flex min-w-0 flex-1 items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-[11px] font-bold tabular-nums transition-all duration-200",
           toneClass,
         )}
       >
@@ -60,6 +60,14 @@ function StatCell({
   );
 }
 
+const scoreGlow: Record<LeadRecord["scoreBand"], string> = {
+  A1: "hover:shadow-emerald-500/10 hover:shadow-lg hover:border-emerald-500/30",
+  A2: "hover:shadow-blue-500/10 hover:shadow-lg hover:border-blue-500/30",
+  B1: "hover:shadow-amber-500/10 hover:shadow-lg hover:border-amber-500/30",
+  B2: "hover:shadow-slate-500/10 hover:shadow-md hover:border-slate-500/30",
+  C: "hover:shadow-slate-400/5 hover:shadow-sm",
+};
+
 export function LeadKanbanCard({ lead, isDragging, onSelect }: Props) {
   const bandMeta = SCORE_BAND_META[lead.scoreBand];
   const slaAlerts = lead.slaStatus === "on_track" ? 0 : 1;
@@ -68,9 +76,10 @@ export function LeadKanbanCard({ lead, isDragging, onSelect }: Props) {
   return (
     <article
       className={cn(
-        "group/card rounded-xl border border-slate-200/90 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:border-[#191970]/20 hover:shadow-md dark:border-slate-700 dark:bg-slate-900",
-        isDragging && "rotate-[0.5deg] shadow-lg ring-2 ring-[#2277FF]/30",
-        lead.scoreBand === "A1" && "border-l-[3px] border-l-[#2277FF]",
+        "group/card rounded-xl border border-slate-200/90 bg-white shadow-[0_1px_2.5px_rgba(15,23,42,0.05)] transition-all duration-300 ease-out hover:-translate-y-[3.5px] dark:border-slate-700 dark:bg-slate-900",
+        scoreGlow[lead.scoreBand],
+        isDragging && "rotate-[0.5deg] shadow-xl ring-2 ring-[#2277FF]/30 scale-[1.015]",
+        lead.scoreBand === "A1" && "border-l-[3.5px] border-l-[#2277FF]",
       )}
     >
       <div className="p-3">

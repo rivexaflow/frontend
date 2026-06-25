@@ -43,6 +43,7 @@ export function CrmLeadsView() {
   const [boardStages, setBoardStages] = useState<LeadBoardStage[]>(LEAD_BOARD_STAGES);
   const [filters, setFilters] = useState<LeadsFilters>(EMPTY_FILTERS);
   const [viewMode, setViewMode] = useState<CrmViewMode>("board");
+  const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null);
   const [leadModalOpen, setLeadModalOpen] = useState(false);
   const [stageModalOpen, setStageModalOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<LeadRecord | null>(null);
@@ -55,6 +56,13 @@ export function CrmLeadsView() {
   const searchableFields = workspaceTopbarStore((s) => s.searchableFields);
   const advancedFilters = workspaceTopbarStore((s) => s.advancedFilters);
   const advancedFiltersActive = workspaceTopbarStore((s) => s.advancedFiltersActive);
+
+  const visibleStages = useMemo(() => {
+    if (!selectedPhaseId || viewMode !== "board") return boardStages;
+    const phase = LEAD_PIPELINE_PHASES.find((p) => p.id === selectedPhaseId);
+    if (!phase) return boardStages;
+    return boardStages.filter((s) => phase.stageIds.includes(s.id));
+  }, [boardStages, selectedPhaseId, viewMode]);
 
   const combinedQuery = [quickSearch, filters.query].filter(Boolean).join(" ").trim();
   const { effectiveQuery } = useDebouncedSearch(combinedQuery, { minLength: 0, debounceMs: 250 });
@@ -195,13 +203,15 @@ export function CrmLeadsView() {
                 leads={filtered}
                 activeStageId={highlightStageId}
                 onStageSelect={setHighlightStageId}
+                selectedPhaseId={selectedPhaseId}
+                onPhaseSelect={setSelectedPhaseId}
               />
             ) : null}
 
             <div className="p-3 md:p-4 lg:p-5">
               {viewMode === "board" ? (
                 <LeadsKanbanBoard
-                  stages={boardStages}
+                  stages={visibleStages}
                   leads={filtered}
                   highlightStageId={highlightStageId}
                   onChange={async (next) => {
