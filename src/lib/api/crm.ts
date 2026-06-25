@@ -47,7 +47,7 @@ export function normalizeLead(raw: any): LeadRecord {
     fitScore,
     engagementScore,
     scoreBand,
-    status: (raw.stage || "new") as LeadStatus,
+    status: (raw.stageId || raw.stage || "new") as LeadStatus,
     lifecycle: custom.lifecycle || "lead",
     owner: raw.assignedTo || "Unassigned",
     slaStatus: custom.slaStatus || "on_track",
@@ -56,16 +56,17 @@ export function normalizeLead(raw: any): LeadRecord {
     lastActivity: raw.notes || "Created",
     updatedAt: raw.updatedAt ? new Date(raw.updatedAt).toLocaleDateString() : "Just now",
     touchCount: typeof custom.touchCount === "number" ? custom.touchCount : 0,
-    boardStage: raw.stage || "new",
+    boardStage: raw.stageId || raw.stage || "new",
   };
 }
 
-export async function fetchCrmLeads(query: { search?: string; stage?: string } = {}): Promise<LeadRecord[]> {
+export async function fetchCrmLeads(query: { search?: string; stage?: string; limit?: number } = {}): Promise<LeadRecord[]> {
   try {
     const { data } = await apiClient.get<any>(endpoints.crm.leads, {
       params: {
         search: query.search || undefined,
         stage: query.stage || undefined,
+        limit: query.limit || 1000,
       },
     });
     assertApiSuccess(data);
@@ -161,5 +162,67 @@ export async function bulkUpdateCrmLeadsStage(leadIds: string[], stage: string):
     return typeof result?.updated === "number" ? result.updated : leadIds.length;
   } catch (err) {
     throw toApiError(err, "Could not update leads stage in bulk.");
+  }
+}
+
+export interface CrmStage {
+  id: string;
+  name: string;
+  color?: string | null;
+  position: number;
+  pipelineId: string;
+}
+
+export interface CrmPipeline {
+  id: string;
+  name: string;
+  companyId: string;
+  stages: CrmStage[];
+}
+
+export async function fetchCrmPipelines(): Promise<CrmPipeline[]> {
+  try {
+    const { data } = await apiClient.get<any>(endpoints.crm.pipelines);
+    assertApiSuccess(data);
+    return unwrapApiData(data) || [];
+  } catch (err) {
+    if (useDummy()) return [];
+    throw toApiError(err, "Could not load pipelines.");
+  }
+}
+
+export async function createCrmStage(
+  pipelineId: string,
+  payload: { name: string; color?: string; position?: number }
+): Promise<CrmStage> {
+  try {
+    const { data } = await apiClient.post<any>(endpoints.crm.stages(pipelineId), payload);
+    assertApiSuccess(data);
+    return unwrapApiData(data);
+  } catch (err) {
+    throw toApiError(err, "Could not create stage.");
+  }
+}
+
+export async function updateCrmStage(
+  pipelineId: string,
+  stageId: string,
+  payload: { name?: string; color?: string; position?: number }
+): Promise<CrmStage> {
+  try {
+    const { data } = await apiClient.put<any>(endpoints.crm.stage(pipelineId, stageId), payload);
+    assertApiSuccess(data);
+    return unwrapApiData(data);
+  } catch (err) {
+    throw toApiError(err, "Could not update stage.");
+  }
+}
+
+export async function deleteCrmStage(pipelineId: string, stageId: string): Promise<void> {
+  try {
+    const { data } = await apiClient.delete<any>(endpoints.crm.stage(pipelineId, stageId));
+    assertApiSuccess(data);
+  } catch (err) {
+    throw toApiError(err, "Could not delete stage.");
   }
 }

@@ -18,11 +18,11 @@ import { LeadsPipelineHierarchy } from "@/features/workspace/components/crm/lead
 import { LeadsInboxPanel } from "@/features/workspace/components/crm/leads/panels/leads-inbox-panel";
 import { useDebouncedSearch } from "@/features/workspace/hooks/use-debounced-search";
 import { useHrCompanyId } from "@/features/workspace/hooks/use-hr-company-id";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { matchesLeadAdvancedFilters, matchesLeadQuickSearch } from "@/lib/workspace/lead-topbar-filters";
 import { MISSING_COMPANY_CONTEXT_MESSAGE } from "@/lib/workspace/company-context";
 import { workspaceTopbarStore } from "@/stores/workspace-topbar.store";
 import {
-  LEAD_BOARD_STAGES,
   LEAD_PIPELINE_PHASES,
   type LeadBoardStage,
   type LeadRecord,
@@ -32,15 +32,45 @@ import {
   fetchCrmLeads,
   createCrmLead,
   updateCrmLead,
+  fetchCrmPipelines,
+  createCrmStage,
+  updateCrmStage,
+  deleteCrmStage,
+  type CrmPipeline,
 } from "@/lib/api/crm";
 
 const EMPTY_FILTERS: LeadsFilters = { query: "" };
 
+function mapDbStageToBoardStage(stage: any): LeadBoardStage {
+  let tone: LeadBoardStage["tone"] = "slate";
+  const color = stage.color?.toLowerCase() || "";
+  if (color.includes("blue") || color === "#2277ff") tone = "blue";
+  else if (color.includes("amber") || color === "#f59e0b") tone = "amber";
+  else if (color.includes("emerald") || color === "#10b981") tone = "emerald";
+  else if (color.includes("rose") || color === "#ef4444") tone = "rose";
+  else if (color.includes("slate")) tone = "slate";
+  else if (stage.position % 5 === 0) tone = "blue";
+  else if (stage.position % 5 === 1) tone = "amber";
+  else if (stage.position % 5 === 2) tone = "emerald";
+  else if (stage.position % 5 === 3) tone = "rose";
+  return {
+    id: stage.id,
+    name: stage.name,
+    tone,
+  };
+}
+
 export function CrmLeadsView() {
   const router = useRouter();
   const companyId = useHrCompanyId();
+  const currentUser = useCurrentUser();
+  
+  const isOwner = currentUser?.profileRole === "owner";
+
   const [leads, setLeads] = useState<LeadRecord[]>([]);
-  const [boardStages, setBoardStages] = useState<LeadBoardStage[]>(LEAD_BOARD_STAGES);
+  const [pipelines, setPipelines] = useState<CrmPipeline[]>([]);
+  const [activePipeline, setActivePipeline] = useState<CrmPipeline | null>(null);
+  const [boardStages, setBoardStages] = useState<LeadBoardStage[]>([]);
   const [filters, setFilters] = useState<LeadsFilters>(EMPTY_FILTERS);
   const [viewMode, setViewMode] = useState<CrmViewMode>("board");
   const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null);
@@ -67,17 +97,31 @@ export function CrmLeadsView() {
   const combinedQuery = [quickSearch, filters.query].filter(Boolean).join(" ").trim();
   const { effectiveQuery } = useDebouncedSearch(combinedQuery, { minLength: 0, debounceMs: 250 });
 
-  const loadLeads = useCallback(async () => {
+  const loadPipelinesAndLeads = useCallback(async () => {
     if (!companyId) {
       setLoading(false);
       return;
     }
     setError(null);
     try {
-      const data = await fetchCrmLeads({ search: effectiveQuery || undefined });
-      setLeads(data);
+      // 1. Fetch Pipelines
+      const pipelinesData = await fetchCrmPipelines();
+      setPipelines(pipelinesData);
+      
+      const activePipe = pipelinesData[0] || null;
+      setActivePipeline(activePipe);
+      
+      let mappedStages: LeadBoardStage[] = [];
+      if (activePipe && activePipe.stages) {
+        mappedStages = activePipe.stages.map(mapDbStageToBoardStage);
+      }
+      setBoardStages(mappedStages);
+
+      // 2. Fetch Leads
+      const leadsData = await fetchCrmLeads({ search: effectiveQuery || undefined });
+      setLeads(leadsData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch CRM leads.");
+      setError(err instanceof Error ? err.message : "Failed to fetch CRM data.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -85,8 +129,8 @@ export function CrmLeadsView() {
   }, [companyId, effectiveQuery]);
 
   useEffect(() => {
-    loadLeads();
-  }, [loadLeads]);
+    loadPipelinesAndLeads();
+  }, [loadPipelinesAndLeads]);
 
   const filtered = useMemo(() => {
     const q = effectiveQuery.trim().toLowerCase();
@@ -123,13 +167,13 @@ export function CrmLeadsView() {
     setSelectedLead((sel) => (sel?.id === id ? { ...sel, status, boardStage: status } : sel));
 
     try {
-      await updateCrmLead(id, { status });
+      await updateCrmLead(id, { status, stageId: status });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update lead status.");
       // Rollback to database state
-      loadLeads();
+      loadPipelinesAndLeads();
     }
-  }, [loadLeads]);
+  }, [loadPipelinesAndLeads]);
 
   const handleCreateLead = async (leadValues: LeadRecord) => {
     setError(null);
@@ -153,12 +197,52 @@ export function CrmLeadsView() {
 
   const handleRefresh = () => {
     setRefreshing(true);
-    loadLeads();
+    loadPipelinesAndLeads();
   };
 
-  const handleCreateStage = (stage: LeadBoardStage) => {
-    setBoardStages((prev) => [...prev, stage]);
-    setHighlightStageId(stage.id);
+  const handleCreateStage = async (stage: LeadBoardStage) => {
+    if (!activePipeline) return;
+    setError(null);
+    try {
+      let color = "#4F46E5";
+      if (stage.tone === "blue") color = "#2277FF";
+      else if (stage.tone === "amber") color = "#F59E0B";
+      else if (stage.tone === "emerald") color = "#10B981";
+      else if (stage.tone === "rose") color = "#EF4444";
+      else if (stage.tone === "slate") color = "#64748B";
+
+      await createCrmStage(activePipeline.id, {
+        name: stage.name,
+        color,
+        position: boardStages.length,
+      });
+      await loadPipelinesAndLeads();
+      setHighlightStageId(stage.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create stage.");
+    }
+  };
+
+  const handleRenameStage = async (stageId: string, newName: string) => {
+    if (!activePipeline) return;
+    setError(null);
+    try {
+      await updateCrmStage(activePipeline.id, stageId, { name: newName });
+      await loadPipelinesAndLeads();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to rename stage.");
+    }
+  };
+
+  const handleDeleteStage = async (stageId: string) => {
+    if (!activePipeline) return;
+    setError(null);
+    try {
+      await deleteCrmStage(activePipeline.id, stageId);
+      await loadPipelinesAndLeads();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete stage.");
+    }
   };
 
   if (!companyId) {
@@ -214,6 +298,9 @@ export function CrmLeadsView() {
                   stages={visibleStages}
                   leads={filtered}
                   highlightStageId={highlightStageId}
+                  isOwner={isOwner}
+                  onRenameStage={handleRenameStage}
+                  onDeleteStage={handleDeleteStage}
                   onChange={async (next) => {
                     // Find which lead changed status
                     const changedLead = next.find((newLead) => {
@@ -230,10 +317,13 @@ export function CrmLeadsView() {
 
                     if (changedLead) {
                       try {
-                        await updateCrmLead(changedLead.id, { status: changedLead.status });
+                        await updateCrmLead(changedLead.id, {
+                          status: changedLead.status,
+                          stageId: changedLead.boardStage,
+                        });
                       } catch (err) {
                         setError(err instanceof Error ? err.message : "Failed to update lead stage.");
-                        loadLeads();
+                        loadPipelinesAndLeads();
                       }
                     }
                   }}

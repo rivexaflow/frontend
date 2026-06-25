@@ -22,6 +22,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 import { LeadKanbanCard } from "@/features/workspace/components/crm/leads/lead-kanban-card";
+import { Check, MoreVertical, X } from "lucide-react";
 import {
   LEAD_BOARD_STAGES,
   resolveLeadBoardStageId,
@@ -64,6 +65,9 @@ type Props = {
   onSelect: (lead: LeadRecord) => void;
   searchQuery?: string;
   highlightStageId?: string | null;
+  isOwner?: boolean;
+  onRenameStage?: (stageId: string, name: string) => void;
+  onDeleteStage?: (stageId: string) => void;
 };
 
 function SortableLeadCard({
@@ -100,17 +104,40 @@ function KanbanColumn({
   onSelect,
   highlighted,
   columnRef,
+  isOwner,
+  onRenameStage,
+  onDeleteStage,
 }: {
   stage: LeadBoardStage;
   leads: LeadRecord[];
   onSelect: (lead: LeadRecord) => void;
   highlighted?: boolean;
   columnRef?: (node: HTMLDivElement | null) => void;
+  isOwner?: boolean;
+  onRenameStage?: (stageId: string, name: string) => void;
+  onDeleteStage?: (stageId: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: stage.id,
     data: { type: "column", stageId: stage.id },
   });
+
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(stage.name);
+
+  useEffect(() => {
+    setEditName(stage.name);
+  }, [stage.name]);
+
+  const handleSaveRename = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = editName.trim();
+    if (trimmed && trimmed !== stage.name) {
+      onRenameStage?.(stage.id, trimmed);
+    }
+    setIsEditing(false);
+  };
 
   const atRisk = leads.filter((l) => l.slaStatus !== "on_track").length;
 
@@ -121,7 +148,7 @@ function KanbanColumn({
         columnRef?.(node);
       }}
       className={cn(
-        "flex w-[min(100%,288px)] shrink-0 flex-col rounded-xl border border-slate-200/80 border-t-[3px] bg-slate-50/40 dark:border-slate-800 dark:bg-slate-950/30",
+        "flex w-[min(100%,288px)] h-[600px] shrink-0 flex-col rounded-xl border border-slate-200/80 border-t-[3px] bg-slate-50/40 dark:border-slate-800 dark:bg-slate-950/30",
         stageAccent[stage.tone],
         isOver && "ring-2 ring-[#2277FF]/25 ring-offset-1",
         highlighted && "ring-2 ring-[#2277FF]/40 ring-offset-2",
@@ -131,28 +158,105 @@ function KanbanColumn({
         "flex items-center justify-between gap-2 border-b px-3.5 py-3 rounded-t-xl",
         stageHeaderTone[stage.tone]
       )}>
-        <div className="min-w-0">
-          <h3 className="truncate text-[13px] font-extrabold leading-tight">{stage.name}</h3>
-          {atRisk > 0 ? (
-            <p className="mt-0.5 text-[10px] font-bold text-amber-850 dark:text-amber-300">
-              ⚠️ {atRisk} need follow-up
-            </p>
-          ) : (
-            <p className="mt-0.5 text-[10px] opacity-75">
-              {leads.length === 1 ? "1 lead" : `${leads.length} leads`}
-            </p>
-          )}
-        </div>
-        <span className={cn(
-          "inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-md px-1.5 text-[10.5px] font-extrabold tabular-nums text-white shadow-sm",
-          stage.tone === "blue" ? "bg-blue-650" : stage.tone === "amber" ? "bg-amber-650" : stage.tone === "emerald" ? "bg-emerald-650" : stage.tone === "rose" ? "bg-rose-650" : "bg-slate-650"
-        )}>
-          {leads.length}
-        </span>
+        {isEditing ? (
+          <form onSubmit={handleSaveRename} className="flex items-center gap-1.5 w-full bg-white/95 dark:bg-slate-900/95 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
+            <input
+              autoFocus
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              className="flex-1 min-w-0 bg-transparent text-xs font-semibold text-slate-850 outline-none dark:text-white"
+            />
+            <button
+              type="submit"
+              className="rounded p-0.5 text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-950/40"
+            >
+              <Check className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsEditing(false);
+                setEditName(stage.name);
+              }}
+              className="rounded p-0.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </form>
+        ) : (
+          <>
+            <div className="min-w-0">
+              <h3 className="truncate text-[13px] font-extrabold leading-tight">{stage.name}</h3>
+              {atRisk > 0 ? (
+                <p className="mt-0.5 text-[10px] font-bold text-amber-850 dark:text-amber-300">
+                  ⚠️ {atRisk} need follow-up
+                </p>
+              ) : (
+                <p className="mt-0.5 text-[10px] opacity-75">
+                  {leads.length === 1 ? "1 lead" : `${leads.length} leads`}
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className={cn(
+                "inline-flex h-6 min-w-6 items-center justify-center rounded-md px-1.5 text-[10.5px] font-extrabold tabular-nums text-white shadow-sm",
+                stage.tone === "blue" ? "bg-blue-650" : stage.tone === "amber" ? "bg-amber-650" : stage.tone === "emerald" ? "bg-emerald-650" : stage.tone === "rose" ? "bg-rose-650" : "bg-slate-650"
+              )}>
+                {leads.length}
+              </span>
+              {isOwner && (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
+                  >
+                    <MoreVertical className="h-3.5 w-3.5" />
+                  </button>
+                  {isMenuOpen && (
+                    <>
+                      <button
+                        type="button"
+                        className="fixed inset-0 z-10 cursor-default bg-transparent"
+                        aria-label="Close menu"
+                        onClick={() => setIsMenuOpen(false)}
+                      />
+                      <div className="absolute right-0 top-7 z-20 w-32 rounded-lg border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-800 dark:bg-slate-900">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEditing(true);
+                            setIsMenuOpen(false);
+                          }}
+                          className="w-full rounded px-2.5 py-1.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:text-slate-250 dark:hover:bg-slate-800"
+                        >
+                          Rename Stage
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            if (confirm(`Are you sure you want to delete the stage "${stage.name}"?`)) {
+                              onDeleteStage?.(stage.id);
+                            }
+                          }}
+                          className="w-full rounded px-2.5 py-1.5 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-450 dark:hover:bg-rose-950/20"
+                        >
+                          Delete Stage
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       <SortableContext items={leads.map((l) => l.id)} strategy={verticalListSortingStrategy}>
-        <div className="flex max-h-[min(72vh,640px)] min-h-[200px] flex-col gap-2 overflow-y-auto p-2.5">
+        <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-2.5 min-h-0">
           {leads.length === 0 ? (
             <p className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-slate-200 py-10 text-center text-xs text-slate-400 dark:border-slate-700">
               Drop leads here
@@ -175,6 +279,9 @@ export function LeadsKanbanBoard({
   onSelect,
   searchQuery = "",
   highlightStageId = null,
+  isOwner = false,
+  onRenameStage,
+  onDeleteStage,
 }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const columnRefs = useRef(new Map<string, HTMLDivElement>());
@@ -311,6 +418,9 @@ export function LeadsKanbanBoard({
               if (node) columnRefs.current.set(stage.id, node);
               else columnRefs.current.delete(stage.id);
             }}
+            isOwner={isOwner}
+            onRenameStage={onRenameStage}
+            onDeleteStage={onDeleteStage}
           />
         ))}
       </div>

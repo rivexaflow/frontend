@@ -43,8 +43,34 @@ type Props = {
   onPhaseSelect?: (phaseId: string | null) => void;
 };
 
-function countForPhase(phase: LeadPipelinePhase, counts: Map<string, number>): number {
-  return phase.stageIds.reduce((sum, id) => sum + (counts.get(id) ?? 0), 0);
+const slugMap: Record<string, string> = {
+  new_leads: "new",
+  not_intrested: "not_interested",
+  junk_leads: "not_interested",
+  not_pickup_call: "not_pickup_call",
+  intrested: "interested",
+  ready_to_open_account: "ready_to_open_account",
+  document_pending: "document_pending",
+  document_receive: "document_received",
+  document_received: "document_received",
+  account_rejected: "account_rejected",
+  move_to_activation: "move_to_activation",
+  account_activated: "move_to_activation",
+  kyc_rejected: "account_rejected",
+  kyc_accepted: "move_to_activation",
+  ucc_pending: "technical_error_kyc"
+};
+
+function countForPhase(phase: LeadPipelinePhase, stages: LeadBoardStage[], counts: Map<string, number>): number {
+  let sum = 0;
+  for (const stage of stages) {
+    const slug = stage.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+    const mappedId = slugMap[slug] || stage.id;
+    if (phase.stageIds.includes(stage.id) || phase.stageIds.includes(mappedId)) {
+      sum += counts.get(stage.id) ?? 0;
+    }
+  }
+  return sum;
 }
 
 export function LeadsPipelineHierarchy({
@@ -67,14 +93,18 @@ export function LeadsPipelineHierarchy({
     if (!selectedPhaseId) return stages;
     const phase = phases.find((p) => p.id === selectedPhaseId);
     if (!phase) return stages;
-    return stages.filter((s) => phase.stageIds.includes(s.id));
+    return stages.filter((s) => {
+      const slug = s.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+      const mappedId = slugMap[slug] || s.id;
+      return phase.stageIds.includes(s.id) || phase.stageIds.includes(mappedId);
+    });
   }, [stages, selectedPhaseId, phases]);
 
   return (
     <div className="space-y-4 border-b border-slate-100 bg-gradient-to-b from-slate-50/80 to-white px-4 py-3.5 dark:border-slate-800 dark:from-slate-950/40 dark:to-slate-900">
       <div className="flex items-stretch gap-2 overflow-x-auto pb-1.5">
         {phases.map((phase, index) => {
-          const total = countForPhase(phase, counts);
+          const total = countForPhase(phase, stages, counts);
           const isActive = selectedPhaseId === phase.id;
           return (
             <div key={phase.id} className="flex shrink-0 items-center gap-2">
