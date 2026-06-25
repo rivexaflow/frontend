@@ -71,37 +71,6 @@ export function RoleDashboard({ workspaceSlug }: { workspaceSlug: string }) {
     <div className="space-y-8">
       <DashboardHeader />
 
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-blue-100/80 bg-gradient-to-br from-blue-50 via-white to-indigo-50/60 px-6 py-5 shadow-sm dark:border-blue-900/30 dark:from-blue-950/20 dark:via-slate-900 dark:to-indigo-950/20"
-      >
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
-              {copy.title}
-            </p>
-            <p className="mt-1 max-w-2xl text-sm text-slate-600 dark:text-slate-400">{copy.subtitle}</p>
-            {modules.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {modules.map((m) => (
-                  <span
-                    key={m.id}
-                    className="rounded-full border border-white/80 bg-white/90 px-2.5 py-0.5 text-xs font-semibold text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                  >
-                    {m.label}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900/80">
-            <Calendar className="h-4 w-4 text-blue-600" />
-            Workspace · {workspaceSlug}
-          </div>
-        </div>
-      </motion.div>
-
       {navRole === "ADMIN" && <StatsGrid />}
 
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
