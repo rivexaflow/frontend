@@ -8,7 +8,6 @@ import {
   CrmPanel,
   CrmPanelBody,
   CrmPanelFooter,
-  CrmPanelHead,
   CrmPanelToolbar,
 } from "@/features/workspace/components/crm/crm-panel";
 import { crm } from "@/features/workspace/components/crm/crm-styles";
@@ -116,15 +115,8 @@ export function CrmTasksView({ mode = "all" }: Props) {
   const removeTask = (id: string) => setTasks((prev) => prev.filter((t) => t.id !== id));
 
   return (
-    <div className="pb-8">
+    <div className="pb-4">
       <CrmPageHeader
-        eyebrow="Operations · CRM"
-        title={mode === "mine" ? "My tasks" : "Lead tasks"}
-        description={
-          mode === "mine"
-            ? "Your follow-ups and actions linked to leads in the pipeline."
-            : "Team-wide task queue for lead follow-ups, calls, and next steps."
-        }
         metrics={[
           { label: "Total", value: stats.total },
           { label: "Pending", value: stats.pending },
@@ -139,11 +131,6 @@ export function CrmTasksView({ mode = "all" }: Props) {
       />
 
       <CrmPanel>
-        <CrmPanelHead
-          title={mode === "mine" ? "Your task queue" : "Global lead tasks"}
-          subtitle="Follow-ups and actions linked to leads"
-          accent
-        />
         <CrmPanelToolbar
           search={query}
           onSearchChange={setQuery}

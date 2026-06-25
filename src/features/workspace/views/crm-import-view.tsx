@@ -462,12 +462,9 @@ export function CrmImportView() {
   return (
     <div className="mx-auto max-w-7xl pb-16">
       <CrmPageHeader
-        eyebrow="Data · Management"
-        title="Data Merge"
-        description="Migrate historical company records, department structures, users, CRM leads, and custom schemas into your active workspace."
         metrics={[
           { label: "Selected workspace", value: workspaceName || "Default" },
-          { label: "Target entities", value: "5 systems" }
+          { label: "Target entities", value: "5 systems" },
         ]}
         actions={
           step > 1 ? (

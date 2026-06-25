@@ -125,11 +125,8 @@ export function CrmDealsView() {
   };
 
   return (
-    <div className="pb-8">
+    <div className="pb-4">
       <CrmPageHeader
-        eyebrow="Operations · CRM"
-        title="Deals"
-        description="Track revenue opportunities from qualification through close with weighted forecasting."
         metrics={[
           { label: "Open", value: metrics.openCount },
           { label: "Weighted", value: formatDealValue(metrics.weighted) },

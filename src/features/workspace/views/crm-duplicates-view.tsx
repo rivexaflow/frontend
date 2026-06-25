@@ -7,7 +7,6 @@ import {
   CrmPanel,
   CrmPanelBody,
   CrmPanelFooter,
-  CrmPanelHead,
   CrmPanelToolbar,
 } from "@/features/workspace/components/crm/crm-panel";
 import { CrmListSummary } from "@/features/workspace/components/crm/crm-list-summary";
@@ -75,11 +74,8 @@ export function CrmDuplicatesView() {
   ];
 
   return (
-    <div className="pb-8">
+    <div className="pb-4">
       <CrmPageHeader
-        eyebrow="Data quality · CRM"
-        title="Duplicates"
-        description="Review and merge matching records before they enter your pipeline."
         metrics={[
           { label: "Open", value: open },
           { label: "Merged", value: rows.filter((r) => r.status === "merged").length },
@@ -88,7 +84,6 @@ export function CrmDuplicatesView() {
       />
 
       <CrmPanel>
-        <CrmPanelHead title="Duplicate matches" subtitle="Resolve conflicts before records enter your pipeline" accent />
         <CrmPanelToolbar
           search={query}
           onSearchChange={setQuery}

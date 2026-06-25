@@ -38,6 +38,7 @@ import {
   deleteCrmStage,
   type CrmPipeline,
 } from "@/lib/api/crm";
+import { cn } from "@/lib/utils/cn";
 
 const EMPTY_FILTERS: LeadsFilters = { query: "" };
 
@@ -78,6 +79,7 @@ export function CrmLeadsView() {
   const [stageModalOpen, setStageModalOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<LeadRecord | null>(null);
   const [highlightStageId, setHighlightStageId] = useState<string | null>(null);
+  const [pipelinePanelOpen, setPipelinePanelOpen] = useState(true);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -254,14 +256,22 @@ export function CrmLeadsView() {
   }
 
   return (
-    <div className="pb-4">
+    <div
+      className={cn(
+        viewMode === "board" ? "flex h-[calc(100dvh-5.25rem)] min-h-0 flex-col" : "pb-4",
+      )}
+    >
       {error ? (
-        <div role="alert" className="mb-6 rounded-xl border border-rose-200/80 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+        <div role="alert" className="mb-3 shrink-0 rounded-xl border border-rose-200/80 bg-rose-50 px-4 py-3 text-sm text-rose-800">
           {error}
         </div>
       ) : null}
 
-      <CrmShell className="overflow-visible">
+      <CrmShell
+        className={cn(
+          viewMode === "board" && "flex min-h-0 flex-1 flex-col overflow-hidden",
+        )}
+      >
         <LeadsDirectoryToolbar
           filters={filters}
           onChange={setFilters}
@@ -272,29 +282,42 @@ export function CrmLeadsView() {
           onCreateStage={() => setStageModalOpen(true)}
           onRefresh={handleRefresh}
           refreshing={refreshing}
+          showPipelineToggle={viewMode === "board"}
+          pipelinePanelOpen={pipelinePanelOpen}
+          onPipelinePanelToggle={() => setPipelinePanelOpen((open) => !open)}
         />
 
-        {loading ? (
-          <div className="flex h-64 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-          </div>
-        ) : (
-          <>
-            {viewMode === "board" ? (
-              <LeadsPipelineHierarchy
-                phases={LEAD_PIPELINE_PHASES}
-                stages={boardStages}
-                leads={filtered}
-                activeStageId={highlightStageId}
-                onStageSelect={setHighlightStageId}
-                selectedPhaseId={selectedPhaseId}
-                onPhaseSelect={setSelectedPhaseId}
-              />
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          {loading ? (
+            <div className="flex flex-1 items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            </div>
+          ) : (
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            {viewMode === "board" && pipelinePanelOpen ? (
+              <div className="shrink-0">
+                <LeadsPipelineHierarchy
+                  phases={LEAD_PIPELINE_PHASES}
+                  stages={boardStages}
+                  leads={filtered}
+                  activeStageId={highlightStageId}
+                  onStageSelect={setHighlightStageId}
+                  selectedPhaseId={selectedPhaseId}
+                  onPhaseSelect={setSelectedPhaseId}
+                />
+              </div>
             ) : null}
 
-            <div className="p-3 md:p-4 lg:p-5">
+            <div
+              className={cn(
+                viewMode === "board"
+                  ? "flex min-h-0 flex-1 flex-col overflow-hidden p-3 md:p-4 lg:p-5"
+                  : "p-3 md:p-4 lg:p-5",
+              )}
+            >
               {viewMode === "board" ? (
                 <LeadsKanbanBoard
+                  className="min-h-0 flex-1"
                   stages={visibleStages}
                   leads={filtered}
                   highlightStageId={highlightStageId}
@@ -339,8 +362,9 @@ export function CrmLeadsView() {
                 />
               )}
             </div>
-          </>
-        )}
+          </div>
+          )}
+        </div>
       </CrmShell>
 
       <LeadFormModal

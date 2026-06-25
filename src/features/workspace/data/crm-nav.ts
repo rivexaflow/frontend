@@ -1,11 +1,29 @@
+import type { LucideIcon } from "lucide-react";
+import {
+  BarChart3,
+  ClipboardList,
+  Copy,
+  LayoutTemplate,
+  ListTodo,
+  Megaphone,
+  Phone,
+  PieChart,
+  Settings2,
+  Share2,
+  UserPlus,
+  Users,
+  Webhook,
+} from "lucide-react";
+
 import { workspacePaths } from "@/lib/workspace/paths";
 
-export type CrmNavLink = { type: "link"; name: string; href: string };
+export type CrmNavLink = { type: "link"; name: string; href: string; icon: LucideIcon };
 
 export type CrmNavSubGroup = {
   type: "group";
   name: string;
-  children: { name: string; href: string }[];
+  icon: LucideIcon;
+  children: { name: string; href: string; icon: LucideIcon }[];
 };
 
 export type CrmNavChild = CrmNavLink | CrmNavSubGroup;
@@ -16,30 +34,33 @@ export function isCrmNavSubGroup(item: CrmNavChild): item is CrmNavSubGroup {
 
 /** CRM sidebar structure — Report groups Lead & Deal like the reference app. */
 export const CRM_NAV_CHILDREN: CrmNavChild[] = [
-  { type: "link", name: "Leads", href: workspacePaths.leads },
-  { type: "link", name: "Deals", href: workspacePaths.deals },
-  { type: "link", name: "Tasks", href: workspacePaths.crmTasks },
-  { type: "link", name: "My tasks", href: workspacePaths.crmMyTasks },
-  { type: "link", name: "Dialer", href: workspacePaths.crmDialer },
-  { type: "link", name: "Settings", href: workspacePaths.crmSetup },
-  { type: "link", name: "WhatsApp", href: workspacePaths.crmWhatsapp },
-  { type: "link", name: "Webhooks", href: workspacePaths.crmWebhooks },
-  { type: "link", name: "Form builder", href: workspacePaths.crmLayoutBuilder },
-  { type: "link", name: "Facebook leads", href: workspacePaths.crmFacebookLeads },
-  { type: "link", name: "Duplicates", href: workspacePaths.crmDuplicates },
+  { type: "link", name: "Leads", href: workspacePaths.leads, icon: UserPlus },
+  { type: "link", name: "Deals", href: workspacePaths.deals, icon: Users },
+  { type: "link", name: "Tasks", href: workspacePaths.crmTasks, icon: ListTodo },
+  { type: "link", name: "My tasks", href: workspacePaths.crmMyTasks, icon: ClipboardList },
+  { type: "link", name: "Dialer", href: workspacePaths.crmDialer, icon: Phone },
+  { type: "link", name: "Settings", href: workspacePaths.crmSetup, icon: Settings2 },
+  { type: "link", name: "WhatsApp", href: workspacePaths.crmWhatsapp, icon: Megaphone },
+  { type: "link", name: "Webhooks", href: workspacePaths.crmWebhooks, icon: Webhook },
+  { type: "link", name: "Form builder", href: workspacePaths.crmLayoutBuilder, icon: LayoutTemplate },
+  { type: "link", name: "Facebook leads", href: workspacePaths.crmFacebookLeads, icon: Share2 },
+  { type: "link", name: "Duplicates", href: workspacePaths.crmDuplicates, icon: Copy },
   {
     type: "group",
     name: "Report",
+    icon: BarChart3,
     children: [
-      { name: "Lead", href: workspacePaths.crmLeadReports },
-      { name: "Deal", href: workspacePaths.crmDealReports },
+      { name: "Lead", href: workspacePaths.crmLeadReports, icon: BarChart3 },
+      { name: "Deal", href: workspacePaths.crmDealReports, icon: PieChart },
     ],
   },
 ];
 
 /** Flat links for command palette / search */
 export const CRM_NAV_FLAT_LINKS = CRM_NAV_CHILDREN.flatMap((item) =>
-  isCrmNavSubGroup(item) ? item.children.map((c) => ({ name: `${item.name} · ${c.name}`, href: c.href })) : [{ name: item.name, href: item.href }],
+  isCrmNavSubGroup(item)
+    ? item.children.map((c) => ({ name: `${item.name} · ${c.name}`, href: c.href }))
+    : [{ name: item.name, href: item.href }],
 );
 
 export type CrmSetupSection =

@@ -8,7 +8,6 @@ import {
   CrmPanel,
   CrmPanelBody,
   CrmPanelFooter,
-  CrmPanelHead,
   CrmPanelToolbar,
 } from "@/features/workspace/components/crm/crm-panel";
 import { CrmListSummary } from "@/features/workspace/components/crm/crm-list-summary";
@@ -95,11 +94,8 @@ export function CrmWebhooksView() {
   ];
 
   return (
-    <div className="pb-8">
+    <div className="pb-4">
       <CrmPageHeader
-        eyebrow="Integrations · CRM"
-        title="Webhook data"
-        description="Inbound payloads from connected endpoints — review conversion status and assignment."
         metrics={[
           { label: "Logs", value: rows.length },
           { label: "Converted", value: converted },
@@ -114,7 +110,6 @@ export function CrmWebhooksView() {
       />
 
       <CrmPanel>
-        <CrmPanelHead title="Webhook logs" subtitle="All inbound payloads from connected endpoints" accent />
         <CrmPanelToolbar
           search={query}
           onSearchChange={setQuery}

@@ -1,7 +1,11 @@
-import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
-import { workspacePaths } from "@/lib/workspace/paths";
+import { HrmAttendanceNotClockedInView } from "@/features/workspace/views/hrm-attendance-not-clocked-in-view";
 
 export default function HrmAttendanceNotClockedInPage() {
-  redirect(`${workspacePaths.hrmAttendance}?tab=not-clocked-in`);
+  return (
+    <Suspense>
+      <HrmAttendanceNotClockedInView />
+    </Suspense>
+  );
 }

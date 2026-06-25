@@ -1,7 +1,11 @@
-import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
-import { workspacePaths } from "@/lib/workspace/paths";
+import { HrmAttendanceRosterView } from "@/features/workspace/views/hrm-attendance-roster-view";
 
 export default function HrmAttendanceRosterPage() {
-  redirect(`${workspacePaths.hrmAttendance}?tab=roster`);
+  return (
+    <Suspense>
+      <HrmAttendanceRosterView />
+    </Suspense>
+  );
 }

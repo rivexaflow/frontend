@@ -77,11 +77,8 @@ export function CrmSetupView() {
   const removeDealStage = (id: string) => setDealStages((prev) => prev.filter((s) => s.id !== id));
 
   return (
-    <div className="pb-8">
+    <div className="pb-4">
       <CrmPageHeader
-        eyebrow="CRM · Settings"
-        title="Settings"
-        description="Configure stages, picklists, and workspace defaults that power leads, deals, and automation."
         metrics={[
           { label: "Lead stages", value: leadStages.length },
           { label: "Deal stages", value: dealStages.length },

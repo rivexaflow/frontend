@@ -20,6 +20,19 @@ export const ATTENDANCE_TABS: { id: AttendanceTabId; label: string }[] = [
   { id: "me", label: "My attendance" },
 ];
 
+const TAB_PATHS: Record<AttendanceTabId, string> = {
+  all: workspacePaths.hrmAttendanceAll,
+  "on-break": workspacePaths.hrmAttendanceOnBreak,
+  "not-clocked-in": workspacePaths.hrmAttendanceNotClockedIn,
+  regularization: workspacePaths.hrmAttendanceRegularization,
+  roster: workspacePaths.hrmAttendanceRoster,
+  me: workspacePaths.hrmAttendanceMe,
+};
+
+const PATH_TO_TAB = Object.fromEntries(
+  Object.entries(TAB_PATHS).map(([tab, href]) => [href, tab]),
+) as Record<string, AttendanceTabId>;
+
 export function parseAttendanceTab(value: string | null | undefined): AttendanceTabId {
   if (value && ATTENDANCE_TAB_IDS.includes(value as AttendanceTabId)) {
     return value as AttendanceTabId;
@@ -28,6 +41,25 @@ export function parseAttendanceTab(value: string | null | undefined): Attendance
 }
 
 export function attendanceTabPath(tab: AttendanceTabId): string {
-  if (tab === "all") return workspacePaths.hrmAttendance;
-  return `${workspacePaths.hrmAttendance}?tab=${tab}`;
+  return TAB_PATHS[tab];
+}
+
+/** @deprecated Use attendanceTabPath */
+export function attendanceTabHref(tab: AttendanceTabId): string {
+  return attendanceTabPath(tab);
+}
+
+export function attendanceTabFromPathname(pathname: string): AttendanceTabId | null {
+  return PATH_TO_TAB[pathname] ?? null;
+}
+
+export function isAttendanceDashboardPath(pathname: string): boolean {
+  return pathname === workspacePaths.hrmAttendance;
+}
+
+export function isAttendanceNavChildActive(pathname: string, href: string): boolean {
+  if (href === workspacePaths.hrmAttendance) {
+    return pathname === workspacePaths.hrmAttendance;
+  }
+  return pathname === href || pathname.startsWith(`${href}/`);
 }

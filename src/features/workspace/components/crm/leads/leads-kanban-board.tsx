@@ -68,6 +68,7 @@ type Props = {
   isOwner?: boolean;
   onRenameStage?: (stageId: string, name: string) => void;
   onDeleteStage?: (stageId: string) => void;
+  className?: string;
 };
 
 function SortableLeadCard({
@@ -148,14 +149,14 @@ function KanbanColumn({
         columnRef?.(node);
       }}
       className={cn(
-        "flex w-[min(100%,288px)] h-[600px] shrink-0 flex-col rounded-xl border border-slate-200/80 border-t-[3px] bg-slate-50/40 dark:border-slate-800 dark:bg-slate-950/30",
+        "flex w-[min(100%,288px)] h-full min-h-0 shrink-0 flex-col rounded-xl border border-slate-200/80 border-t-[3px] bg-slate-50/40 dark:border-slate-800 dark:bg-slate-950/30",
         stageAccent[stage.tone],
         isOver && "ring-2 ring-[#2277FF]/25 ring-offset-1",
         highlighted && "ring-2 ring-[#2277FF]/40 ring-offset-2",
       )}
     >
       <div className={cn(
-        "flex items-center justify-between gap-2 border-b px-3.5 py-3 rounded-t-xl",
+        "flex shrink-0 items-center justify-between gap-2 border-b px-3.5 py-3 rounded-t-xl",
         stageHeaderTone[stage.tone]
       )}>
         {isEditing ? (
@@ -256,9 +257,9 @@ function KanbanColumn({
       </div>
 
       <SortableContext items={leads.map((l) => l.id)} strategy={verticalListSortingStrategy}>
-        <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-2.5 min-h-0">
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-y-contain p-2.5">
           {leads.length === 0 ? (
-            <p className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-slate-200 py-10 text-center text-xs text-slate-400 dark:border-slate-700">
+            <p className="flex h-full min-h-[200px] items-center justify-center rounded-lg border border-dashed border-slate-200 text-center text-xs text-slate-400 dark:border-slate-700">
               Drop leads here
             </p>
           ) : (
@@ -282,6 +283,7 @@ export function LeadsKanbanBoard({
   isOwner = false,
   onRenameStage,
   onDeleteStage,
+  className,
 }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const columnRefs = useRef(new Map<string, HTMLDivElement>());
@@ -399,14 +401,15 @@ export function LeadsKanbanBoard({
   };
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCorners}
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
+    <div className={cn("flex h-full min-h-0 flex-col", className)}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex h-full min-h-0 items-stretch gap-3 overflow-x-auto overflow-y-hidden px-1 pb-1">
         {stages.map((stage) => (
           <KanbanColumn
             key={stage.id}
@@ -427,6 +430,7 @@ export function LeadsKanbanBoard({
       <DragOverlay dropAnimation={{ duration: 180, easing: "ease" }}>
         {activeLead ? <LeadKanbanCard lead={activeLead} isDragging onSelect={() => {}} /> : null}
       </DragOverlay>
-    </DndContext>
+      </DndContext>
+    </div>
   );
 }

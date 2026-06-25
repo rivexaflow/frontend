@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, GitBranchPlus, RefreshCw, Search, UserPlus } from "lucide-react";
+import { ChevronDown, ChevronUp, Download, GitBranchPlus, Layers, RefreshCw, Search, UserPlus } from "lucide-react";
 
 import { crm } from "@/features/workspace/components/crm/crm-styles";
 import { CrmViewToggle, type CrmViewMode } from "@/features/workspace/components/crm/crm-view-toggle";
@@ -20,6 +20,9 @@ type Props = {
   onCreateStage: () => void;
   onRefresh?: () => void;
   refreshing?: boolean;
+  showPipelineToggle?: boolean;
+  pipelinePanelOpen?: boolean;
+  onPipelinePanelToggle?: () => void;
 };
 
 export function LeadsDirectoryToolbar({
@@ -32,6 +35,9 @@ export function LeadsDirectoryToolbar({
   onCreateStage,
   onRefresh,
   refreshing,
+  showPipelineToggle,
+  pipelinePanelOpen,
+  onPipelinePanelToggle,
 }: Props) {
   return (
     <div className="border-b border-slate-100 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
@@ -48,6 +54,25 @@ export function LeadsDirectoryToolbar({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
+          {showPipelineToggle && onPipelinePanelToggle ? (
+            <button
+              type="button"
+              onClick={onPipelinePanelToggle}
+              className={cn(
+                crm.btnSecondarySm,
+                pipelinePanelOpen && "border-[#191970]/25 bg-[#191970]/5 text-[#191970] dark:border-[#2277FF]/30 dark:bg-[#2277FF]/10 dark:text-[#2277FF]",
+              )}
+              title={pipelinePanelOpen ? "Hide pipeline overview" : "Show pipeline overview"}
+            >
+              <Layers className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Pipeline</span>
+              {pipelinePanelOpen ? (
+                <ChevronUp className="h-3.5 w-3.5 opacity-70" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+              )}
+            </button>
+          ) : null}
           <CrmViewToggle mode={viewMode} onChange={onViewModeChange} />
           <span className="hidden h-4 w-px bg-slate-200 sm:block dark:bg-slate-700" />
           <span className={crm.metricPill}>

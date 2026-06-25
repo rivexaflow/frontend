@@ -1,6 +1,9 @@
 "use client";
 
-import { Download, Plus, Search } from "lucide-react";
+import { Download, Plus, RefreshCw, Search } from "lucide-react";
+
+import { crm } from "@/features/workspace/components/crm/crm-styles";
+import { cn } from "@/lib/utils/cn";
 
 import {
   HrmDirectoryViewToggle,
@@ -26,6 +29,8 @@ type Props = {
   onViewModeChange: (mode: HrmViewMode) => void;
   salaryMonthLabel: string;
   todayLabel: string;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 };
 
 const selectClass =
@@ -40,6 +45,8 @@ export function AttendanceDirectoryToolbar({
   onViewModeChange,
   salaryMonthLabel,
   todayLabel,
+  onRefresh,
+  refreshing = false,
 }: Props) {
   const set = <K extends keyof AttendanceFilters>(key: K, value: AttendanceFilters[K]) =>
     onChange({ ...filters, [key]: value });
@@ -90,6 +97,17 @@ export function AttendanceDirectoryToolbar({
         <span className="text-xs text-slate-500">
           <span className="font-semibold tabular-nums text-slate-800">{resultCount}</span> records
         </span>
+        {onRefresh ? (
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={refreshing}
+            className={cn(crm.btnSecondarySm, "h-9")}
+          >
+            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+            Refresh
+          </button>
+        ) : null}
         <button
           type="button"
           className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900"

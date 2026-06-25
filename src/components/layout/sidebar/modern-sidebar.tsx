@@ -34,12 +34,14 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { CRM_NAV_CHILDREN, isCrmNavSubGroup } from "@/features/workspace/data/crm-nav";
+import { isAttendanceNavChildActive } from "@/features/workspace/data/attendance-tabs";
 import { HRM_NAV_CHILDREN, isHrmNavSubGroup } from "@/features/workspace/data/hrm-nav";
 import { workspacePaths } from "@/lib/workspace/paths";
 import { authStore } from "@/stores/auth.store";
 import { workspaceStore } from "@/stores/workspace.store";
 import { effectiveNavRole } from "@/types/auth";
 import { UserAccountDropdown } from "./user-account-dropdown";
+import { SidebarNavIcon, type SidebarIconTone } from "./sidebar-nav-icon";
 
 interface NavItem {
   name: string;
@@ -47,15 +49,17 @@ interface NavItem {
   icon: React.ElementType;
   badge?: string;
   category: string;
+  tone?: SidebarIconTone;
 }
 
 interface NavGroup {
   name: string;
   icon: React.ElementType;
   category: string;
-  children: { name: string; href: string }[];
+  children: { name: string; href: string; icon: React.ElementType }[];
   isCrm?: boolean;
   isHrm?: boolean;
+  tone?: SidebarIconTone;
 }
 
 const workspaceNavItems: NavItem[] = [
@@ -86,10 +90,10 @@ const workspaceNavGroups: NavGroup[] = [
     icon: UserCog,
     category: "Governance",
     children: [
-      { name: "Users", href: workspacePaths.user },
-      { name: "Departments", href: workspacePaths.workforce },
-      { name: "Roles & permissions", href: workspacePaths.role },
-      { name: "User activity", href: workspacePaths.userActivity },
+      { name: "Users", href: workspacePaths.user, icon: Users },
+      { name: "Departments", href: workspacePaths.workforce, icon: Building2 },
+      { name: "Roles & permissions", href: workspacePaths.role, icon: ShieldCheck },
+      { name: "User activity", href: workspacePaths.userActivity, icon: History },
     ],
   },
 ];
@@ -127,11 +131,11 @@ function isHrmNavActive(pathname: string): boolean {
 const TOP_GROUP_NAMES = ["CRM", "HRM", "User Management"] as const;
 
 const CRM_SUBGROUP_NAMES = ["Report"] as const;
-const HRM_SUBGROUP_NAMES = ["HR Settings"] as const;
+const HRM_SUBGROUP_NAMES = ["Attendance", "HR Settings"] as const;
 
 const workspaceNavFooter: NavItem[] = [
   { name: "Notifications", href: "/notifications", icon: Bell, category: "System" },
-  { name: "Settings", href: "/settings", icon: Settings, category: "System" },
+  { name: "Settings", href: "/settings", icon: Settings, category: "System", tone: "slate" },
 ];
 
 const adminNavItems: NavItem[] = [
@@ -140,7 +144,7 @@ const adminNavItems: NavItem[] = [
   { name: "KYC Submissions", href: "/super-admin/kyc", icon: ShieldCheck, category: "Management" },
   { name: "Support Tickets", href: "/super-admin/support", icon: Ticket, category: "Management" },
   { name: "Users", href: "/super-admin/users", icon: Users, category: "Management" },
-  { name: "Audit Logs", href: "/super-admin/audit", icon: History, category: "System" },
+  { name: "Audit Logs", href: "/super-admin/audit", icon: History, category: "System", tone: "slate" },
   { name: "Billing", href: "/super-admin/billing", icon: CreditCard, category: "System" },
   { name: "System Health", href: "/super-admin/system-health", icon: Activity, category: "System" },
 ];
@@ -304,6 +308,9 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
     setOpenCrmSubGroups(nextCrmSubs);
 
     const nextHrmSubs = Object.fromEntries(HRM_SUBGROUP_NAMES.map((n) => [n, false]));
+    if (pathname.includes("/hrm/attendance")) {
+      nextHrmSubs.Attendance = true;
+    }
     if (
       pathname.includes("/hrm/settings") ||
       pathname.includes("/hrm/admin") ||
@@ -348,8 +355,8 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
           setIsHoverDisabled(false);
         }}
         className={cn(
-          "sticky top-0 shrink-0 flex h-screen flex-col border-r border-slate-200/60 bg-white/80 backdrop-blur-xl transition-colors duration-300 z-40",
-          "dark:border-slate-800/50 dark:bg-slate-950/90"
+          "sticky top-0 shrink-0 flex h-screen flex-col border-r border-slate-200/60 bg-gradient-to-b from-white via-white to-slate-50/80 backdrop-blur-xl transition-colors duration-300 z-40",
+          "dark:border-slate-800/50 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900/90",
         )}
       >
         {/* Logo Section */}
@@ -405,13 +412,17 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
             return (
               <div key={category} className="mb-8">
                 {!effectiveCollapsed && (
-                  <motion.h3
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="mb-3 px-4 text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500"
-                  >
-                    {category}
-                  </motion.h3>
+                  <div className="mb-3 flex items-center gap-2 px-2">
+                    <span className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-200 to-transparent dark:via-slate-700" />
+                    <motion.span
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500"
+                    >
+                      {category}
+                    </motion.span>
+                    <span className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-200 to-transparent dark:via-slate-700" />
+                  </div>
                 )}
                 <div className="space-y-1">
                   {categoryItems.map((item) => {
@@ -423,17 +434,17 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                         href={href}
                         onClick={closeAccountMenu}
                         className={cn(
-                          "group relative flex items-center gap-3 rounded-xl px-4 py-2.5 transition-all duration-200",
+                          "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200",
+                          effectiveCollapsed && "justify-center px-2",
                           isActive
-                            ? "bg-[#191970]/8 text-[#191970] dark:bg-[#191970]/20 dark:text-[#2277ff]"
+                            ? "bg-[#191970]/8 text-[#191970] shadow-sm shadow-[#191970]/5 dark:bg-[#191970]/20 dark:text-[#2277ff]"
                             : "text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white",
                         )}
                       >
-                        <item.icon
-                          className={cn(
-                            "h-[18px] w-[18px] shrink-0 transition-transform group-hover:scale-105",
-                            isActive ? "text-[#191970] dark:text-[#2277ff]" : "text-slate-400",
-                          )}
+                        <SidebarNavIcon
+                          icon={item.icon}
+                          active={isActive}
+                          tone={item.tone ?? "brand"}
                         />
                         
                         {!effectiveCollapsed && (
@@ -484,18 +495,20 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                               }
                             }}
                             className={cn(
-                              "group relative flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-left transition-all duration-200",
+                              "group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-200",
+                              effectiveCollapsed && "justify-center px-2",
                               groupActive
                                 ? "bg-gradient-to-r from-[#191970] to-[#2277ff] text-white shadow-md shadow-[#191970]/20"
                                 : "text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-900/50",
                             )}
                           >
-                            <group.icon
-                              className={cn(
-                                "h-5 w-5 shrink-0",
-                                groupActive ? "text-white" : "text-slate-400",
-                              )}
-                            />
+                            {groupActive ? (
+                              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white ring-1 ring-white/20">
+                                <group.icon className="h-4 w-4" strokeWidth={2.25} />
+                              </span>
+                            ) : (
+                              <SidebarNavIcon icon={group.icon} tone={group.tone ?? "brand"} />
+                            )}
                             {!effectiveCollapsed ? (
                               <>
                                 <span className="flex-1 text-sm font-semibold">{group.name}</span>
@@ -517,7 +530,7 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                                 animate={{ height: "auto", opacity: 1 }}
                                 exit={{ height: 0, opacity: 0 }}
                                 transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-                                className="overflow-hidden border-l-2 border-[#191970]/10 pl-2 ml-3"
+                                className="overflow-hidden border-l-2 border-[#191970]/15 pl-2 ml-3 dark:border-[#2277FF]/20"
                               >
                                 {group.isCrm
                                   ? CRM_NAV_CHILDREN.map((item) => {
@@ -536,19 +549,25 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                                                 }
                                               }}
                                               className={cn(
-                                                "flex w-full items-center gap-2 rounded-lg py-2 pl-4 pr-3 text-sm font-semibold transition",
+                                                "flex w-full items-center gap-2.5 rounded-xl py-2 pl-2 pr-3 text-sm font-semibold transition",
                                                 subActive
-                                                  ? "text-[#191970] dark:text-[#2277ff]"
+                                                  ? "bg-[#191970]/8 text-[#191970] dark:text-[#2277ff]"
                                                   : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400",
                                               )}
                                             >
+                                              <SidebarNavIcon
+                                                icon={item.icon}
+                                                active={subActive}
+                                                tone="slate"
+                                                size="sm"
+                                              />
+                                              <span className="flex-1 text-left">{item.name}</span>
                                               <ChevronDown
                                                 className={cn(
                                                   "h-3.5 w-3.5 shrink-0 transition-transform",
                                                   subOpen ? "rotate-180" : "",
                                                 )}
                                               />
-                                              {item.name}
                                             </button>
                                             {subOpen ? (
                                               <div className="ml-4 border-l border-slate-200/80 pl-2 dark:border-slate-700">
@@ -562,15 +581,18 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                                                       href={child.href}
                                                       onClick={closeAccountMenu}
                                                       className={cn(
-                                                        "relative flex items-center gap-2 rounded-lg py-2 pl-4 pr-3 text-sm font-medium transition",
+                                                        "relative flex items-center gap-2.5 rounded-xl py-2 pl-2 pr-3 text-sm font-medium transition",
                                                         childActive
                                                           ? "bg-[#191970]/8 font-semibold text-[#191970] dark:text-[#2277ff]"
                                                           : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:hover:text-white",
                                                       )}
                                                     >
-                                                      {childActive ? (
-                                                        <span className="absolute left-1.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-[#191970]" />
-                                                      ) : null}
+                                                      <SidebarNavIcon
+                                                        icon={child.icon}
+                                                        active={childActive}
+                                                        tone="slate"
+                                                        size="sm"
+                                                      />
                                                       {child.name}
                                                     </Link>
                                                   );
@@ -589,15 +611,18 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                                           href={item.href}
                                           onClick={closeAccountMenu}
                                           className={cn(
-                                            "relative flex items-center gap-2 rounded-lg py-2 pl-4 pr-3 text-sm font-medium transition",
+                                            "relative flex items-center gap-2.5 rounded-xl py-2 pl-2 pr-3 text-sm font-medium transition",
                                             childActive
                                               ? "bg-[#191970]/8 font-semibold text-[#191970] dark:text-[#2277ff]"
                                               : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:hover:text-white",
                                           )}
                                         >
-                                          {childActive ? (
-                                            <span className="absolute left-1.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-[#191970]" />
-                                          ) : null}
+                                          <SidebarNavIcon
+                                            icon={item.icon}
+                                            active={childActive}
+                                            tone="slate"
+                                            size="sm"
+                                          />
                                           {item.name}
                                         </Link>
                                       );
@@ -619,41 +644,51 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                                                    }
                                                  }}
                                                 className={cn(
-                                                  "flex w-full items-center gap-2 rounded-lg py-2 pl-4 pr-3 text-sm font-semibold transition",
+                                                  "flex w-full items-center gap-2.5 rounded-xl py-2 pl-2 pr-3 text-sm font-semibold transition",
                                                   subActive
-                                                    ? "text-[#191970] dark:text-[#2277ff]"
+                                                    ? "bg-[#191970]/8 text-[#191970] dark:text-[#2277ff]"
                                                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400",
                                                 )}
                                               >
+                                                <SidebarNavIcon
+                                                  icon={item.icon}
+                                                  active={subActive}
+                                                  tone="slate"
+                                                  size="sm"
+                                                />
+                                                <span className="flex-1 text-left">{item.name}</span>
                                                 <ChevronDown
                                                   className={cn(
                                                     "h-3.5 w-3.5 shrink-0 transition-transform",
                                                     subOpen ? "rotate-180" : "",
                                                   )}
                                                 />
-                                                {item.name}
                                               </button>
                                               {subOpen ? (
                                                 <div className="ml-4 border-l border-slate-200/80 pl-2 dark:border-slate-700">
                                                   {item.children.map((child) => {
-                                                    const childActive =
-                                                      pathname === child.href ||
-                                                      pathname.startsWith(`${child.href}/`);
+                                                    const childActive = isAttendanceNavChildActive(
+                                                      pathname,
+                                                      child.href,
+                                                    );
                                                     return (
                                                       <Link
                                                         key={child.href}
                                                         href={child.href}
                                                         onClick={closeAccountMenu}
                                                         className={cn(
-                                                          "relative flex items-center gap-2 rounded-lg py-2 pl-4 pr-3 text-sm font-medium transition",
+                                                          "relative flex items-center gap-2.5 rounded-xl py-2 pl-2 pr-3 text-sm font-medium transition",
                                                           childActive
                                                             ? "bg-[#191970]/8 font-semibold text-[#191970] dark:text-[#2277ff]"
                                                             : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:hover:text-white",
                                                         )}
                                                       >
-                                                        {childActive ? (
-                                                          <span className="absolute left-1.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-[#191970]" />
-                                                        ) : null}
+                                                        <SidebarNavIcon
+                                                          icon={child.icon}
+                                                          active={childActive}
+                                                          tone="slate"
+                                                          size="sm"
+                                                        />
                                                         {child.name}
                                                       </Link>
                                                     );
@@ -672,15 +707,18 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                                             href={item.href}
                                             onClick={closeAccountMenu}
                                             className={cn(
-                                              "relative flex items-center gap-2 rounded-lg py-2 pl-4 pr-3 text-sm font-medium transition",
+                                              "relative flex items-center gap-2.5 rounded-xl py-2 pl-2 pr-3 text-sm font-medium transition",
                                               childActive
                                                 ? "bg-[#191970]/8 font-semibold text-[#191970] dark:text-[#2277ff]"
                                                 : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:hover:text-white",
                                             )}
                                           >
-                                            {childActive ? (
-                                              <span className="absolute left-4 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-[#191970]" />
-                                            ) : null}
+                                            <SidebarNavIcon
+                                              icon={item.icon}
+                                              active={childActive}
+                                              tone="slate"
+                                              size="sm"
+                                            />
                                             {item.name}
                                           </Link>
                                         );
@@ -695,15 +733,18 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                                           href={child.href}
                                           onClick={closeAccountMenu}
                                           className={cn(
-                                            "relative flex items-center gap-2 rounded-lg py-2 pl-4 pr-3 text-sm font-medium transition",
+                                            "relative flex items-center gap-2.5 rounded-xl py-2 pl-2 pr-3 text-sm font-medium transition",
                                             childActive
                                               ? "bg-[#191970]/8 font-semibold text-[#191970] dark:text-[#2277ff]"
                                               : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:hover:text-white",
                                           )}
                                         >
-                                          {childActive ? (
-                                            <span className="absolute left-1.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-[#191970]" />
-                                          ) : null}
+                                          <SidebarNavIcon
+                                            icon={child.icon}
+                                            active={childActive}
+                                            tone="slate"
+                                            size="sm"
+                                          />
                                           {child.name}
                                         </Link>
                                       );
@@ -725,17 +766,17 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                           href={href}
                           onClick={closeAccountMenu}
                           className={cn(
-                            "group relative flex items-center gap-3 rounded-xl px-4 py-2.5 transition-all duration-200",
+                            "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200",
+                            effectiveCollapsed && "justify-center px-2",
                             isActive
-                              ? "bg-[#191970]/8 text-[#191970] dark:bg-[#191970]/20 dark:text-[#2277ff]"
+                              ? "bg-[#191970]/8 text-[#191970] shadow-sm shadow-[#191970]/5 dark:bg-[#191970]/20 dark:text-[#2277ff]"
                               : "text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white",
                           )}
                         >
-                          <item.icon
-                            className={cn(
-                              "h-[18px] w-[18px] shrink-0",
-                              isActive ? "text-[#191970] dark:text-[#2277ff]" : "text-slate-400",
-                            )}
+                          <SidebarNavIcon
+                            icon={item.icon}
+                            active={isActive}
+                            tone={item.tone ?? "brand"}
                           />
                           {!effectiveCollapsed ? (
                             <span className="flex-1 font-semibold">{item.name}</span>

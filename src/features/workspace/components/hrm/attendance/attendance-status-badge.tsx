@@ -2,12 +2,12 @@ import type { AttendanceStatus } from "@/features/workspace/data/hrm-attendance-
 import { cn } from "@/lib/utils/cn";
 
 const STYLES: Record<AttendanceStatus, string> = {
-  present: "bg-emerald-50 text-emerald-700 ring-emerald-600/15 dark:bg-emerald-950/40 dark:text-emerald-300",
-  remote: "bg-sky-50 text-sky-700 ring-sky-600/15 dark:bg-sky-950/40 dark:text-sky-300",
-  late: "bg-amber-50 text-amber-700 ring-amber-600/15 dark:bg-amber-950/40 dark:text-amber-300",
-  half_day: "bg-orange-50 text-orange-700 ring-orange-600/15 dark:bg-orange-950/40 dark:text-orange-300",
-  on_leave: "bg-[#2277ff]/10 text-[#0056ff] ring-[#2277ff]/20 dark:bg-blue-950/40 dark:text-sky-300",
-  absent: "bg-rose-50 text-rose-700 ring-rose-600/15 dark:bg-rose-950/40 dark:text-rose-300",
+  present: "bg-[#2277FF]/12 text-[#191970] ring-[#2277FF]/25 dark:bg-[#2277FF]/15 dark:text-[#2277FF]",
+  remote: "bg-[#191970]/10 text-[#191970] ring-[#191970]/20 dark:bg-[#191970]/25 dark:text-[#2277FF]",
+  late: "bg-[#2277FF]/18 text-[#191970] ring-[#2277FF]/30 dark:bg-[#2277FF]/20 dark:text-[#2277FF]",
+  half_day: "bg-[#191970]/14 text-[#191970] ring-[#191970]/25 dark:bg-[#191970]/30 dark:text-[#2277FF]",
+  on_leave: "bg-[#2277FF]/8 text-[#191970] ring-[#2277FF]/20 dark:bg-[#2277FF]/12 dark:text-[#2277FF]",
+  absent: "bg-[#191970]/8 text-[#191970]/80 ring-[#191970]/15 dark:bg-[#191970]/20 dark:text-[#2277FF]/80",
 };
 
 const LABELS: Record<AttendanceStatus, string> = {

@@ -242,8 +242,6 @@ export function CrmDialerView() {
   return (
     <div className="pb-8">
       <CrmPageHeader
-        eyebrow="Outbound · CRM"
-        title="Dialer"
         actions={
           <div className="flex flex-wrap items-center gap-2">
             {isOwner && (

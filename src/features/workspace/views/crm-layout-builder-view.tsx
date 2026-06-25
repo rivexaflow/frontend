@@ -180,11 +180,8 @@ export function CrmLayoutBuilderView() {
   };
 
   return (
-    <div className="pb-8">
+    <div className="pb-4">
       <CrmPageHeader
-        eyebrow="CRM · Settings"
-        title="Form builder"
-        description="Design the create and edit forms your team uses when capturing leads — sections, field types, and validation."
         metrics={[
           { label: "Sections", value: sections.length },
           { label: "Fields", value: fields.length },
