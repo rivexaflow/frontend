@@ -43,6 +43,36 @@ export function SettingsBrandingTab({ companyId }: Props) {
   const [logoUrl, setLogoUrl] = useState("");
   const [primaryColor, setPrimaryColor] = useState("#191970");
   const [rawThemeConfig, setRawThemeConfig] = useState<Record<string, unknown>>({});
+  const [logoError, setLogoError] = useState<string | null>(null);
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLogoError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ["image/png", "image/svg+xml", "image/jpeg"];
+    if (!validTypes.includes(file.type)) {
+      setLogoError("Please upload a PNG, SVG, or JPEG image.");
+      return;
+    }
+
+    const maxSize = 1 * 1024 * 1024; // 1MB
+    if (file.size > maxSize) {
+      setLogoError("Logo size must be less than 1MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (typeof event.target?.result === "string") {
+        setLogoUrl(event.target.result);
+      }
+    };
+    reader.onerror = () => {
+      setLogoError("Failed to read logo file.");
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Domains States
   const [mainDomain, setMainDomain] = useState("");
@@ -220,16 +250,29 @@ export function SettingsBrandingTab({ companyId }: Props) {
             </SettingsField>
           </div>
 
-          <SettingsField label="Logo image URL" htmlFor="logo-url">
-            <input
-              id="logo-url"
-              type="url"
-              className={cn(crm.input, "w-full")}
-              value={logoUrl}
-              onChange={(e) => setLogoUrl(e.target.value)}
-              placeholder="https://example.com/logo.png"
-            />
-          </SettingsField>
+          <div className="grid gap-4 md:grid-cols-2">
+            <SettingsField label="Upload logo image" htmlFor="logo-upload">
+              <input
+                id="logo-upload"
+                type="file"
+                accept="image/png, image/svg+xml, image/jpeg"
+                onChange={handleLogoChange}
+                className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-slate-800 dark:file:text-slate-300 cursor-pointer"
+              />
+              {logoError && <p className="text-xs text-rose-600 mt-1">{logoError}</p>}
+            </SettingsField>
+
+            <SettingsField label="Or paste logo image URL" htmlFor="logo-url">
+              <input
+                id="logo-url"
+                type="text"
+                className={cn(crm.input, "w-full")}
+                value={logoUrl}
+                onChange={(e) => setLogoUrl(e.target.value)}
+                placeholder="/brand/stockology-logo.png"
+              />
+            </SettingsField>
+          </div>
 
           {logoUrl.trim() && (
             <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 dark:border-slate-800 flex items-center gap-4">
