@@ -142,7 +142,18 @@ function LoginPageContent() {
 
   // White-label states
   const [branding, setBranding] = useState<CompanyBranding | null>(null);
-  const [isBrandingLoading, setIsBrandingLoading] = useState(false);
+  const [isBrandingLoading, setIsBrandingLoading] = useState(() => {
+    if (typeof window === "undefined") return true;
+    const hostname = window.location.hostname;
+    const searchParams = new URLSearchParams(window.location.search);
+    const companyParam = searchParams.get("companyId") || searchParams.get("company");
+    if (companyParam) return true;
+    const h = hostname.toLowerCase();
+    if (h === "localhost" || h === "127.0.0.1") return false;
+    if (h === "rivexaflow.com" || h === "www.rivexaflow.com") return false;
+    if (h === "rivexaflow.in" || h === "www.rivexaflow.in") return false;
+    return true;
+  });
   const [isMounted, setIsMounted] = useState(false);
   const [isBtnHovered, setIsBtnHovered] = useState(false);
 

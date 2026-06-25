@@ -109,12 +109,20 @@ const isSoftNavigationRequest = (request: NextRequest): boolean =>
   request.headers.get("next-router-state-tree") != null ||
   request.nextUrl.searchParams.has("_rsc");
 
+/** Prevent CDN (e.g. Cloudflare) and browser caching for page/RSC requests. */
+const addNoCacheHeaders = (response: NextResponse): NextResponse => {
+  response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  response.headers.set("Pragma", "no-cache");
+  response.headers.set("Expires", "0");
+  return response;
+};
+
 export function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
   const legacyWorkspaceTarget = canonicalWorkspacePath(pathname);
   if (legacyWorkspaceTarget && legacyWorkspaceTarget !== pathname) {
-    return NextResponse.redirect(new URL(legacyWorkspaceTarget, request.url));
+    return addNoCacheHeaders(NextResponse.redirect(new URL(legacyWorkspaceTarget, request.url)));
   }
   const token = request.cookies.get(AUTH_COOKIE)?.value;
   const role = extractRole(token);
@@ -131,14 +139,14 @@ export function middleware(request: NextRequest) {
   if (pathname === "/logout") {
     const response = NextResponse.next();
     clearAuthCookie(response);
-    return response;
+    return addNoCacheHeaders(response);
   }
 
   // /login?signout=1 or /login?force=1 etc — clear cookie at the edge, then render the form.
   if (AUTH_ONLY.has(pathname) && wantsSignout) {
     const response = NextResponse.next();
     clearAuthCookie(response);
-    return response;
+    return addNoCacheHeaders(response);
   }
 
   // Anonymous user hitting a protected route → go to /login
@@ -147,12 +155,12 @@ export function middleware(request: NextRequest) {
     if (pathname === "/onboarding") {
       loginUrl.searchParams.set("next", "/onboarding");
     }
-    return NextResponse.redirect(loginUrl);
+    return addNoCacheHeaders(NextResponse.redirect(loginUrl));
   }
 
   // Authenticated user on /onboarding — allow (client resolves step vs dashboard)
   if (token && pathname === "/onboarding") {
-    return NextResponse.next();
+    return addNoCacheHeaders(NextResponse.next());
   }
 
   // Authed user hitting an auth-only screen (login/signup/...).
@@ -169,91 +177,93 @@ export function middleware(request: NextRequest) {
   if (token && AUTH_ONLY.has(pathname) && !isSoftNavigationRequest(request)) {
     if (pathname === "/login") {
       if (role === "ADMIN" || role === "USER") {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
+        return addNoCacheHeaders(NextResponse.redirect(new URL("/dashboard", request.url)));
       }
       if (role === "SUPER_ADMIN") {
-        return NextResponse.redirect(new URL("/admin/login", request.url));
+        return addNoCacheHeaders(NextResponse.redirect(new URL("/admin/login", request.url)));
       }
     } else if (pathname === "/admin/login") {
       if (role === "SUPER_ADMIN") {
-        return NextResponse.redirect(new URL("/super-admin", request.url));
+        return addNoCacheHeaders(NextResponse.redirect(new URL("/super-admin", request.url)));
       }
       if (role === "ADMIN" || role === "USER") {
-        return NextResponse.redirect(new URL(loginPathForRole(role), request.url));
+        return addNoCacheHeaders(NextResponse.redirect(new URL(loginPathForRole(role), request.url)));
       }
     } else {
       // /signup, /forgot-password, /reset-password — just take them home if we can.
       const home = homePathForRole(role, workspaceSlug);
-      if (home) return NextResponse.redirect(new URL(home, request.url));
+      if (home) return addNoCacheHeaders(NextResponse.redirect(new URL(home, request.url)));
     }
 
     // Unknown role on an existing cookie → session is corrupt, clear it and let the page render.
     const response = NextResponse.next();
     clearAuthCookie(response);
-    return response;
+    return addNoCacheHeaders(response);
   }
 
   // Platform (super-admin) routes
   if (pathname.startsWith("/super-admin")) {
-    if (role === "SUPER_ADMIN") return NextResponse.next();
+    if (role === "SUPER_ADMIN") return addNoCacheHeaders(NextResponse.next());
     // Workspace user wandering into platform area → send them to their dashboard, not 403.
     if (role === "ADMIN" || role === "USER") {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      return addNoCacheHeaders(NextResponse.redirect(new URL("/dashboard", request.url)));
     }
     // Anonymous / unknown role → log in.
-    return NextResponse.redirect(new URL("/login", request.url));
+    return addNoCacheHeaders(NextResponse.redirect(new URL("/login", request.url)));
   }
 
   // Canonical workspace app routes (/dashboard, /crm/*, …)
   if (isWorkspaceAppPath(pathname)) {
     if (role === "SUPER_ADMIN") {
-      return NextResponse.redirect(new URL("/super-admin", request.url));
+      return addNoCacheHeaders(NextResponse.redirect(new URL("/super-admin", request.url)));
     }
     if (role !== "ADMIN" && role !== "USER") {
       const response = NextResponse.redirect(new URL("/login", request.url));
       clearAuthCookie(response);
-      return response;
+      return addNoCacheHeaders(response);
     }
     if (!workspaceId) {
       const response = NextResponse.redirect(new URL("/login", request.url));
       clearAuthCookie(response);
-      return response;
+      return addNoCacheHeaders(response);
     }
-    return NextResponse.next();
+    return addNoCacheHeaders(NextResponse.next());
   }
 
   // Legacy /{workspaceSlug}/… routes (redirect handled above; guard stragglers)
   if (isWorkspacePath(pathname)) {
     // Super admin trying to access a workspace → take them to their own home.
     if (role === "SUPER_ADMIN") {
-      return NextResponse.redirect(new URL("/super-admin", request.url));
+      return addNoCacheHeaders(NextResponse.redirect(new URL("/super-admin", request.url)));
     }
     // No usable role → log in (session is incomplete).
     if (role !== "ADMIN" && role !== "USER") {
       const response = NextResponse.redirect(new URL("/login", request.url));
       clearAuthCookie(response);
-      return response;
+      return addNoCacheHeaders(response);
     }
     // Wrong workspace slug → silently route to the correct workspace with the same sub-path.
     const segments = pathname.split("/").filter(Boolean);
     const rest = segments.slice(1).join("/");
     const canonical = canonicalWorkspacePath(pathname);
     if (canonical) {
-      return NextResponse.redirect(new URL(canonical, request.url));
+      return addNoCacheHeaders(NextResponse.redirect(new URL(canonical, request.url)));
     }
     if (workspaceSlug && segments[0] !== workspaceSlug) {
-      return NextResponse.redirect(
-        new URL(canonicalWorkspacePath(`/${workspaceSlug}/${rest}`) ?? "/dashboard", request.url),
+      return addNoCacheHeaders(
+        NextResponse.redirect(
+          new URL(canonicalWorkspacePath(`/${workspaceSlug}/${rest}`) ?? "/dashboard", request.url),
+        ),
       );
     }
     if (!workspaceId) {
       const response = NextResponse.redirect(new URL("/login", request.url));
       clearAuthCookie(response);
-      return response;
+      return addNoCacheHeaders(response);
     }
   }
 
-  return NextResponse.next();
+  return addNoCacheHeaders(NextResponse.next());
 }
 
 export const config = {
