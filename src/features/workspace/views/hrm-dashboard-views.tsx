@@ -150,11 +150,6 @@ export function HrmDashboardView() {
       <HrmPageHeader
         module="People · HRM"
         title="HRM Dashboard"
-        description={
-          headcountHint
-            ? `Recruitment pipeline, workforce analytics, and today’s schedule. ${headcountHint}.`
-            : "Recruitment pipeline, workforce analytics, and today’s schedule."
-        }
         actions={
           <button
             type="button"
