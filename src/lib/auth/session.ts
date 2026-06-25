@@ -20,6 +20,9 @@ function getBaseDomain(hostname: string): string | null {
   if (parts.length === 1 || /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname)) {
     return null;
   }
+  if (hostname.toLowerCase().endsWith(".localhost")) {
+    return null;
+  }
   if (parts.length >= 2) {
     const last = parts[parts.length - 1];
     const secondLast = parts[parts.length - 2];
