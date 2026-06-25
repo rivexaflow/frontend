@@ -340,7 +340,7 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
           setIsHoverDisabled(false);
         }}
         className={cn(
-          "relative flex h-screen flex-col border-r border-slate-200/60 bg-white/80 backdrop-blur-xl transition-colors duration-300 z-40",
+          "sticky top-0 shrink-0 flex h-screen flex-col border-r border-slate-200/60 bg-white/80 backdrop-blur-xl transition-colors duration-300 z-40",
           "dark:border-slate-800/50 dark:bg-slate-950/90"
         )}
       >

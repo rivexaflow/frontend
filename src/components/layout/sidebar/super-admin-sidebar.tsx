@@ -27,7 +27,7 @@ export function SuperAdminSidebar() {
   const user = authStore((s) => s.user);
 
   return (
-    <aside className="relative z-10 hidden w-[17.5rem] shrink-0 flex-col border-r border-slate-200/90 bg-white/95 shadow-[4px_0_24px_-12px_rgba(15,23,42,0.06)] backdrop-blur-sm md:flex lg:w-72">
+    <aside className="sticky top-0 h-screen z-10 hidden w-[17.5rem] shrink-0 flex-col border-r border-slate-200/90 bg-white/95 shadow-[4px_0_24px_-12px_rgba(15,23,42,0.06)] backdrop-blur-sm md:flex lg:w-72">
       <div className="border-b border-slate-100 px-5 py-5">
         <Link href="/super-admin" className="flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-[#191970] via-[#2277FF] to-[#6366f1] text-sm font-bold text-white shadow-md">
@@ -46,7 +46,7 @@ export function SuperAdminSidebar() {
       <p className="px-5 pb-2 pt-4 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
         Platform
       </p>
-      <nav className="flex-1 space-y-0.5 px-3">
+      <nav className="flex-1 space-y-0.5 px-3 overflow-y-auto scrollbar-none">
         {items.map((item) => {
           const active = item.exact
             ? pathname === item.href
