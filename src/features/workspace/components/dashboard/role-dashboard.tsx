@@ -19,7 +19,7 @@ import { WorkspaceGraphPanel } from "@/features/workspace/components/workspace-g
 import { DashboardHeader } from "@/features/workspace/components/dashboard/dashboard-header";
 import { StatsGrid } from "@/features/workspace/components/dashboard/stats-grid";
 import { RecentActivity } from "@/features/workspace/components/dashboard/activity-feed";
-import { DashboardModuleGrid } from "@/features/workspace/components/dashboard/dashboard-module-grid";
+
 import { DashboardTodoPanel } from "@/features/workspace/components/dashboard/dashboard-todo-panel";
 import {
   buildTodosFromModules,
@@ -75,7 +75,7 @@ export function RoleDashboard({ workspaceSlug }: { workspaceSlug: string }) {
 
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
         <div className="space-y-8 xl:col-span-2">
-          <DashboardModuleGrid modules={modules} />
+
 
           <section>
             <h3 className="mb-4 text-lg font-bold text-slate-900 dark:text-white">Quick actions</h3>
