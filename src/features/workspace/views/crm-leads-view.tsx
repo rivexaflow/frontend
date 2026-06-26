@@ -285,6 +285,16 @@ export function CrmLeadsView() {
           showPipelineToggle={viewMode === "board"}
           pipelinePanelOpen={pipelinePanelOpen}
           onPipelinePanelToggle={() => setPipelinePanelOpen((open) => !open)}
+          pipelines={pipelines}
+          activePipelineId={activePipeline?.id}
+          onActivePipelineChange={(id) => {
+            const pipe = pipelines.find((p) => p.id === id);
+            if (pipe) {
+              setActivePipeline(pipe);
+              setBoardStages(pipe.stages.map(mapDbStageToBoardStage));
+              setSelectedPhaseId(null);
+            }
+          }}
         />
 
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">

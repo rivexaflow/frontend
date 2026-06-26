@@ -23,6 +23,9 @@ type Props = {
   showPipelineToggle?: boolean;
   pipelinePanelOpen?: boolean;
   onPipelinePanelToggle?: () => void;
+  pipelines?: any[];
+  activePipelineId?: string | null;
+  onActivePipelineChange?: (id: string) => void;
 };
 
 export function LeadsDirectoryToolbar({
@@ -38,6 +41,9 @@ export function LeadsDirectoryToolbar({
   showPipelineToggle,
   pipelinePanelOpen,
   onPipelinePanelToggle,
+  pipelines,
+  activePipelineId,
+  onActivePipelineChange,
 }: Props) {
   return (
     <div className="border-b border-slate-100 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
@@ -54,6 +60,23 @@ export function LeadsDirectoryToolbar({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
+          {pipelines && pipelines.length > 1 ? (
+            <div className="flex items-center gap-1.5 mr-2">
+              <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Pipeline:</span>
+              <select
+                value={activePipelineId || ""}
+                onChange={(e) => onActivePipelineChange?.(e.target.value)}
+                className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-750 outline-none hover:border-slate-350 focus:border-[#191970] focus:ring-1 focus:ring-[#191970]/10 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+              >
+                {pipelines.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+
           {showPipelineToggle && onPipelinePanelToggle ? (
             <button
               type="button"
