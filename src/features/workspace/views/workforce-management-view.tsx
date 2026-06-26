@@ -66,7 +66,7 @@ function buildLeaderOptions(
 }
 
 type PageTab = "organization" | "access";
-type DeptModalMode = { type: "create" } | { type: "edit"; dept: HrmDepartment };
+type DeptModalMode = { type: "create"; parentId?: string } | { type: "edit"; dept: HrmDepartment };
 type TeamModalMode =
   | { type: "create"; deptId: string; deptName: string }
   | { type: "edit"; deptId: string; team: HrmDepartmentTeam };
@@ -121,15 +121,43 @@ export function WorkforceManagementView() {
     void load();
   }, [load]);
 
+  const departmentsTree = useMemo(() => {
+    const map = new Map<string, HrmDepartment>();
+    for (const d of departments) {
+      map.set(d.id, { ...d, children: [] });
+    }
+    const roots: HrmDepartment[] = [];
+    for (const d of departments) {
+      const mapped = map.get(d.id)!;
+      if (d.parentId) {
+        const parent = map.get(d.parentId);
+        if (parent) {
+          parent.children = parent.children || [];
+          parent.children.push(mapped);
+        } else {
+          roots.push(mapped);
+        }
+      } else {
+        roots.push(mapped);
+      }
+    }
+    return roots;
+  }, [departments]);
+
   const filteredDepartments = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return departments;
-    return departments.filter(
+    if (!q) return departmentsTree;
+    return departmentsTree.filter(
       (d) =>
         d.name.toLowerCase().includes(q) ||
-        d.teams.some((t) => t.name.toLowerCase().includes(q)),
+        d.teams.some((t) => t.name.toLowerCase().includes(q)) ||
+        d.children?.some(
+          (c) =>
+            c.name.toLowerCase().includes(q) ||
+            c.teams.some((t) => t.name.toLowerCase().includes(q))
+        ),
     );
-  }, [departments, query]);
+  }, [departmentsTree, query]);
 
   const totalTeams = departments.reduce((sum, d) => sum + d.teams.length, 0);
   const totalMembers = departments.reduce((sum, d) => sum + (d.memberCount ?? 0), 0);
@@ -148,9 +176,11 @@ export function WorkforceManagementView() {
     return leaderOptions.find((o) => o.id === id)?.label ?? "Unknown member";
   };
 
-  const drawerDept = drawerDeptId
-    ? filteredDepartments.find((d) => d.id === drawerDeptId) ?? departments.find((d) => d.id === drawerDeptId) ?? null
-    : null;
+  const drawerDept = useMemo(() => {
+    return drawerDeptId
+      ? departmentsTree.find((d) => d.id === drawerDeptId) ?? null
+      : null;
+  }, [drawerDeptId, departmentsTree]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -165,25 +195,48 @@ export function WorkforceManagementView() {
         d.id === dept.id ? { ...dept, teams: dept.teams.length ? dept.teams : d.teams } : d,
       );
     });
-    setDrawerDeptId(dept.id);
+    if (dept.parentId) {
+      setDrawerDeptId(dept.parentId);
+    } else {
+      setDrawerDeptId(dept.id);
+    }
   };
 
   const upsertTeam = (deptId: string, team: HrmDepartmentTeam) => {
-    setDepartments((prev) =>
-      prev.map((d) => {
+    setDepartments((prev) => {
+      const targetDept = prev.find((d) => d.id === deptId);
+      const parentId = targetDept?.parentId;
+
+      const updated = prev.map((d) => {
         if (d.id !== deptId) return d;
         const idx = d.teams.findIndex((t) => t.id === team.id);
         const teams =
           idx === -1 ? [team, ...d.teams] : d.teams.map((t) => (t.id === team.id ? team : t));
         return { ...d, teams };
-      }),
-    );
-    setDrawerDeptId(deptId);
+      });
+
+      if (parentId) {
+        setDrawerDeptId(parentId);
+      } else {
+        setDrawerDeptId(deptId);
+      }
+
+      return updated;
+    });
   };
 
   const removeDepartment = (deptId: string) => {
-    setDepartments((prev) => prev.filter((d) => d.id !== deptId));
-    setDrawerDeptId((prev) => (prev === deptId ? null : prev));
+    setDepartments((prev) => {
+      const target = prev.find((d) => d.id === deptId);
+      const parentId = target?.parentId;
+
+      if (parentId) {
+        setDrawerDeptId(parentId);
+      } else {
+        setDrawerDeptId((prevDrawerId) => (prevDrawerId === deptId ? null : prevDrawerId));
+      }
+      return prev.filter((d) => d.id !== deptId);
+    });
   };
 
   const removeTeam = (deptId: string, teamId: string) => {
@@ -338,7 +391,7 @@ export function WorkforceManagementView() {
                   <span className="rounded-full bg-[#191970] px-2.5 py-0.5 text-[10px] font-bold text-white">
                     {filteredDepartments.length}
                   </span>
-                  <span className="text-xs text-slate-500">· click a folder to manage teams</span>
+                  <span className="text-xs text-slate-500">· click a department to manage teams</span>
                 </div>
                 <div className="grid gap-6 grid-cols-1 md:grid-cols-2 2xl:grid-cols-3">
                   {filteredDepartments.map((dept) => (
@@ -374,19 +427,30 @@ export function WorkforceManagementView() {
         memberLabel={memberLabel}
         onClose={() => setDrawerDeptId(null)}
         onEditDept={() => drawerDept && setDeptModal({ type: "edit", dept: drawerDept })}
-        onAddTeam={() =>
-          drawerDept &&
+        onAddManager={() =>
+          drawerDept && setDeptModal({ type: "create", parentId: drawerDept.id })
+        }
+        onEditManager={(manager) => setDeptModal({ type: "edit", dept: manager })}
+        onDeleteManager={(managerId) => setDeleteDeptId(managerId)}
+        onAddTeam={(targetDeptId, targetDeptName) =>
           setTeamModal({
             type: "create",
-            deptId: drawerDept.id,
-            deptName: drawerDept.name,
+            deptId: targetDeptId || drawerDept!.id,
+            deptName: targetDeptName || drawerDept!.name,
           })
         }
-        onEditTeam={(team) =>
-          drawerDept && setTeamModal({ type: "edit", deptId: drawerDept.id, team })
+        onEditTeam={(team, targetDeptId) =>
+          setTeamModal({
+            type: "edit",
+            deptId: targetDeptId || drawerDept!.id,
+            team,
+          })
         }
-        onDeleteTeam={(teamId) =>
-          drawerDept && setDeleteTeam({ deptId: drawerDept.id, teamId })
+        onDeleteTeam={(teamId, targetDeptId) =>
+          setDeleteTeam({
+            deptId: targetDeptId || drawerDept!.id,
+            teamId,
+          })
         }
       />
 
@@ -413,16 +477,26 @@ export function WorkforceManagementView() {
       ) : null}
 
       {deleteDeptId && companyId ? (
-        <ConfirmDeleteModal
-          title="Delete department"
-          description="All teams in this department will be removed and member assignments cleared."
-          onClose={() => setDeleteDeptId(null)}
-          onConfirm={async () => {
-            await deleteCompanyDepartment(companyId, deleteDeptId);
-            removeDepartment(deleteDeptId);
-            setDeleteDeptId(null);
-          }}
-        />
+        (() => {
+          const deleteDept = departments.find((d) => d.id === deleteDeptId);
+          const isDeleteSubDept = !!deleteDept?.parentId;
+          return (
+            <ConfirmDeleteModal
+              title={isDeleteSubDept ? "Delete manager area" : "Delete department"}
+              description={
+                isDeleteSubDept
+                  ? "All teams under this manager will be removed and member assignments cleared."
+                  : "All teams in this department will be removed and member assignments cleared."
+              }
+              onClose={() => setDeleteDeptId(null)}
+              onConfirm={async () => {
+                await deleteCompanyDepartment(companyId, deleteDeptId);
+                removeDepartment(deleteDeptId);
+                setDeleteDeptId(null);
+              }}
+            />
+          );
+        })()
       ) : null}
 
       {deleteTeam && companyId ? (
@@ -479,6 +553,9 @@ function DepartmentModal({
   onSaved: (dept: HrmDepartment) => void;
 }) {
   const isEdit = mode.type === "edit";
+  const parentId = mode.type === "create" ? mode.parentId ?? null : mode.dept.parentId ?? null;
+  const isManager = !!parentId;
+
   const [name, setName] = useState(isEdit ? mode.dept.name : "");
   const [headId, setHeadId] = useState(isEdit ? mode.dept.headId ?? "" : "");
   const [error, setError] = useState<string | null>(null);
@@ -500,13 +577,17 @@ function DepartmentModal({
     e.preventDefault();
     if (!companyId) return;
     if (!name.trim()) {
-      setError("Department name is required.");
+      setError(isManager ? "Manager area name is required." : "Department name is required.");
       return;
     }
     setSubmitting(true);
     setError(null);
     try {
-      const payload = { name: name.trim(), headId: headId || null };
+      const payload = {
+        name: name.trim(),
+        headId: headId || null,
+        parentId: parentId,
+      };
       const saved =
         mode.type === "create"
           ? await createCompanyDepartment(companyId, payload)
@@ -523,12 +604,12 @@ function DepartmentModal({
   return (
     <EnterpriseFormModal
       open
-      title={isEdit ? "Edit department" : "Add department"}
-      description="A department groups related teams (e.g. Sales, Engineering, HR)."
+      title={isEdit ? (isManager ? "Edit manager area" : "Edit department") : (isManager ? "Add manager" : "Add department")}
+      description={isManager ? "Define a management group and assign an employee as the manager." : "A department groups related teams (e.g. Sales, Engineering, HR)."}
       onClose={onClose}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <FormField label="Department name" htmlFor="dept-name">
+        <FormField label={isManager ? "Manager area name" : "Department name"} htmlFor="dept-name">
           <input
             id="dept-name"
             value={name}
@@ -537,11 +618,11 @@ function DepartmentModal({
               if (error) setError(null);
             }}
             className={inputClassName}
-            placeholder="e.g. Sales"
+            placeholder={isManager ? "e.g. Sales Operations" : "e.g. Sales"}
             disabled={submitting}
           />
         </FormField>
-        <FormField label="Department head (optional)" htmlFor="dept-head">
+        <FormField label={isManager ? "Select manager (optional)" : "Department head (optional)"} htmlFor="dept-head">
           <select
             id="dept-head"
             value={headId}
@@ -549,7 +630,7 @@ function DepartmentModal({
             className={inputClassName}
             disabled={submitting}
           >
-            <option value="">No head assigned</option>
+            <option value="">{isManager ? "No manager assigned" : "No head assigned"}</option>
             {leaderOptions.map((option) => (
               <option key={option.id} value={option.id}>
                 {option.label}

@@ -180,13 +180,25 @@ function OrgChartCard({
           <p className="mt-1 line-clamp-2 text-center text-xs font-medium text-slate-400">
             {employee.designation}
           </p>
+          {employee.roleType ? (
+            <span className="mt-2.5 rounded-full bg-blue-500/15 px-2.5 py-0.5 text-[9px] font-bold tracking-wider text-blue-300 uppercase">
+              {employee.roleType.replace('_', ' ')}
+            </span>
+          ) : null}
         </div>
 
-        <footer className="flex items-center justify-between border-t border-white/[0.06] bg-black/20 px-4 py-2.5">
-          <span className="text-[11px] font-medium text-slate-500">
-            <span className="font-semibold text-slate-400">{reportCount}</span>{" "}
-            {reportCount === 1 ? "employee" : "employees"}
-          </span>
+        <footer className="flex items-center justify-between border-t border-white/[0.06] bg-black/25 px-4 py-2.5">
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-[10px] font-medium text-slate-500 truncate">
+              <span className="font-semibold text-slate-400">{reportCount}</span>{" "}
+              {reportCount === 1 ? "report" : "reports"}
+            </span>
+            {employee.leadCount !== undefined ? (
+              <span className="text-[10px] font-medium text-slate-500 truncate">
+                <span className="font-semibold text-blue-400">{employee.leadCount}</span> leads
+              </span>
+            ) : null}
+          </div>
           <button
             type="button"
             {...listeners}

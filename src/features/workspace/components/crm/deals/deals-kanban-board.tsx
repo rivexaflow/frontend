@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -54,11 +54,24 @@ const priorityDot: Record<DealRecord["priority"], string> = {
   low: "bg-slate-400",
 };
 
+const stageHeaderTone: Record<string, string> = {
+  qualification: "from-blue-50/60 to-white text-blue-900 border-b-blue-100 dark:from-blue-950/40 dark:to-slate-900/80 dark:text-blue-200 dark:border-b-blue-950/40",
+  discovery: "from-blue-50/60 to-white text-blue-900 border-b-blue-100 dark:from-blue-950/40 dark:to-slate-900/80 dark:text-blue-200 dark:border-b-blue-950/40",
+  proposal: "from-purple-50/70 to-white text-purple-900 border-b-purple-100 dark:from-purple-950/40 dark:to-slate-900/80 dark:text-purple-200 dark:border-b-purple-100/40",
+  negotiation: "from-amber-50/70 to-white text-amber-900 border-b-amber-100 dark:from-amber-950/40 dark:to-slate-900/80 dark:text-amber-200 dark:border-b-amber-100/40",
+  closed_won: "from-emerald-50/70 to-white text-emerald-900 border-b-emerald-100 dark:from-emerald-950/40 dark:to-slate-900/80 dark:text-emerald-200 dark:border-b-emerald-100/40",
+  closed_lost: "from-rose-50/70 to-white text-rose-900 border-b-rose-100 dark:from-rose-950/40 dark:to-slate-900/80 dark:text-rose-200 dark:border-b-rose-100/40",
+};
+
 type Props = {
+  stages?: DealStage[];
   deals: DealRecord[];
   onChange: (next: DealRecord[]) => void;
   onSelect: (deal: DealRecord) => void;
   searchQuery?: string;
+  highlightStageId?: string | null;
+  className?: string;
+  isAdmin?: boolean;
 };
 
 function DealCard({
@@ -73,7 +86,7 @@ function DealCard({
   return (
     <div
       className={cn(
-        "rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-sm transition dark:border-slate-700 dark:bg-slate-900",
+        "rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-sm transition dark:border-slate-700 dark:bg-slate-900 hover:-translate-y-[3px] hover:shadow-md duration-300 ease-out",
         isDragging && "rotate-1 shadow-lg ring-2 ring-[#191970]/25",
       )}
     >
@@ -108,10 +121,11 @@ function DealCard({
   );
 }
 
-function SortableDealCard({ deal, onSelect }: { deal: DealRecord; onSelect: () => void }) {
+function SortableDealCard({ deal, onSelect, disabled }: { deal: DealRecord; onSelect: () => void; disabled?: boolean }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: deal.id,
     data: { type: "deal", deal },
+    disabled,
   });
 
   return (
@@ -134,10 +148,16 @@ function KanbanColumn({
   stage,
   deals,
   onSelect,
+  isAdmin,
+  highlighted,
+  columnRef,
 }: {
   stage: DealStage;
   deals: DealRecord[];
   onSelect: (deal: DealRecord) => void;
+  isAdmin?: boolean;
+  highlighted?: boolean;
+  columnRef?: (node: HTMLDivElement | null) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: stage,
@@ -149,34 +169,44 @@ function KanbanColumn({
 
   return (
     <div
-      ref={setNodeRef}
+      ref={(node) => {
+        setNodeRef(node);
+        columnRef?.(node);
+      }}
       className={cn(
-        "flex w-[min(100%,280px)] shrink-0 flex-col rounded-2xl border border-slate-200/80 border-t-4 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950",
+        "flex w-[min(100%,280px)] h-full min-h-0 shrink-0 flex-col rounded-2xl border border-slate-200/80 border-t-4 bg-slate-50/40 dark:border-slate-800 dark:bg-slate-950/30 shadow-sm",
         stageTone[stage],
         isOver && "ring-2 ring-[#191970]/30",
+        highlighted && "ring-2 ring-[#191970]/45 ring-offset-2",
       )}
     >
-      <div className="border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+      <div className={cn(
+        "flex shrink-0 flex-col border-b px-4 py-3 rounded-t-2xl bg-gradient-to-r",
+        stageHeaderTone[stage]
+      )}>
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white">{meta.label}</h3>
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+          <h3 className="text-sm font-extrabold leading-tight">{meta.label}</h3>
+          <span className={cn(
+            "inline-flex h-5 min-w-5 items-center justify-center rounded-md px-1.5 text-[10px] font-extrabold tabular-nums text-white shadow-sm",
+            stage === "qualification" ? "bg-[#191970]" : stage === "discovery" ? "bg-blue-600" : stage === "proposal" ? "bg-purple-600" : stage === "negotiation" ? "bg-amber-600" : stage === "closed_won" ? "bg-emerald-600" : "bg-rose-600"
+          )}>
             {deals.length}
           </span>
         </div>
-        <p className="mt-1 text-sm font-bold text-slate-900 dark:text-white">
+        <p className="mt-1 text-sm font-extrabold">
           {formatDealValue(totalValue, deals[0]?.currency ?? "USD")}
         </p>
       </div>
 
       <SortableContext items={deals.map((d) => d.id)} strategy={verticalListSortingStrategy}>
-        <div className="flex min-h-[120px] flex-1 flex-col gap-2.5 p-3">
+        <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overscroll-y-contain p-3">
           {deals.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-xs text-slate-400 dark:border-slate-700">
+            <p className="flex h-full min-h-[120px] items-center justify-center rounded-lg border border-dashed border-slate-200 text-center text-xs text-slate-400 dark:border-slate-700">
               Drop deals here
             </p>
           ) : (
             deals.map((deal) => (
-              <SortableDealCard key={deal.id} deal={deal} onSelect={() => onSelect(deal)} />
+              <SortableDealCard key={deal.id} deal={deal} onSelect={() => onSelect(deal)} disabled={!isAdmin} />
             ))
           )}
         </div>
@@ -185,8 +215,24 @@ function KanbanColumn({
   );
 }
 
-export function DealsKanbanBoard({ deals, onChange, onSelect, searchQuery = "" }: Props) {
+export function DealsKanbanBoard({
+  stages = BOARD_STAGES,
+  deals,
+  onChange,
+  onSelect,
+  searchQuery = "",
+  highlightStageId = null,
+  className,
+  isAdmin = false,
+}: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const columnRefs = useRef(new Map<string, HTMLDivElement>());
+
+  useEffect(() => {
+    if (!highlightStageId) return;
+    const el = columnRefs.current.get(highlightStageId);
+    el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [highlightStageId]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -205,16 +251,20 @@ export function DealsKanbanBoard({ deals, onChange, onSelect, searchQuery = "" }
     );
   }, [deals, searchQuery]);
 
+  const stageIdSet = useMemo(() => new Set<DealStage>(stages), [stages]);
+
   const dealsByStage = useMemo(() => {
-    const map = Object.fromEntries(BOARD_STAGES.map((s) => [s, [] as DealRecord[]])) as Record<
+    const map = Object.fromEntries(stages.map((s) => [s, [] as DealRecord[]])) as Record<
       DealStage,
       DealRecord[]
     >;
     for (const deal of filtered) {
-      map[deal.stage]?.push(deal);
+      if (stageIdSet.has(deal.stage)) {
+        map[deal.stage]?.push(deal);
+      }
     }
     return map;
-  }, [filtered]);
+  }, [filtered, stages, stageIdSet]);
 
   const activeDeal = activeId ? deals.find((d) => d.id === activeId) : null;
 
@@ -250,7 +300,7 @@ export function DealsKanbanBoard({ deals, onChange, onSelect, searchQuery = "" }
     if (!over) return;
     const dealId = String(active.id);
     const overId = String(over.id);
-    const targetStage = BOARD_STAGES.includes(overId as DealStage)
+    const targetStage = stageIdSet.has(overId as DealStage)
       ? (overId as DealStage)
       : findStageForDeal(overId);
     const current = findStageForDeal(dealId);
@@ -264,7 +314,7 @@ export function DealsKanbanBoard({ deals, onChange, onSelect, searchQuery = "" }
     if (!over) return;
     const dealId = String(active.id);
     const overId = String(over.id);
-    const targetStage = BOARD_STAGES.includes(overId as DealStage)
+    const targetStage = stageIdSet.has(overId as DealStage)
       ? (overId as DealStage)
       : findStageForDeal(overId);
     if (targetStage) moveDeal(dealId, targetStage);
@@ -278,13 +328,19 @@ export function DealsKanbanBoard({ deals, onChange, onSelect, searchQuery = "" }
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="-mx-1 flex gap-4 overflow-x-auto px-1 pb-2">
-        {BOARD_STAGES.map((stage) => (
+      <div className={cn("-mx-1 flex min-h-0 flex-1 gap-4 overflow-x-auto px-1 pb-2", className)}>
+        {stages.map((stage) => (
           <KanbanColumn
             key={stage}
             stage={stage}
             deals={dealsByStage[stage] ?? []}
             onSelect={onSelect}
+            isAdmin={isAdmin}
+            highlighted={highlightStageId === stage}
+            columnRef={(node) => {
+              if (node) columnRefs.current.set(stage, node);
+              else columnRefs.current.delete(stage);
+            }}
           />
         ))}
       </div>

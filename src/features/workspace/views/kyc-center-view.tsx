@@ -19,7 +19,6 @@ import { KycIdentityPanel } from "@/features/workspace/components/kyc/panels/kyc
 import { KycMonitoringPanel } from "@/features/workspace/components/kyc/panels/kyc-monitoring-panel";
 import { KycScreeningPanel } from "@/features/workspace/components/kyc/panels/kyc-screening-panel";
 import { EnterprisePageShell } from "@/features/workspace/components/enterprise/enterprise-page-shell";
-import { EnterpriseToolbar } from "@/features/workspace/components/enterprise/enterprise-toolbar";
 import { useDebouncedSearch } from "@/features/workspace/hooks/use-debounced-search";
 import {
   DEMO_KYC_AUDIT,
@@ -112,9 +111,6 @@ export function KycCenterView() {
   return (
     <>
       <EnterprisePageShell
-        eyebrow="Compliance"
-        title="KYC Center"
-        description="End-to-end identity, KYB, watchlist screening, document forensics, and continuous monitoring — audit-ready for regulated institutions."
         metrics={[
           {
             label: "In review queue",
@@ -122,6 +118,7 @@ export function KycCenterView() {
             hint: "SLA tracked",
             icon: Clock,
             tone: "amber",
+            onClick: () => setModule("cases"),
           },
           {
             label: "Approved",
@@ -129,6 +126,7 @@ export function KycCenterView() {
             hint: "Active cases",
             icon: FileCheck,
             tone: "emerald",
+            onClick: () => setModule("cases"),
           },
           {
             label: "High risk",
@@ -136,6 +134,7 @@ export function KycCenterView() {
             hint: "Requires EDD",
             icon: AlertTriangle,
             tone: "rose",
+            onClick: () => setModule("cases"),
           },
           {
             label: "Open screening hits",
@@ -143,18 +142,9 @@ export function KycCenterView() {
             hint: "PEP / sanctions / media",
             icon: Radar,
             tone: "blue",
+            onClick: () => setModule("screening"),
           },
         ]}
-        toolbar={
-          <EnterpriseToolbar
-            searchPlaceholder="Search cases, subjects, references…"
-            searchValue={search}
-            onSearchChange={setSearch}
-            searchHint={validation.message}
-            primaryLabel="Open case"
-            onPrimaryClick={() => setModalOpen(true)}
-          />
-        }
       >
         <div className="space-y-6">
           <KycModuleNav active={module} onChange={setModule} counts={moduleCounts} />

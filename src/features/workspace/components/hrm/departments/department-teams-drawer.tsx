@@ -11,9 +11,12 @@ type Props = {
   memberLabel: (id: string | null | undefined) => string;
   onClose: () => void;
   onEditDept: () => void;
-  onAddTeam: () => void;
-  onEditTeam: (team: HrmDepartmentTeam) => void;
-  onDeleteTeam: (teamId: string) => void;
+  onAddManager: () => void;
+  onEditManager: (manager: HrmDepartment) => void;
+  onDeleteManager: (managerId: string) => void;
+  onAddTeam: (deptId?: string, deptName?: string) => void;
+  onEditTeam: (team: HrmDepartmentTeam, deptId?: string) => void;
+  onDeleteTeam: (teamId: string, deptId?: string) => void;
 };
 
 export function DepartmentTeamsDrawer({
@@ -22,6 +25,9 @@ export function DepartmentTeamsDrawer({
   memberLabel,
   onClose,
   onEditDept,
+  onAddManager,
+  onEditManager,
+  onDeleteManager,
   onAddTeam,
   onEditTeam,
   onDeleteTeam,
@@ -52,6 +58,9 @@ export function DepartmentTeamsDrawer({
               memberLabel={memberLabel}
               onClose={onClose}
               onEditDept={onEditDept}
+              onAddManager={onAddManager}
+              onEditManager={onEditManager}
+              onDeleteManager={onDeleteManager}
               onAddTeam={onAddTeam}
               onEditTeam={onEditTeam}
               onDeleteTeam={onDeleteTeam}

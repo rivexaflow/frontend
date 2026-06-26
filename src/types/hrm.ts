@@ -279,9 +279,11 @@ export type HrmDepartment = {
   id: string;
   name: string;
   headId?: string | null;
+  parentId?: string | null;
   memberCount?: number;
   teams: HrmDepartmentTeam[];
   createdAt?: string;
+  children?: HrmDepartment[];
 };
 
 export type HrmRole = {
@@ -312,6 +314,9 @@ export type CreateEmployeePayload = {
   status?: HrmEmploymentStatus;
   joiningDate?: string;
   workMode?: HrmWorkMode;
+  roleType?: string;
+  teamId?: string | null;
+  assignedTeamIds?: string[];
 };
 
 export type UpdateEmployeePayload = Partial<CreateEmployeePayload>;
@@ -319,11 +324,13 @@ export type UpdateEmployeePayload = Partial<CreateEmployeePayload>;
 export type CreateDepartmentPayload = {
   name: string;
   headId?: string | null;
+  parentId?: string | null;
 };
 
 export type UpdateDepartmentPayload = {
   name?: string;
   headId?: string | null;
+  parentId?: string | null;
 };
 
 export type CreateTeamPayload = {

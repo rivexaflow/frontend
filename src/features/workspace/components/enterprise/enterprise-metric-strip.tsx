@@ -13,6 +13,7 @@ export type EnterpriseMetric = {
   trendUp?: boolean;
   icon: LucideIcon;
   tone?: "blue" | "emerald" | "amber" | "purple" | "rose" | "slate";
+  onClick?: () => void;
 };
 
 const toneStyles: Record<NonNullable<EnterpriseMetric["tone"]>, string> = {
@@ -33,7 +34,13 @@ export function EnterpriseMetricStrip({ metrics }: { metrics: EnterpriseMetric[]
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: i * 0.05 }}
-          className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+          whileHover={metric.onClick ? { y: -4, transition: { duration: 0.2 } } : undefined}
+          whileTap={metric.onClick ? { scale: 0.98 } : undefined}
+          onClick={metric.onClick}
+          className={cn(
+            "relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 text-left",
+            metric.onClick && "cursor-pointer hover:border-slate-350 dark:hover:border-slate-750 hover:shadow-md transition-shadow duration-300",
+          )}
         >
           <div className="flex items-start justify-between gap-3">
             <div

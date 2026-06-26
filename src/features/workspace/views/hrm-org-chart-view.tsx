@@ -6,7 +6,6 @@ import { AlertCircle, GitBranch, Layers, Loader2, Users } from "lucide-react";
 
 import {
   OrganizationChart,
-  OrgChartToolbar,
 } from "@/features/workspace/components/hrm/organization-chart";
 import { OrgChartDetailPanel } from "@/features/workspace/components/hrm/org-chart-detail-panel";
 import { measureOrgTree } from "@/features/workspace/components/hrm/org-chart-layout";
@@ -15,11 +14,13 @@ import { EnterprisePageShell } from "@/features/workspace/components/enterprise/
 import { useHrCompanyId } from "@/features/workspace/hooks/use-hr-company-id";
 import { MISSING_COMPANY_CONTEXT_MESSAGE } from "@/lib/workspace/company-context";
 import type { HrmEmployee } from "@/features/workspace/data/hrm-org-demo";
-import { fetchHrOrgChart, reassignHrEmployeeManager } from "@/lib/api/hrm";
+import { fetchHrOrgChart, fetchHrDepartments, updateHrEmployee, reassignHrEmployeeManager } from "@/lib/api/hrm";
+import { createCompanyDepartment, createDepartmentTeam } from "@/lib/api/company";
 
 export function HrmOrgChartView() {
   const companyId = useHrCompanyId();
   const [employees, setEmployees] = useState<HrmEmployee[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -32,8 +33,12 @@ export function HrmOrgChartView() {
     }
     setError(null);
     try {
-      const list = await fetchHrOrgChart(companyId);
+      const [list, depts] = await Promise.all([
+        fetchHrOrgChart(companyId),
+        fetchHrDepartments(companyId),
+      ]);
       setEmployees(list);
+      setDepartments(depts);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load org chart.");
     } finally {
@@ -50,11 +55,29 @@ export function HrmOrgChartView() {
   const selected = selectedId ? employees.find((e) => e.id === selectedId) ?? null : null;
 
   const updateSelected = useCallback(
-    (patch: Partial<HrmEmployee>) => {
-      if (!selectedId) return;
+    async (patch: Partial<HrmEmployee>) => {
+      if (!selectedId || !companyId) return;
+
+      // Optimistic update of local state
       setEmployees((prev) => prev.map((e) => (e.id === selectedId ? { ...e, ...patch } : e)));
+
+      try {
+        const payload: any = {};
+        if (patch.name !== undefined) payload.fullName = patch.name;
+        if (patch.designation !== undefined) payload.designation = patch.designation;
+        if (patch.department !== undefined) payload.department = patch.department;
+        if (patch.managerId !== undefined) payload.managerId = patch.managerId;
+        if (patch.roleType !== undefined) payload.roleType = patch.roleType;
+        if (patch.departmentId !== undefined) payload.departmentId = patch.departmentId;
+        if (patch.teamId !== undefined) payload.teamId = patch.teamId;
+        if (patch.assignedTeamIds !== undefined) payload.assignedTeamIds = patch.assignedTeamIds;
+
+        await updateHrEmployee(companyId, selectedId, payload);
+      } catch (err) {
+        console.error("Failed to save employee changes:", err);
+      }
     },
-    [selectedId],
+    [selectedId, companyId],
   );
 
   const handleReassignManager = useCallback(
@@ -64,6 +87,24 @@ export function HrmOrgChartView() {
     },
     [companyId],
   );
+
+  const handleCreateDepartment = useCallback(async (name: string) => {
+    if (!companyId) return null;
+    const newDept = await createCompanyDepartment(companyId, { name });
+    // Refresh departments list
+    const depts = await fetchHrDepartments(companyId);
+    setDepartments(depts);
+    return newDept;
+  }, [companyId]);
+
+  const handleCreateTeam = useCallback(async (deptId: string, name: string) => {
+    if (!companyId) return null;
+    const newTeam = await createDepartmentTeam(companyId, deptId, { name });
+    // Refresh departments list
+    const depts = await fetchHrDepartments(companyId);
+    setDepartments(depts);
+    return newTeam;
+  }, [companyId]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -108,7 +149,6 @@ export function HrmOrgChartView() {
       eyebrow="People · HRM"
       title="Company org chart"
       description="Full-width interactive hierarchy. Click any unit to open its profile — scroll and zoom to explore the entire organization."
-      toolbar={<OrgChartToolbar onRefresh={handleRefresh} />}
     >
       {!companyId ? (
         <div className="mb-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -158,8 +198,11 @@ export function HrmOrgChartView() {
                     key={selected.id}
                     employee={selected}
                     employees={employees}
+                    departments={departments}
                     onClose={() => setSelectedId(null)}
                     onUpdate={updateSelected}
+                    onCreateDepartment={handleCreateDepartment}
+                    onCreateTeam={handleCreateTeam}
                   />
                 ) : null}
               </AnimatePresence>

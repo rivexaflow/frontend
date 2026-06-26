@@ -64,23 +64,25 @@ export function WorkspaceSidebar({ slug }: { slug: string }) {
       <div className="mb-6 flex items-center gap-3">
         {logo ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={logo} alt={brandName || workspaceName || "Logo"} className="h-9 w-9 object-contain rounded-lg" />
+          <img src={logo} alt={brandName || workspaceName || "Logo"} className="h-9 max-w-[180px] object-contain rounded-lg" />
         ) : (
-          <div
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white font-black text-sm"
-            style={{
-              background: `linear-gradient(135deg, ${primaryColor}, #2277ff)`,
-            }}
-          >
-            {(brandName || workspaceName || "R")[0].toUpperCase()}
-          </div>
+          <>
+            <div
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white font-black text-sm"
+              style={{
+                background: `linear-gradient(135deg, ${primaryColor}, #2277ff)`,
+              }}
+            >
+              {(brandName || workspaceName || "R")[0].toUpperCase()}
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                {brandName || workspaceName || "Rivexaflow"}
+              </p>
+              <p className="text-xs text-slate-400">{slug}</p>
+            </div>
+          </>
         )}
-        <div>
-          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
-            {brandName || workspaceName || "Rivexaflow"}
-          </p>
-          <p className="text-xs text-slate-400">{slug}</p>
-        </div>
       </div>
       <nav className="space-y-1">
         {items.map((item) => {

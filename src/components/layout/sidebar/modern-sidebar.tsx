@@ -31,6 +31,7 @@ import {
   CreditCard,
   Database,
   Waypoints,
+  FileSpreadsheet,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { CRM_NAV_CHILDREN, isCrmNavSubGroup } from "@/features/workspace/data/crm-nav";
@@ -66,6 +67,7 @@ const workspaceNavItems: NavItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, category: "General" },
   { name: "KYC Center", href: "/kyc", icon: ShieldCheck, category: "Operations", badge: "Live" },
   { name: "Invoices", href: "/invoices", icon: FileText, category: "Operations" },
+  { name: "Sheets", href: "/sheets", icon: FileSpreadsheet, category: "Operations" },
   { name: "AI Agents", href: "/ai", icon: Sparkles, category: "Intelligence" },
   { name: "Analytics", href: "/reports", icon: Zap, category: "Intelligence" },
 ];
@@ -156,6 +158,12 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const [isHovered, setIsHovered] = useState(false);
   const [isHoverDisabled, setIsHoverDisabled] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const user = authStore((s) => s.user);
   const modules = workspaceStore((s) => s.modules);
   const logo = workspaceStore((s) => s.logo);
@@ -184,8 +192,12 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
           return true;
         });
 
+    if (!mounted) {
+      return rawItems;
+    }
+
     if (!isAdmin) {
-      const currentUser = authStore.getState().user;
+      const currentUser = user;
       const navRole = effectiveNavRole(currentUser);
       const isOwnerOrAdmin =
         navRole === "ADMIN" ||
@@ -220,7 +232,7 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
       }
     }
     return rawItems;
-  }, [isAdmin, modules]);
+  }, [isAdmin, modules, user, mounted]);
 
   const groups = useMemo(() => {
     if (isAdmin) return [];
@@ -367,7 +379,10 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
               <img
                 src={logo}
                 alt={brandName || workspaceName || "Logo"}
-                className="h-10 w-10 shrink-0 object-contain rounded-xl"
+                className={cn(
+                  "shrink-0 object-contain rounded-xl",
+                  effectiveCollapsed ? "h-10 w-10" : "h-10 max-w-[200px]"
+                )}
               />
             ) : (
               <div
@@ -380,7 +395,7 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
               </div>
             )}
             <AnimatePresence mode="wait">
-              {!effectiveCollapsed && (
+              {!effectiveCollapsed && !logo && (
                 <motion.span
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -453,7 +468,7 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                             animate={{ opacity: 1, x: 0 }}
                             className="flex-1 font-semibold"
                           >
-                            {item.name}
+                            {item.href === "/sheets" ? `${(brandName || workspaceName || "Company").trim().split(/\s+/)[0]} Sheets` : item.name}
                           </motion.span>
                         )}
 

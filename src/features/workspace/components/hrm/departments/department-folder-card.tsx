@@ -92,27 +92,20 @@ export function DepartmentFolderCard({
     return () => document.removeEventListener("mousedown", close);
   }, [menuOpen]);
 
-  const teamCount = dept.teams.length;
-  const memberCount = dept.memberCount ?? 0;
+  const subTeamsCount = dept.children?.reduce((sum, child) => sum + child.teams.length, 0) ?? 0;
+  const subMembersCount = dept.children?.reduce((sum, child) => sum + (child.memberCount ?? 0), 0) ?? 0;
+
+  const teamCount = dept.teams.length + subTeamsCount;
+  const memberCount = (dept.memberCount ?? 0) + subMembersCount;
+
   const avatarLabels = [
     headLabel !== "Unassigned" ? headLabel : null,
-    ...dept.teams.slice(0, 3).map((t) => t.name),
+    ...dept.teams.map((t) => t.name),
+    ...(dept.children?.flatMap((child) => child.teams.map((t) => t.name)) ?? []),
   ].filter(Boolean) as string[];
 
   return (
-    <article className="relative mx-auto w-full max-w-[420px] pt-5">
-      {/* Folder tab */}
-      <div
-        className={cn(
-          "absolute left-6 top-0 z-20 h-10 w-[118px] overflow-hidden rounded-t-[18px] border border-b-0 shadow-[0_-2px_12px_rgba(25,25,112,0.06)]",
-          palette.border,
-        )}
-        aria-hidden
-      >
-        <div className={cn("h-full w-full bg-gradient-to-br", palette.tab)} />
-        <div className="absolute inset-x-3 top-2 h-px bg-white/70" />
-      </div>
-
+    <article className="relative mx-auto w-full max-w-[420px]">
       <div
         role="button"
         tabIndex={0}
@@ -124,7 +117,7 @@ export function DepartmentFolderCard({
           }
         }}
         className={cn(
-          "group relative flex min-h-[210px] cursor-pointer flex-col overflow-hidden rounded-[22px] rounded-tl-[10px] border bg-gradient-to-br p-6 pt-7 text-left shadow-[0_8px_30px_rgba(15,23,42,0.06)] transition-all duration-300",
+          "group relative flex min-h-[210px] cursor-pointer flex-col overflow-hidden rounded-[22px] border bg-gradient-to-br p-6 text-left shadow-[0_8px_30px_rgba(15,23,42,0.06)] transition-all duration-300",
           palette.border,
           palette.surface,
           selected
@@ -256,9 +249,8 @@ function MenuItem({
 
 export function DepartmentFolderCardSkeleton() {
   return (
-    <div className="relative mx-auto w-full max-w-[420px] animate-pulse pt-5">
-      <div className="absolute left-6 top-0 h-10 w-[118px] rounded-t-[18px] bg-slate-200" />
-      <div className="min-h-[210px] rounded-[22px] rounded-tl-[10px] border border-slate-200 bg-slate-100" />
+    <div className="relative mx-auto w-full max-w-[420px] animate-pulse">
+      <div className="min-h-[210px] rounded-[22px] border border-slate-200 bg-slate-100" />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
+import { CrmPageHeader } from "@/features/workspace/components/crm/crm-workspace-header";
 import { CrmShell } from "@/features/workspace/components/crm/crm-panel";
 import type { CrmViewMode } from "@/features/workspace/components/crm/crm-view-toggle";
 import { LeadFormModal } from "@/features/workspace/components/crm/lead-form-modal";
@@ -88,6 +89,16 @@ export function CrmLeadsView() {
   const searchableFields = workspaceTopbarStore((s) => s.searchableFields);
   const advancedFilters = workspaceTopbarStore((s) => s.advancedFilters);
   const advancedFiltersActive = workspaceTopbarStore((s) => s.advancedFiltersActive);
+
+  const metrics = useMemo(() => {
+    const total = leads.length;
+    const newLeads = leads.filter((l) => l.status === "new").length;
+    const inProgress = leads.filter(
+      (l) => l.status !== "new" && l.status !== "lost" && l.status !== "qualified" && l.status !== "move_to_activation"
+    ).length;
+    const qualified = leads.filter((l) => l.status === "qualified" || l.status === "move_to_activation").length;
+    return { total, newLeads, inProgress, qualified };
+  }, [leads]);
 
   const visibleStages = useMemo(() => {
     if (!selectedPhaseId || viewMode !== "board") return boardStages;
@@ -258,7 +269,7 @@ export function CrmLeadsView() {
   return (
     <div
       className={cn(
-        viewMode === "board" ? "flex h-[calc(100dvh-5.25rem)] min-h-0 flex-col" : "pb-4",
+        viewMode === "board" ? "flex h-[calc(100dvh-8.5rem)] min-h-0 flex-col" : "pb-4",
       )}
     >
       {error ? (
@@ -266,6 +277,15 @@ export function CrmLeadsView() {
           {error}
         </div>
       ) : null}
+
+      <CrmPageHeader
+        metrics={[
+          { label: "Total", value: metrics.total },
+          { label: "New", value: metrics.newLeads },
+          { label: "In progress", value: metrics.inProgress },
+          { label: "Qualified", value: metrics.qualified },
+        ]}
+      />
 
       <CrmShell
         className={cn(

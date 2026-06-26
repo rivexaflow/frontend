@@ -16,6 +16,7 @@ export const WORKSPACE_ROOT_SEGMENTS = [
   "hrm",
   "workforce",
   "migration",
+  "sheets",
 ] as const;
 
 export type WorkspaceRootSegment = (typeof WORKSPACE_ROOT_SEGMENTS)[number];
@@ -23,6 +24,7 @@ export type WorkspaceRootSegment = (typeof WORKSPACE_ROOT_SEGMENTS)[number];
 export const workspacePaths = {
   dashboard: "/dashboard",
   workspaceGraph: "/workspace-graph",
+  sheets: "/sheets",
   contacts: "/crm/contacts",
   leads: "/crm/leads",
   deals: "/crm/deals",

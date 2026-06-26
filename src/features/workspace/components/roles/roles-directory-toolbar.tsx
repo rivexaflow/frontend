@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Shield } from "lucide-react";
 import Link from "next/link";
 
 import { workspacePaths } from "@/lib/workspace/paths";
@@ -18,6 +18,7 @@ type Props = {
   assignmentFilter: RoleAssignmentFilter;
   onAssignmentFilterChange: (value: RoleAssignmentFilter) => void;
   resultCount: number;
+  onManageIpPolicies?: () => void;
 };
 
 const TYPE_TABS: { id: RoleTypeFilter; label: string }[] = [
@@ -40,6 +41,7 @@ export function RolesDirectoryToolbar({
   assignmentFilter,
   onAssignmentFilterChange,
   resultCount,
+  onManageIpPolicies,
 }: Props) {
   return (
     <div className="space-y-3 border-b border-slate-200/90 px-4 py-4 dark:border-slate-800">
@@ -56,10 +58,20 @@ export function RolesDirectoryToolbar({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-slate-500 mr-1.5">
             <span className="font-semibold tabular-nums text-slate-800 dark:text-slate-200">{resultCount}</span>{" "}
             policies
           </span>
+          {onManageIpPolicies && (
+            <button
+              type="button"
+              onClick={onManageIpPolicies}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-350"
+            >
+              <Shield className="h-4 w-4" />
+              IP Policies
+            </button>
+          )}
           <Link
             href={workspacePaths.roleNew}
             className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#191970] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#12124a]"

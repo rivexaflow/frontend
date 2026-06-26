@@ -11,6 +11,7 @@ import {
   Shield,
   Trash2,
   Users,
+  X,
 } from "lucide-react";
 
 import type { WorkspaceRoleRecord } from "@/features/workspace/data/workspace-roles-demo";
@@ -22,6 +23,7 @@ import {
 import { DEMO_WORKSPACE_USERS } from "@/features/workspace/data/workspace-users-demo";
 import { roleEditPath, workspacePaths } from "@/lib/workspace/paths";
 import { cn } from "@/lib/utils/cn";
+import { workspaceRolesStore } from "@/stores/workspace-roles.store";
 
 type TabId = "overview" | "permissions" | "members" | "pipeline";
 
@@ -73,6 +75,8 @@ export function RoleInspector({ role, onDelete, onDuplicate }: Props) {
   const [tab, setTab] = useState<TabId>("overview");
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
+  const upsertRole = workspaceRolesStore((s) => s.upsertRole);
+
   const members = DEMO_WORKSPACE_USERS.filter((u) => role.memberIds.includes(u.id));
   const categories = summarizeCategories(role.permissionKeys);
   const groupedPermissions = permissionsByCategory(role.permissionKeys);
@@ -89,18 +93,17 @@ export function RoleInspector({ role, onDelete, onDuplicate }: Props) {
 
   return (
     <div className="flex h-full min-h-[520px] flex-col">
-      <div className="relative shrink-0 overflow-hidden border-b border-slate-200/90 bg-gradient-to-br from-[#191970] via-[#1a1d6e] to-[#252d7a] px-6 py-5 text-white dark:border-slate-800">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_0%,rgba(255,255,255,0.08),transparent_50%)]" />
+      <div className="relative shrink-0 border-b border-slate-200/90 bg-slate-50/70 px-6 py-5 dark:border-slate-800 dark:bg-slate-900/40">
         <div className="relative flex flex-wrap items-start justify-between gap-4">
-          <div className="flex min-w-0 items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20">
+          <div className="flex min-w-0 items-start gap-3.5">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#191970]/8 text-[#191970] ring-1 ring-[#191970]/15 dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-800/30">
               {role.systemLocked ? <Lock className="h-5 w-5" /> : <Shield className="h-5 w-5" />}
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">Access policy</p>
-              <h2 className="mt-0.5 truncate text-xl font-semibold tracking-tight">{role.name}</h2>
-              <p className="mt-1 text-sm text-white/70">
-                {role.systemLocked ? "Built-in system role · cannot be deleted" : "Custom workspace role"}
+              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400 dark:text-slate-500">Access policy</p>
+              <h2 className="mt-1.5 truncate text-xl font-bold tracking-tight text-slate-900 dark:text-white leading-none">{role.name}</h2>
+              <p className="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+                {role.systemLocked ? "Built-in system role · read-only" : "Custom workspace role"}
               </p>
             </div>
           </div>
@@ -108,7 +111,7 @@ export function RoleInspector({ role, onDelete, onDuplicate }: Props) {
           <div className="flex flex-wrap gap-2">
             <Link
               href={roleEditPath(role.id)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-white px-3.5 text-sm font-semibold text-[#191970] shadow-sm transition hover:bg-white/95"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#191970] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#12124a] dark:bg-blue-600 dark:hover:bg-blue-700"
             >
               <Pencil className="h-3.5 w-3.5" />
               Edit policy
@@ -117,7 +120,7 @@ export function RoleInspector({ role, onDelete, onDuplicate }: Props) {
               <button
                 type="button"
                 onClick={onDuplicate}
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/25 bg-white/10 px-3.5 text-sm font-semibold text-white transition hover:bg-white/15"
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 <Copy className="h-3.5 w-3.5" />
                 Duplicate
@@ -126,42 +129,48 @@ export function RoleInspector({ role, onDelete, onDuplicate }: Props) {
           </div>
         </div>
 
-        <dl className="relative mt-5 grid grid-cols-3 gap-3">
+        <dl className="relative mt-6 grid grid-cols-3 gap-3">
           {[
             { label: "Permissions", value: role.permissionKeys.length, icon: KeyRound },
             { label: "Members", value: members.length, icon: Users },
             { label: "Pipeline stages", value: stagesConfigured, icon: Layers },
           ].map((item) => (
-            <div key={item.label} className="rounded-lg bg-white/10 px-3 py-2 ring-1 ring-white/10">
-              <dt className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-white/55">
-                <item.icon className="h-3 w-3" />
+            <div key={item.label} className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <dt className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                <item.icon className="h-3.5 w-3.5 text-slate-400 dark:text-slate-550" />
                 {item.label}
               </dt>
-              <dd className="mt-0.5 text-lg font-bold tabular-nums">{item.value}</dd>
+              <dd className="mt-1.5 text-xl font-bold tabular-nums text-slate-900 dark:text-white leading-none">{item.value}</dd>
             </div>
           ))}
         </dl>
       </div>
 
-      <div className="shrink-0 border-b border-slate-200/90 bg-white px-4 dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex gap-1 overflow-x-auto py-2" role="tablist">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={tab === t.id}
-              onClick={() => setTab(t.id)}
-              className={cn(
-                "shrink-0 rounded-lg px-3 py-2 text-sm font-semibold transition",
-                tab === t.id
-                  ? "bg-[#191970]/8 text-[#191970] dark:bg-blue-950/40 dark:text-blue-300"
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-800 dark:hover:bg-slate-800 dark:hover:text-slate-200",
-              )}
-            >
-              {t.label}
-            </button>
-          ))}
+      <div className="shrink-0 border-b border-slate-200/90 bg-white px-6 dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex gap-6 py-2.5" role="tablist">
+          {TABS.map((t) => {
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setTab(t.id)}
+                className={cn(
+                  "relative py-1 text-sm font-semibold transition outline-none",
+                  active
+                    ? "text-[#191970] dark:text-blue-400"
+                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-250",
+                )}
+              >
+                {t.label}
+                {active && (
+                  <span className="absolute bottom-[-11px] left-0 right-0 h-[2.5px] bg-[#191970] dark:bg-blue-500 rounded-t-full shadow-[0_-1px_4px_rgba(25,25,112,0.15)]" />
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -193,6 +202,32 @@ export function RoleInspector({ role, onDelete, onDuplicate }: Props) {
                       </div>
                     );
                   })
+                )}
+              </div>
+            </section>
+
+            <section className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Security restrictions</h3>
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium text-slate-800 dark:text-slate-200">IP Filtering</span>
+                  <span className={cn(
+                    "rounded-full px-2 py-0.5 text-xs font-semibold",
+                    role.allowedIps
+                      ? "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
+                      : "bg-slate-100 text-slate-500 dark:bg-slate-800"
+                  )}>
+                    {role.allowedIps ? "Restricted" : "Unrestricted"}
+                  </span>
+                </div>
+                {role.allowedIps ? (
+                  <div className="mt-2 rounded-lg bg-slate-50 p-3 text-xs font-mono text-slate-600 dark:bg-slate-950 dark:text-slate-400">
+                    {role.allowedIps.split(",").map((ip) => ip.trim()).join(", ")}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500 mt-1">
+                    No IP address filters configured. Workspace members with this role can log in from any location.
+                  </p>
                 )}
               </div>
             </section>
@@ -232,17 +267,41 @@ export function RoleInspector({ role, onDelete, onDuplicate }: Props) {
 
         {tab === "members" ? (
           <section className="rounded-xl border border-slate-200/90 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Assigned members</h3>
-              <Link href={workspacePaths.user} className="text-xs font-semibold text-[#191970] hover:underline">
-                Manage in directory →
-              </Link>
+            <div className="flex flex-wrap items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800 gap-2">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Assigned members</h3>
+                <p className="text-xs text-slate-500">Manage who is assigned to this role policy.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {DEMO_WORKSPACE_USERS.filter((u) => !role.memberIds.includes(u.id)).length > 0 && (
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      const userId = e.target.value;
+                      if (userId) {
+                        upsertRole({
+                          ...role,
+                          memberIds: [...role.memberIds, userId]
+                        });
+                      }
+                    }}
+                    className="h-8 rounded-lg border border-slate-200 bg-slate-50/50 px-2 text-[10px] font-bold uppercase tracking-wider outline-none transition focus:border-blue-500 focus:bg-white dark:border-slate-700 dark:bg-slate-900 text-slate-750 dark:text-slate-350 cursor-pointer"
+                  >
+                    <option value="">+ Assign Member</option>
+                    {DEMO_WORKSPACE_USERS.filter((u) => !role.memberIds.includes(u.id)).map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name} ({u.profileRole})
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
             </div>
             {members.length === 0 ? (
               <div className="px-4 py-10 text-center">
                 <Users className="mx-auto h-8 w-8 text-slate-300" />
                 <p className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-300">No members assigned</p>
-                <p className="mt-1 text-xs text-slate-500">Assign this role from the user management directory.</p>
+                <p className="mt-1 text-xs text-slate-500">Use the dropdown above to assign a member to this role.</p>
               </div>
             ) : (
               <ul className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -259,9 +318,24 @@ export function RoleInspector({ role, onDelete, onDuplicate }: Props) {
                       <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{m.name}</p>
                       <p className="truncate text-xs text-slate-500">{m.email}</p>
                     </span>
-                    <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                      {m.status}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                        {m.status}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          upsertRole({
+                            ...role,
+                            memberIds: role.memberIds.filter(id => id !== m.id)
+                          });
+                        }}
+                        className="p-1 text-slate-450 hover:text-rose-600 transition"
+                        title="Remove member assignment"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>

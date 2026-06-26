@@ -33,9 +33,10 @@ type Props = {
   onClose: () => void;
   onSubmit: (deal: DealRecord) => void;
   initial?: DealRecord | null;
+  isAdmin?: boolean;
 };
 
-export function DealFormModal({ open, onClose, onSubmit, initial }: Props) {
+export function DealFormModal({ open, onClose, onSubmit, initial, isAdmin = false }: Props) {
   const isEdit = Boolean(initial);
   const [values, setValues] = useState<DealFormValues>(DEFAULT_VALUES);
   const [errors, setErrors] = useState<Partial<Record<keyof DealFormValues, string>>>({});
@@ -177,6 +178,7 @@ export function DealFormModal({ open, onClose, onSubmit, initial }: Props) {
               value={values.value || ""}
               onChange={(e) => setValues((v) => ({ ...v, value: Number(e.target.value) }))}
               className={inputClassName}
+              disabled={!isAdmin}
             />
           </FormField>
           <FormField label="Currency" htmlFor="deal-currency" error={errors.currency}>
@@ -219,6 +221,7 @@ export function DealFormModal({ open, onClose, onSubmit, initial }: Props) {
                 setValues((v) => ({ ...v, stage: e.target.value as DealFormValues["stage"] }))
               }
               className={selectClassName}
+              disabled={!isAdmin}
             >
               {STAGES.map((s) => (
                 <option key={s} value={s}>

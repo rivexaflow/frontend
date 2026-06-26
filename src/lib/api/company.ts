@@ -73,6 +73,7 @@ export async function createCompanyDepartment(
       id: nextDummyId("dept"),
       name,
       headId: payload.headId ?? null,
+      parentId: payload.parentId ?? null,
       memberCount: 0,
       teams: [],
     };
@@ -112,6 +113,8 @@ export async function updateCompanyDepartment(
       name: typeof body.name === "string" ? body.name : existing.name,
       headId:
         body.headId !== undefined ? (body.headId as string | null) : (existing.headId ?? null),
+      parentId:
+        body.parentId !== undefined ? (body.parentId as string | null) : (existing.parentId ?? null),
     };
     dummyDepartments = dummyDepartments.map((d) => (d.id === departmentId ? updated : d));
     return { ...updated, teams: [...updated.teams] };

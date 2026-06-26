@@ -10,6 +10,11 @@ export type HrmEmployee = {
   /** Vacant role — shows “No head assigned” banner. */
   vacant?: boolean;
   starred?: boolean;
+  roleType?: string;
+  departmentId?: string | null;
+  teamId?: string | null;
+  assignedTeamIds?: string[];
+  leadCount?: number;
 };
 
 export const DEMO_HRM_EMPLOYEES: HrmEmployee[] = [
@@ -88,6 +93,10 @@ export function employeesByManager(
   employees: HrmEmployee[],
   managerId: string | null,
 ): HrmEmployee[] {
+  if (managerId === null) {
+    const ids = new Set(employees.map((e) => e.id));
+    return employees.filter((e) => e.managerId === null || !ids.has(e.managerId));
+  }
   return employees.filter((e) => e.managerId === managerId);
 }
 
