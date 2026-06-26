@@ -11,40 +11,45 @@ type Metric = {
 };
 
 type Props = {
+  /** @deprecated Shown in workspace topbar — not rendered */
   eyebrow?: string;
-  title: string;
+  /** @deprecated Shown in workspace topbar — not rendered */
+  title?: string;
+  /** @deprecated Not rendered */
   description?: string;
   metrics?: Metric[];
   actions?: ReactNode;
   className?: string;
 };
 
-export function CrmPageHeader({ eyebrow = "CRM", title, description, metrics, actions, className }: Props) {
+/** Compact KPI / action strip below the workspace topbar (no duplicate page title). */
+export function CrmPageHeader({ metrics, actions, className }: Props) {
+  if (!metrics?.length && !actions) return null;
+
   return (
-    <header className={cn("mb-5", className)}>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0 max-w-2xl">
-          <p className={crm.sectionLabel}>{eyebrow}</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{title}</h1>
-          {description ? (
-            <p className="mt-1.5 text-sm leading-relaxed text-slate-500 dark:text-slate-400">{description}</p>
-          ) : null}
-        </div>
+    <header
+      className={cn(
+        "mb-2.5 flex flex-wrap items-center gap-2",
+        metrics?.length ? "justify-between" : "justify-end",
+        className,
+      )}
+    >
+      {metrics?.length ? (
         <div className="flex flex-wrap items-center gap-2">
-          {metrics?.map((m) => (
+          {metrics.map((m) => (
             <div key={m.label} className={crm.metricPill}>
               <span className="font-bold tabular-nums text-slate-900 dark:text-white">{m.value}</span>
               <span className="text-slate-500">{m.label}</span>
             </div>
           ))}
-          {actions}
         </div>
-      </div>
+      ) : null}
+      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
     </header>
   );
 }
 
-/** @deprecated Use CrmPageHeader — kept for gradual migration */
+/** @deprecated Use CrmPageHeader */
 export function CrmWorkspaceHeader(props: Props) {
   return <CrmPageHeader {...props} />;
 }

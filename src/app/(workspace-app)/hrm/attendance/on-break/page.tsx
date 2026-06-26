@@ -1,7 +1,11 @@
-import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
-import { workspacePaths } from "@/lib/workspace/paths";
+import { HrmAttendanceOnBreakView } from "@/features/workspace/views/hrm-attendance-on-break-view";
 
 export default function HrmAttendanceOnBreakPage() {
-  redirect(`${workspacePaths.hrmAttendance}?tab=on-break`);
+  return (
+    <Suspense>
+      <HrmAttendanceOnBreakView />
+    </Suspense>
+  );
 }

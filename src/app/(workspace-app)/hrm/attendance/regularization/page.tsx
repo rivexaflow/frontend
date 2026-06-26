@@ -1,7 +1,11 @@
-import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
-import { workspacePaths } from "@/lib/workspace/paths";
+import { HrmAttendanceRegularizationView } from "@/features/workspace/views/hrm-attendance-regularization-view";
 
 export default function HrmAttendanceRegularizationPage() {
-  redirect(`${workspacePaths.hrmAttendance}?tab=regularization`);
+  return (
+    <Suspense>
+      <HrmAttendanceRegularizationView />
+    </Suspense>
+  );
 }

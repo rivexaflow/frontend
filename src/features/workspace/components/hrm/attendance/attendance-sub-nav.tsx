@@ -3,17 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import {
+  ATTENDANCE_TABS,
+  attendanceTabPath,
+  isAttendanceDashboardPath,
+  isAttendanceNavChildActive,
+} from "@/features/workspace/data/attendance-tabs";
 import { workspacePaths } from "@/lib/workspace/paths";
 import { cn } from "@/lib/utils/cn";
 
-const ATTENDANCE_TABS = [
+const ATTENDANCE_NAV = [
   { label: "Dashboard", href: workspacePaths.hrmAttendance },
-  { label: "All employees", href: workspacePaths.hrmAttendanceAll },
-  { label: "On break", href: workspacePaths.hrmAttendanceOnBreak },
-  { label: "Not clocked in", href: workspacePaths.hrmAttendanceNotClockedIn },
-  { label: "Regularization", href: workspacePaths.hrmAttendanceRegularization },
-  { label: "Roster", href: workspacePaths.hrmAttendanceRoster },
-  { label: "My attendance", href: workspacePaths.hrmAttendanceMe },
+  ...ATTENDANCE_TABS.map((tab) => ({
+    label: tab.label,
+    href: attendanceTabPath(tab.id),
+  })),
 ];
 
 export function AttendanceSubNav() {
@@ -21,12 +25,10 @@ export function AttendanceSubNav() {
 
   return (
     <nav className="mb-5 flex flex-wrap gap-1 rounded-xl border border-slate-200/80 bg-slate-50/60 p-1 dark:border-slate-800 dark:bg-slate-950/40">
-      {ATTENDANCE_TABS.map((tab) => {
-        const isDashboard = tab.href === workspacePaths.hrmAttendance;
-        const dashboardActive = pathname === workspacePaths.hrmAttendance;
-        const isActive = isDashboard
-          ? dashboardActive
-          : pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+      {ATTENDANCE_NAV.map((tab) => {
+        const isActive = isAttendanceDashboardPath(tab.href)
+          ? isAttendanceDashboardPath(pathname)
+          : isAttendanceNavChildActive(pathname, tab.href);
         return (
           <Link
             key={tab.href}

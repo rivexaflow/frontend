@@ -48,11 +48,8 @@ export function CrmPipelinesView() {
   };
 
   return (
-    <div className="pb-8">
+    <div className="pb-4">
       <CrmPageHeader
-        eyebrow="Operations · CRM"
-        title="Pipelines"
-        description="Visualize deal flow across stages, update forecast in real time, and keep ownership visible on every card."
         metrics={[
           { label: "Open", value: formatDealValue(totals.openValue) },
           { label: "Weighted", value: formatDealValue(totals.weighted) },

@@ -9,7 +9,6 @@ import {
   CrmPanel,
   CrmPanelBody,
   CrmPanelFooter,
-  CrmPanelHead,
   CrmPanelToolbar,
 } from "@/features/workspace/components/crm/crm-panel";
 import { CrmListSummary } from "@/features/workspace/components/crm/crm-list-summary";
@@ -109,11 +108,8 @@ export function CrmFacebookLeadsView() {
   ];
 
   return (
-    <div className="pb-8">
+    <div className="pb-4">
       <CrmPageHeader
-        eyebrow="Integrations · CRM"
-        title="Facebook leads"
-        description="Incoming leads from Meta campaigns and lead forms — review before import."
         metrics={[
           { label: "Synced", value: rows.length },
           { label: "New", value: rows.filter((r) => r.status === "new").length },
@@ -128,7 +124,6 @@ export function CrmFacebookLeadsView() {
       />
 
       <CrmPanel>
-        <CrmPanelHead title="Facebook lead logs" subtitle="Incoming leads from Meta campaigns and forms" accent />
         <CrmNotice>
           <strong>Note:</strong> Leads are skipped during sync if they already exist in the CRM log or pipeline to
           prevent duplicates.

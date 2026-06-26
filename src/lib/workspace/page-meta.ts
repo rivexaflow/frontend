@@ -56,13 +56,20 @@ const SEGMENT_LABELS: Record<string, string> = {
   members: "Members",
   invites: "Invites",
   activity: "Activity",
-  workforce: "Workforce",
+  departments: "Departments",
+  recruitment: "Recruitment",
 };
 
 function labelFor(segment: string, parentSegment?: string): string {
   if (parentSegment === "hrm" && segment === "employees") return "Employees";
   if (parentSegment === "employees") return "Profile";
   if (parentSegment === "hrm" && segment === "dashboard") return "HRM Dashboard";
+  if (parentSegment === "attendance" && segment === "all") return "All employees";
+  if (parentSegment === "attendance" && segment === "on-break") return "On break";
+  if (parentSegment === "attendance" && segment === "not-clocked-in") return "Not clocked in";
+  if (parentSegment === "attendance" && segment === "regularization") return "Regularization";
+  if (parentSegment === "attendance" && segment === "roster") return "Roster";
+  if (parentSegment === "attendance" && segment === "me") return "My attendance";
   if (parentSegment === "hrm" && segment === "reports") return "HR reports";
   if (parentSegment === "crm" && segment === "reports") return "CRM reports";
   if (parentSegment === "crm" && segment === "setup") return "Settings";
@@ -96,5 +103,12 @@ export function resolveWorkspaceBreadcrumbs(pathname: string): BreadcrumbItem[] 
 export function resolvePageTitle(pathname: string): string {
   const parts = pathname.split("/").filter(Boolean);
   if (parts.length === 0) return "Dashboard";
-  return labelFor(parts[parts.length - 1] ?? "dashboard");
+  const last = parts[parts.length - 1] ?? "dashboard";
+  const parent = parts.length > 1 ? parts[parts.length - 2] : undefined;
+  return labelFor(last, parent);
+}
+
+/** Current workspace panel title — last segment only, context-aware. */
+export function resolveWorkspacePageTitle(pathname: string): string {
+  return resolvePageTitle(pathname);
 }

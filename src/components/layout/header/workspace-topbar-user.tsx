@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, LogOut, Settings } from "lucide-react";
+import { ChevronDown, LogOut, Plus, Settings } from "lucide-react";
 
 import { AdminModal } from "@/features/super-admin/components/admin-modal";
 import { logoutUser } from "@/lib/api/auth";
@@ -12,7 +12,13 @@ import { authStore } from "@/stores/auth.store";
 import { workspaceStore } from "@/stores/workspace.store";
 import { cn } from "@/lib/utils/cn";
 
-export function WorkspaceTopbarUser({ compact }: { compact?: boolean }) {
+export function WorkspaceTopbarUser({
+  compact,
+  onCreateWorkspace,
+}: {
+  compact?: boolean;
+  onCreateWorkspace?: () => void;
+}) {
   const router = useRouter();
   const user = authStore((s) => s.user);
   const [open, setOpen] = useState(false);
@@ -100,6 +106,20 @@ export function WorkspaceTopbarUser({ compact }: { compact?: boolean }) {
             <Settings className="h-4 w-4" />
             Settings
           </Link>
+          {onCreateWorkspace ? (
+            <button
+              type="button"
+              role="menuitem"
+              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
+              onClick={() => {
+                setOpen(false);
+                onCreateWorkspace();
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              Create workspace
+            </button>
+          ) : null}
           <button
             type="button"
             role="menuitem"

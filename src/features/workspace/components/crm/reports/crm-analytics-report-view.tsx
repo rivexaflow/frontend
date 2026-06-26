@@ -64,13 +64,6 @@ export function CrmAnalyticsReportView({ entity }: Props) {
   return (
     <div className="pb-8">
       <CrmPageHeader
-        eyebrow={`CRM · Report · ${entityLabel}`}
-        title="Report"
-        description={
-          entity === "lead"
-            ? "Conversion trends, source ROI, team performance, and pipeline intake."
-            : "Revenue pipeline analytics, win rates, rep performance, and account breakdown."
-        }
         metrics={dataset.kpis.slice(0, 3).map((k) => ({ label: k.label, value: k.value }))}
         actions={
           <div className="flex flex-wrap gap-2">

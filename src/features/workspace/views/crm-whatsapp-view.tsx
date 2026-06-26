@@ -23,9 +23,6 @@ export function CrmWhatsappView() {
   return (
     <div className="pb-8">
       <CrmPageHeader
-        eyebrow="Messaging · CRM"
-        title="WhatsApp"
-        description="Conversations linked to leads — respond without leaving the CRM."
         metrics={[
           { label: "Threads", value: threads.length },
           { label: "Unread", value: unread },

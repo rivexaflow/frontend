@@ -1,7 +1,11 @@
-import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
-import { workspacePaths } from "@/lib/workspace/paths";
+import { HrmAttendanceAllView } from "@/features/workspace/views/hrm-attendance-all-view";
 
 export default function HrmAttendanceAllPage() {
-  redirect(workspacePaths.hrmAttendance);
+  return (
+    <Suspense>
+      <HrmAttendanceAllView />
+    </Suspense>
+  );
 }
