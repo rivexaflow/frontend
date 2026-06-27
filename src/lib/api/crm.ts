@@ -48,7 +48,7 @@ export function normalizeLead(raw: any): LeadRecord {
     fitScore,
     engagementScore,
     scoreBand,
-    status: (raw.stageId || raw.stage || "new") as LeadStatus,
+    status: (raw.stage || "new") as LeadStatus,
     lifecycle: custom.lifecycle || "lead",
     owner: raw.assignedTo || "Unassigned",
     slaStatus: custom.slaStatus || "on_track",
@@ -361,5 +361,18 @@ export async function deleteCrmStage(pipelineId: string, stageId: string): Promi
     assertApiSuccess(data);
   } catch (err) {
     throw toApiError(err, "Could not delete stage.");
+  }
+}
+
+export async function reorderCrmStages(
+  pipelineId: string,
+  stages: { id: string; position: number }[],
+): Promise<CrmStage[]> {
+  try {
+    const { data } = await apiClient.post<any>(endpoints.crm.reorderStages(pipelineId), { stages });
+    assertApiSuccess(data);
+    return unwrapApiData(data) || [];
+  } catch (err) {
+    throw toApiError(err, "Could not reorder stages.");
   }
 }

@@ -222,7 +222,7 @@ export function CrmLeadsView() {
     setSelectedLead((sel) => (sel?.id === id ? { ...sel, status, boardStage: status } : sel));
 
     try {
-      await updateCrmLead(id, { status, stageId: status });
+      await updateCrmLead(id, { stage: status });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update lead status.");
       // Rollback to database state
@@ -396,8 +396,10 @@ export function CrmLeadsView() {
                     if (changedLead) {
                       try {
                         await updateCrmLead(changedLead.id, {
-                          status: changedLead.status,
-                          stageId: changedLead.boardStage,
+                          stage: changedLead.status,
+                          stageId: changedLead.boardStage && changedLead.boardStage !== changedLead.status
+                            ? changedLead.boardStage
+                            : undefined,
                         });
                       } catch (err) {
                         setError(err instanceof Error ? err.message : "Failed to update lead stage.");

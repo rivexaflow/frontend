@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Eye } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Eye, Loader2 } from "lucide-react";
 
 import { CrmPageHeader } from "@/features/workspace/components/crm/crm-workspace-header";
 import { CrmShell } from "@/features/workspace/components/crm/crm-panel";
@@ -23,11 +23,12 @@ import {
   formatDealValue,
   type DealRecord,
 } from "@/features/workspace/data/deals-demo";
+import { crmExtendedApi } from "@/lib/api/crm-extended";
 
 const EMPTY_FILTERS: DealsFilters = { query: "", stage: "", owner: "" };
 
 export function CrmDealsView() {
-  const [deals, setDeals] = useState<DealRecord[]>(DEMO_DEALS);
+  const [deals, setDeals] = useState<DealRecord[]>([]);
   const [filters, setFilters] = useState<DealsFilters>(EMPTY_FILTERS);
   useListSearchFromUrl((value) => setFilters((current) => ({ ...current, query: value })));
   const [viewMode, setViewMode] = useState<CrmViewMode>("board");
@@ -35,6 +36,27 @@ export function CrmDealsView() {
   const [editDeal, setEditDeal] = useState<DealRecord | null>(null);
   const [selectedDeal, setSelectedDeal] = useState<DealRecord | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const loadDeals = useCallback(async () => {
+    try {
+      const data = await crmExtendedApi.getDeals();
+      if (Array.isArray(data) && data.length > 0) {
+        setDeals(data);
+      } else {
+        setDeals(DEMO_DEALS);
+      }
+    } catch {
+      setDeals(DEMO_DEALS);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadDeals();
+  }, [loadDeals]);
 
   const { effectiveQuery } = useDebouncedSearch(filters.query, { minLength: 0, debounceMs: 250 });
 
@@ -123,7 +145,7 @@ export function CrmDealsView() {
 
   const handleRefresh = () => {
     setRefreshing(true);
-    window.setTimeout(() => setRefreshing(false), 400);
+    loadDeals();
   };
 
   return (
@@ -154,15 +176,30 @@ export function CrmDealsView() {
         />
 
         <div className="p-3 md:p-4">
-          {viewMode === "board" ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            </div>
+          ) : viewMode === "board" ? (
             <DealsKanbanBoard
                 deals={filtered}
-                onChange={(next) => {
+                onChange={async (next) => {
+                  const changedDeal = next.find((nd) => {
+                    const old = deals.find((d) => d.id === nd.id);
+                    return old && old.stage !== nd.stage;
+                  });
                   const ids = new Set(filtered.map((d) => d.id));
                   setDeals((prev) => {
                     const updated = new Map(next.filter((d) => ids.has(d.id)).map((d) => [d.id, d]));
                     return prev.map((d) => updated.get(d.id) ?? d);
                   });
+                  if (changedDeal) {
+                    try {
+                      await crmExtendedApi.updateDealStage(changedDeal.id, changedDeal.stage);
+                    } catch {
+                      loadDeals();
+                    }
+                  }
                 }}
                 onSelect={setSelectedDeal}
                 searchQuery={effectiveQuery}

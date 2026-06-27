@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Plus, RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Loader2, Plus, RefreshCw } from "lucide-react";
 
 import { CrmShell } from "@/features/workspace/components/crm/crm-panel";
 import { crm } from "@/features/workspace/components/crm/crm-styles";
@@ -16,6 +16,7 @@ import {
   PIPELINE_STAGES,
   type OpportunityRecord,
 } from "@/features/workspace/data/crm-demo";
+import { crmExtendedApi } from "@/lib/api/crm-extended";
 
 const PIPELINE_OPTIONS = [
   { id: "sales", label: "Sales pipeline" },
@@ -24,11 +25,43 @@ const PIPELINE_OPTIONS = [
 ] as const;
 
 export function CrmPipelinesView() {
-  const [opportunities, setOpportunities] = useState<OpportunityRecord[]>(DEMO_OPPORTUNITIES);
+  const [opportunities, setOpportunities] = useState<OpportunityRecord[]>([]);
   const [pipelineId, setPipelineId] = useState<(typeof PIPELINE_OPTIONS)[number]["id"]>("sales");
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const loadOpportunities = useCallback(async () => {
+    try {
+      const data = await crmExtendedApi.getDeals();
+      if (Array.isArray(data) && data.length > 0) {
+        const mapped: OpportunityRecord[] = data.map((d: any) => ({
+          id: d.id || d._id,
+          title: d.title || d.name || "Untitled",
+          company: d.company || d.companyName || "",
+          value: Number(d.value) || 0,
+          stageId: d.stageId || d.stage || "discovery",
+          owner: d.owner || d.assignedTo || "Unassigned",
+          closeDate: d.closeDate || new Date().toISOString().slice(0, 10),
+          priority: d.priority || "medium",
+          probability: Number(d.probability) || 25,
+        }));
+        setOpportunities(mapped);
+      } else {
+        setOpportunities(DEMO_OPPORTUNITIES);
+      }
+    } catch {
+      setOpportunities(DEMO_OPPORTUNITIES);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadOpportunities();
+  }, [loadOpportunities]);
 
   const { effectiveQuery, validation } = useDebouncedSearch(search, { minLength: 2 });
 
@@ -44,7 +77,7 @@ export function CrmPipelinesView() {
 
   const handleRefresh = () => {
     setRefreshing(true);
-    window.setTimeout(() => setRefreshing(false), 400);
+    loadOpportunities();
   };
 
   return (
@@ -103,11 +136,17 @@ export function CrmPipelinesView() {
         </div>
 
         <div className="bg-slate-50/40 p-3 md:p-4 dark:bg-slate-950/20">
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            </div>
+          ) : (
           <PipelineKanbanBoard
             opportunities={opportunities}
             onChange={setOpportunities}
             searchQuery={effectiveQuery}
           />
+          )}
         </div>
       </CrmShell>
 
