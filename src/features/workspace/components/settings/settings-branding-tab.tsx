@@ -266,42 +266,130 @@ export function SettingsBrandingTab({ companyId }: Props) {
           {section === "identity" ? (
             <>
               <BrandingPreviewPanel brandName={brandName} logo={logoUrl} theme={theme} />
-              <SettingsSection title="Brand identity" description="Logo, favicon, and login page branding." icon={Sparkles}>
+
+              <SettingsSection title="Brand identity & core assets" description="Customize corporate logo, browser favicon, and workspace tab titles." icon={Sparkles}>
                 <div className="grid gap-5 md:grid-cols-2">
-                  <SettingsField label="Brand name" htmlFor="brand-name">
-                    <input id="brand-name" type="text" className={cn(crm.input, "w-full")} value={brandName} onChange={(e) => setBrandName(e.target.value)} placeholder="Acme Inc." />
+                  <SettingsField label="Brand / Company name" htmlFor="brand-name">
+                    <input
+                      id="brand-name"
+                      type="text"
+                      className={cn(crm.input, "w-full text-xs font-semibold focus:ring-2 focus:ring-blue-500/20")}
+                      value={brandName}
+                      onChange={(e) => setBrandName(e.target.value)}
+                      placeholder="Acme Enterprise Inc."
+                    />
                   </SettingsField>
-                  <SettingsField label="Browser tab title" htmlFor="browser-title">
-                    <input id="browser-title" type="text" className={cn(crm.input, "w-full")} value={theme.browserTitle || ""} onChange={(e) => updateTheme({ browserTitle: e.target.value })} placeholder={`${brandName || "Company"} · Workspace`} />
+                  <SettingsField label="Browser tab title override" htmlFor="browser-title">
+                    <input
+                      id="browser-title"
+                      type="text"
+                      className={cn(crm.input, "w-full text-xs font-semibold focus:ring-2 focus:ring-blue-500/20")}
+                      value={theme.browserTitle || ""}
+                      onChange={(e) => updateTheme({ browserTitle: e.target.value })}
+                      placeholder={`${brandName || "Company"} · Enterprise Workspace`}
+                    />
                   </SettingsField>
                 </div>
-                <div className="mt-5 grid gap-5 md:grid-cols-2">
-                  <ImageUploadField id="logo-upload" label="Primary logo" accept="image/png,image/svg+xml,image/jpeg" value={logoUrl} onChange={setLogoUrl} onError={setLogoError} hint="PNG/SVG/JPEG, max 1 MB." />
-                  <ImageUploadField id="favicon-upload" label="Favicon" accept="image/png,image/x-icon,image/svg+xml" value={theme.favicon || ""} onChange={(v) => updateTheme({ favicon: v })} onError={setFaviconError} hint="32×32 PNG or ICO." />
+
+                <div className="mt-6 grid gap-6 md:grid-cols-2">
+                  <div className="rounded-2xl border border-slate-200/80 bg-slate-50/50 p-4 transition-all hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900/50">
+                    <ImageUploadField
+                      id="logo-upload"
+                      label="Primary corporate logo"
+                      accept="image/png,image/svg+xml,image/jpeg"
+                      value={logoUrl}
+                      onChange={setLogoUrl}
+                      onError={setLogoError}
+                      hint="High-res PNG, SVG, or JPEG (Max 1 MB)"
+                    />
+                  </div>
+                  <div className="rounded-2xl border border-slate-200/80 bg-slate-50/50 p-4 transition-all hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900/50">
+                    <ImageUploadField
+                      id="favicon-upload"
+                      label="Browser favicon icon"
+                      accept="image/png,image/x-icon,image/svg+xml"
+                      value={theme.favicon || ""}
+                      onChange={(v) => updateTheme({ favicon: v })}
+                      onError={setFaviconError}
+                      hint="32×32 or 64×64 PNG, ICO, or SVG"
+                    />
+                  </div>
                 </div>
-                {(logoError || faviconError) && <p className="mt-2 text-xs text-rose-600">{logoError || faviconError}</p>}
-                {(logoUrl || theme.favicon) && (
-                  <div className="mt-4 flex items-center gap-4 rounded-xl border border-slate-100 bg-slate-50/50 p-4 dark:border-slate-800">
-                    <AssetPreview src={logoUrl} alt="Logo" size={56} />
-                    <AssetPreview src={theme.favicon || ""} alt="Favicon" size={32} />
+
+                {(logoError || faviconError) && (
+                  <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300">
+                    {logoError || faviconError}
                   </div>
                 )}
-                <div className="mt-5 space-y-4 border-t border-slate-100 pt-5 dark:border-slate-800">
-                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Login page</p>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <SettingsField label="Welcome title" htmlFor="login-title">
-                      <input id="login-title" type="text" className={cn(crm.input, "w-full")} value={theme.loginWelcomeTitle || ""} onChange={(e) => updateTheme({ loginWelcomeTitle: e.target.value })} />
-                    </SettingsField>
-                    <SettingsField label="Welcome message" htmlFor="login-message">
-                      <input id="login-message" type="text" className={cn(crm.input, "w-full")} value={theme.loginWelcomeMessage || ""} onChange={(e) => updateTheme({ loginWelcomeMessage: e.target.value })} />
-                    </SettingsField>
+
+                {(logoUrl || theme.favicon) && (
+                  <div className="mt-5 flex items-center gap-6 rounded-2xl border border-slate-200/80 bg-gradient-to-br from-slate-50 to-white p-4.5 shadow-sm dark:border-slate-800 dark:from-slate-900 dark:to-slate-950">
+                    {logoUrl ? (
+                      <div className="space-y-1 text-center">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Logo preview</span>
+                        <AssetPreview src={logoUrl} alt="Logo" size={60} />
+                      </div>
+                    ) : null}
+                    {theme.favicon ? (
+                      <div className="space-y-1 text-center">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Favicon preview</span>
+                        <AssetPreview src={theme.favicon} alt="Favicon" size={36} />
+                      </div>
+                    ) : null}
                   </div>
-                  <SettingsField label="Background image URL" htmlFor="login-bg">
-                    <input id="login-bg" type="text" className={cn(crm.input, "w-full")} value={theme.loginBackgroundUrl || ""} onChange={(e) => updateTheme({ loginBackgroundUrl: e.target.value })} />
+                )}
+              </SettingsSection>
+
+              <SettingsSection title="Login portal customization" description="Whitelabel the client sign-in experience with custom titles and messages." icon={Sparkles}>
+                <div className="grid gap-5 md:grid-cols-2">
+                  <SettingsField label="Welcome portal title" htmlFor="login-title">
+                    <input
+                      id="login-title"
+                      type="text"
+                      className={cn(crm.input, "w-full text-xs font-semibold")}
+                      value={theme.loginWelcomeTitle || ""}
+                      onChange={(e) => updateTheme({ loginWelcomeTitle: e.target.value })}
+                      placeholder="Welcome back"
+                    />
                   </SettingsField>
-                  <label className="flex items-center gap-2 text-sm text-slate-600">
-                    <input type="checkbox" checked={Boolean(theme.hidePoweredBy)} onChange={(e) => updateTheme({ hidePoweredBy: e.target.checked })} className="rounded" />
-                    Hide &quot;Powered by Rivexaflow&quot;
+                  <SettingsField label="Welcome subtitle message" htmlFor="login-message">
+                    <input
+                      id="login-message"
+                      type="text"
+                      className={cn(crm.input, "w-full text-xs font-semibold")}
+                      value={theme.loginWelcomeMessage || ""}
+                      onChange={(e) => updateTheme({ loginWelcomeMessage: e.target.value })}
+                      placeholder="Sign in to your enterprise workspace portal"
+                    />
+                  </SettingsField>
+                </div>
+
+                <div className="mt-4">
+                  <SettingsField label="Custom background image URL" htmlFor="login-bg">
+                    <input
+                      id="login-bg"
+                      type="text"
+                      className={cn(crm.input, "w-full text-xs font-mono")}
+                      value={theme.loginBackgroundUrl || ""}
+                      onChange={(e) => updateTheme({ loginBackgroundUrl: e.target.value })}
+                      placeholder="https://images.unsplash.com/photo-..."
+                    />
+                  </SettingsField>
+                </div>
+
+                <div className="mt-6 flex items-center justify-between rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 transition-all hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900/50">
+                  <div>
+                    <p className="text-xs font-bold text-slate-900 dark:text-white">Whitelabel Copyright Footer</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Remove &quot;Powered by Rivexaflow&quot; branding from the portal login screen</p>
+                  </div>
+                  <label className="relative inline-flex cursor-pointer items-center">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(theme.hidePoweredBy)}
+                      onChange={(e) => updateTheme({ hidePoweredBy: e.target.checked })}
+                      className="peer sr-only"
+                    />
+                    <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none dark:border-gray-600 dark:bg-slate-700" />
                   </label>
                 </div>
               </SettingsSection>
