@@ -9,8 +9,8 @@ import {
   selectClassName,
 } from "@/features/workspace/components/enterprise/enterprise-form-modal";
 import { LEAVE_TYPES } from "@/features/workspace/data/hrm-leave-demo";
-import { fetchHrEmployees } from "@/lib/api/hrm";
-import type { ApplyLeavePayload, HrmEmployeeRecord, LeaveType } from "@/types/hrm";
+import { fetchHrEmployees, fetchHrLeaveBalances } from "@/lib/api/hrm";
+import type { ApplyLeavePayload, HrmEmployeeRecord, LeaveBalance, LeaveType } from "@/types/hrm";
 
 type FormValues = {
   employeeId: string;
@@ -38,6 +38,8 @@ type Props = {
 export function ApplyLeaveModal({ open, companyId, onClose, onSubmit }: Props) {
   const [values, setValues] = useState<FormValues>(EMPTY);
   const [employees, setEmployees] = useState<HrmEmployeeRecord[]>([]);
+  const [balances, setBalances] = useState<LeaveBalance[]>([]);
+  const [balancesLoading, setBalancesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -54,6 +56,18 @@ export function ApplyLeaveModal({ open, companyId, onClose, onSubmit }: Props) {
       .then(setEmployees)
       .catch(() => setEmployees([]));
   }, [open, companyId]);
+
+  useEffect(() => {
+    if (!open || !companyId || !values.employeeId) {
+      setBalances([]);
+      return;
+    }
+    setBalancesLoading(true);
+    void fetchHrLeaveBalances(companyId, values.employeeId)
+      .then(setBalances)
+      .catch(() => setBalances([]))
+      .finally(() => setBalancesLoading(false));
+  }, [open, companyId, values.employeeId]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -123,6 +137,29 @@ export function ApplyLeaveModal({ open, companyId, onClose, onSubmit }: Props) {
             ))}
           </select>
         </FormField>
+
+        {values.employeeId ? (
+          <div className="rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/40">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Leave balances</p>
+            {balancesLoading ? (
+              <p className="mt-2 text-xs text-slate-500">Loading balances…</p>
+            ) : balances.length === 0 ? (
+              <p className="mt-2 text-xs text-slate-500">No balance data for this employee.</p>
+            ) : (
+              <ul className="mt-2 flex flex-wrap gap-2">
+                {balances.map((b) => (
+                  <li
+                    key={String(b.leaveType)}
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-900"
+                  >
+                    <span className="font-medium text-slate-700 dark:text-slate-300">{b.label ?? b.leaveType}</span>
+                    <span className="ml-1.5 font-bold tabular-nums text-[#191970]">{b.balance}d left</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : null}
 
         <FormField label="Leave type" htmlFor="lv-type">
           <select

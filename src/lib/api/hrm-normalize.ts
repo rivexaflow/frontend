@@ -252,10 +252,9 @@ export function normalizeDepartmentsList(raw: unknown): HrmDepartment[] {
     const r = raw as Record<string, unknown>;
     const list = pick(r, "items", "departments", "data", "results");
     if (Array.isArray(list)) return normalizeDepartmentsList(list);
-    const single = normalizeDepartment(raw);
-    return single ? [single] : [];
   }
-  return [];
+  const single = normalizeDepartment(raw);
+  return single ? [single] : [];
 }
 
 export function normalizeRole(raw: unknown): HrmRole | null {
@@ -330,10 +329,6 @@ export function toUpdateEmployeeBody(payload: UpdateEmployeePayload): Record<str
   if (payload.status !== undefined) body.status = payload.status;
   if (payload.joiningDate !== undefined) body.joiningDate = toIsoDate(payload.joiningDate);
   if (payload.workMode !== undefined) body.workMode = payload.workMode;
-  if (payload.roleType !== undefined) body.roleType = payload.roleType;
-  if (payload.departmentId !== undefined) body.departmentId = payload.departmentId;
-  if (payload.teamId !== undefined) body.teamId = payload.teamId;
-  if (payload.assignedTeamIds !== undefined) body.assignedTeamIds = payload.assignedTeamIds;
   return body;
 }
 
@@ -341,7 +336,6 @@ export function toCreateDepartmentBody(payload: CreateDepartmentPayload): Record
   return {
     name: payload.name,
     headId: payload.headId ?? undefined,
-    parentId: payload.parentId ?? undefined,
   };
 }
 
@@ -349,7 +343,6 @@ export function toUpdateDepartmentBody(payload: UpdateDepartmentPayload): Record
   const body: Record<string, unknown> = {};
   if (payload.name !== undefined) body.name = payload.name;
   if (payload.headId !== undefined) body.headId = payload.headId ?? null;
-  if (payload.parentId !== undefined) body.parentId = payload.parentId ?? null;
   return body;
 }
 
@@ -1052,7 +1045,14 @@ export function normalizeHrmSettings(raw: unknown, defaults: HrmSetupSettings): 
     regional: mergeSetupSection(defaults, "regional", settingsRoot.regional ?? r.regional),
     leave: mergeSetupSection(defaults, "leave", settingsRoot.leave ?? r.leave),
     attendance: mergeSetupSection(defaults, "attendance", settingsRoot.attendance ?? r.attendance),
-    payroll: mergeSetupSection(defaults, "payroll", settingsRoot.payroll ?? r.payroll),
+    payroll: {
+      ...mergeSetupSection(defaults, "payroll", settingsRoot.payroll ?? r.payroll),
+      salaryComponents:
+        (() => {
+          const merged = mergeSetupSection(defaults, "payroll", settingsRoot.payroll ?? r.payroll);
+          return merged.salaryComponents?.length ? merged.salaryComponents : defaults.payroll.salaryComponents;
+        })(),
+    },
     compliance: mergeSetupSection(defaults, "compliance", settingsRoot.compliance ?? r.compliance),
     notifications: mergeSetupSection(defaults, "notifications", settingsRoot.notifications ?? r.notifications),
     integrations: mergeSetupSection(defaults, "integrations", settingsRoot.integrations ?? r.integrations),

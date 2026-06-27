@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { getProfile } from "@/lib/api/auth";
 import { onboardingApi } from "@/lib/api/onboarding";
 import { applyOnboardingStateToAuthUser } from "@/lib/api/onboarding-sync";
+import { applyBrandTheme } from "@/lib/workspace/apply-brand-theme";
 import { resolveCompanyId, syncWorkspaceContext } from "@/lib/workspace/company-context";
 import { authStore } from "@/stores/auth.store";
 import { apiClient } from "@/lib/api/client";
@@ -85,9 +86,11 @@ export function SessionHydrator() {
                 brandName: c.brandName,
                 themeConfig: c.themeConfig,
               });
-              if (c.themeConfig && typeof c.themeConfig === 'object' && c.themeConfig.primaryColor) {
-                document.documentElement.style.setProperty('--primary-color', c.themeConfig.primaryColor as string);
-              }
+              applyBrandTheme(
+                c.themeConfig && typeof c.themeConfig === "object"
+                  ? (c.themeConfig as Parameters<typeof applyBrandTheme>[0])
+                  : null,
+              );
             }
           } catch (companyErr) {
             console.error("Failed to load company details on hydration:", companyErr);

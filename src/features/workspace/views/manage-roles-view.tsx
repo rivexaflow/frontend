@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { KeyRound, Lock, Shield, Users } from "lucide-react";
+import { Shield } from "lucide-react";
 
 import { RoleInspector } from "@/features/workspace/components/roles/role-inspector";
 import { RolesCatalogList } from "@/features/workspace/components/roles/roles-catalog-list";
@@ -10,13 +10,11 @@ import {
   type RoleAssignmentFilter,
   type RoleTypeFilter,
 } from "@/features/workspace/components/roles/roles-directory-toolbar";
-import { IpPolicyModal } from "@/features/workspace/components/roles/ip-policy-modal";
 import type { WorkspaceRoleRecord } from "@/features/workspace/data/workspace-roles-demo";
 import {
   cloneStageAccess,
   workspaceRolesStore,
 } from "@/stores/workspace-roles.store";
-import { cn } from "@/lib/utils/cn";
 
 export function ManageRolesView() {
   const roles = workspaceRolesStore((s) => s.roles);
@@ -27,7 +25,6 @@ export function ManageRolesView() {
   const [typeFilter, setTypeFilter] = useState<RoleTypeFilter>("all");
   const [assignmentFilter, setAssignmentFilter] = useState<RoleAssignmentFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [isIpModalOpen, setIsIpModalOpen] = useState(false);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -53,10 +50,6 @@ export function ManageRolesView() {
     }
   }, [filtered, selectedId]);
 
-  const assignedMemberIds = new Set(roles.flatMap((r) => r.memberIds));
-  const totalPermissions = roles.reduce((sum, r) => sum + r.permissionKeys.length, 0);
-  const systemRoles = roles.filter((r) => r.systemLocked).length;
-
   const handleDelete = (id: string) => {
     removeRole(id);
   };
@@ -76,36 +69,17 @@ export function ManageRolesView() {
 
   return (
     <div className="pb-10">
-      <header className="mb-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
-          {[
-            { label: "Active Policies", value: roles.length, icon: Shield, desc: "Configured roles", color: "from-blue-500/10 to-indigo-500/10 text-[#191970] dark:text-blue-400" },
-            { label: "Total Permission Grants", value: totalPermissions, icon: KeyRound, desc: "Assigned rights", color: "from-amber-500/10 to-orange-500/10 text-amber-600" },
-            { label: "Assigned Members", value: assignedMemberIds.size, icon: Users, desc: "Active workspace users", color: "from-emerald-500/10 to-teal-500/10 text-emerald-600" },
-            { label: "System Defaults", value: systemRoles, icon: Lock, desc: "Read-only templates", color: "from-purple-500/10 to-pink-500/10 text-purple-600" },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="group relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">{stat.label}</span>
-                  <span className="mt-1 block text-2xl font-bold tabular-nums text-slate-900 dark:text-white leading-none">
-                    {stat.value}
-                  </span>
-                </div>
-                <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br transition-all group-hover:scale-110", stat.color)}>
-                  <stat.icon className="h-5 w-5" />
-                </div>
-              </div>
-              <p className="mt-2 text-[10px] text-slate-550 dark:text-slate-450">{stat.desc}</p>
-            </div>
-          ))}
-        </div>
+      <header className="mb-5">
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+          Governance · Roles & permissions
+        </p>
+        <h1 className="mt-1 text-xl font-bold tracking-tight text-slate-900 dark:text-white">Roles & permissions</h1>
+        <p className="mt-1 max-w-2xl text-sm text-slate-600 dark:text-slate-400">
+          Select a role to review members and permissions. Use Edit permissions to change access.
+        </p>
       </header>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-md dark:border-slate-800 dark:bg-slate-900">
+      <div className="overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <RolesDirectoryToolbar
           query={query}
           onQueryChange={setQuery}
@@ -114,7 +88,6 @@ export function ManageRolesView() {
           assignmentFilter={assignmentFilter}
           onAssignmentFilterChange={setAssignmentFilter}
           resultCount={filtered.length}
-          onManageIpPolicies={() => setIsIpModalOpen(true)}
         />
 
         <div className="grid min-h-[560px] lg:grid-cols-[minmax(280px,340px)_1fr]">
@@ -146,8 +119,6 @@ export function ManageRolesView() {
           </div>
         </div>
       </div>
-
-      <IpPolicyModal open={isIpModalOpen} onClose={() => setIsIpModalOpen(false)} />
     </div>
   );
 }

@@ -1,5 +1,11 @@
+import { Suspense } from "react";
+
 import { KycCenterView } from "@/features/workspace/views/kyc-center-view";
 
 export default function KycPage() {
-  return <KycCenterView />;
+  return (
+    <Suspense>
+      <KycCenterView />
+    </Suspense>
+  );
 }

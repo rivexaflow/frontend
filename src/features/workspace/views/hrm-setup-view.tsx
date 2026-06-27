@@ -2,6 +2,7 @@
 
 import type { ElementType } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   AlertCircle,
   Bell,
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 
 import { CrmPanel, CrmShell } from "@/features/workspace/components/crm/crm-panel";
+import { PayrollSalaryComponentsEditor } from "@/features/workspace/components/hrm/payroll/payroll-salary-components-editor";
 import { HrmCompactBanner } from "@/features/workspace/components/hrm/hrm-compact-banner";
 import { OrgChartStatStrip } from "@/features/workspace/components/hrm/org-chart-stat-strip";
 import {
@@ -60,7 +62,12 @@ const selectClass =
 
 export function HrmSetupView() {
   const companyId = useHrCompanyId();
-  const [section, setSection] = useState<HrmSetupSection>("general");
+  const searchParams = useSearchParams();
+  const initialSection = searchParams.get("section");
+  const [section, setSection] = useState<HrmSetupSection>(() => {
+    if (initialSection && initialSection in SECTION_ICONS) return initialSection as HrmSetupSection;
+    return "general";
+  });
   const [settings, setSettings] = useState<HrmSetupSettings>(DEFAULT_HRM_SETUP);
   const [savedSection, setSavedSection] = useState<HrmSetupSection | null>(null);
   const [loading, setLoading] = useState(true);
@@ -359,6 +366,10 @@ export function HrmSetupView() {
                 <Toggle label="Provident fund (PF)" checked={settings.payroll.pfEnabled} onChange={(v) => patch("payroll", { pfEnabled: v })} />
                 <Toggle label="ESI / social insurance" checked={settings.payroll.esiEnabled} onChange={(v) => patch("payroll", { esiEnabled: v })} />
                 <Toggle label="Pro-rata salary on join date" checked={settings.payroll.proRataOnJoin} onChange={(v) => patch("payroll", { proRataOnJoin: v })} />
+                <PayrollSalaryComponentsEditor
+                  components={settings.payroll.salaryComponents}
+                  onChange={(salaryComponents) => patch("payroll", { salaryComponents })}
+                />
               </div>
             ) : null}
 

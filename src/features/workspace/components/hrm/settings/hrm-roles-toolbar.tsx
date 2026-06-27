@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Search } from "lucide-react";
+import { Plus, RefreshCw, Search } from "lucide-react";
 
 import { cn } from "@/lib/utils/cn";
 
@@ -14,11 +14,13 @@ type Props = {
   resultCount: number;
   onCreateRole: () => void;
   canManage?: boolean;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 };
 
 const TYPE_TABS: { id: HrmRoleTypeFilter; label: string }[] = [
-  { id: "all", label: "All roles" },
-  { id: "system", label: "Templates" },
+  { id: "all", label: "All" },
+  { id: "system", label: "Built-in" },
   { id: "custom", label: "Custom" },
 ];
 
@@ -30,6 +32,8 @@ export function HrmRolesToolbar({
   resultCount,
   onCreateRole,
   canManage = true,
+  onRefresh,
+  refreshing = false,
 }: Props) {
   return (
     <div className="space-y-3 border-b border-slate-200/90 px-4 py-4 dark:border-slate-800">
@@ -49,6 +53,17 @@ export function HrmRolesToolbar({
           <span className="text-xs text-slate-500">
             <span className="font-semibold tabular-nums text-slate-800 dark:text-slate-200">{resultCount}</span> roles
           </span>
+          {onRefresh ? (
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={refreshing}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300"
+            >
+              <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+              Refresh
+            </button>
+          ) : null}
           {canManage ? (
             <button
               type="button"

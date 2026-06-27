@@ -20,6 +20,11 @@ import {
 import {
   ProfileDataTable,
 } from "@/features/workspace/components/hrm/employees/profile/employee-profile-shell";
+import { EmployeeSalaryStructureEditor } from "@/features/workspace/components/hrm/employees/profile/employee-salary-structure-editor";
+import {
+  DEMO_EMPLOYEE_SALARY_STRUCTURES,
+  DEFAULT_PAYROLL_SALARY_COMPONENTS,
+} from "@/features/workspace/data/hrm-payroll-salary-components";
 import { EmployeeStatusBadge } from "@/features/workspace/components/hrm/employees/employee-status-badge";
 import {
   getManagerName,
@@ -232,10 +237,20 @@ export function EmployeeProfileSectionContent({ profile, section, allEmployees, 
 
           {section === "payroll" ? (
             <>
-              <FormSectionBlock title="Salary structure" description="Compensation breakdown and payment details.">
+              <FormSectionBlock title="Salary structure" description="Monthly earning & deduction amounts — flows to payroll runs and payslips.">
+                <EmployeeSalaryStructureEditor
+                  components={DEFAULT_PAYROLL_SALARY_COMPONENTS}
+                  amounts={
+                    profile.payroll.componentAmounts?.length
+                      ? profile.payroll.componentAmounts
+                      : DEMO_EMPLOYEE_SALARY_STRUCTURES[profile.employeeCode] ?? []
+                  }
+                  currency={profile.payroll.currency ?? "INR"}
+                  onChange={(componentAmounts) => patchPayroll({ componentAmounts })}
+                />
+              </FormSectionBlock>
+              <FormSectionBlock title="Bank & tax" description="Payment rails and statutory preferences.">
                 <FormField label="CTC (annual)" value={profile.payroll.ctc != null ? String(profile.payroll.ctc) : ""} onChange={(v) => patchPayroll({ ctc: Number(v) || 0 })} type="number" />
-                <FormField label="Basic salary" value={profile.payroll.basicSalary != null ? String(profile.payroll.basicSalary) : ""} onChange={(v) => patchPayroll({ basicSalary: Number(v) || 0 })} type="number" />
-                <FormField label="Allowances" value={profile.payroll.allowances != null ? String(profile.payroll.allowances) : ""} onChange={(v) => patchPayroll({ allowances: Number(v) || 0 })} type="number" />
                 <FormField label="Bank name" value={profile.payroll.bankName ?? ""} onChange={(v) => patchPayroll({ bankName: v })} />
                 <FormField label="Account number" value={profile.payroll.accountNumber ?? ""} onChange={(v) => patchPayroll({ accountNumber: v })} />
                 <FormField label="IFSC / SWIFT code" value={profile.payroll.ifscSwift ?? ""} onChange={(v) => patchPayroll({ ifscSwift: v })} />

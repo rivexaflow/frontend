@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { Bell, Filter, Loader2, LogIn, LogOut, Search, Settings2 } from "lucide-react";
+import { useState } from "react";
+import { Bell, Loader2, LogIn, LogOut } from "lucide-react";
 
 import { WorkspaceAdvancedFiltersModal } from "@/components/layout/header/workspace-advanced-filters-modal";
 import { WorkspaceCreateWorkspaceModal } from "@/components/layout/header/workspace-create-workspace-modal";
+import { WorkspaceGlobalSearch } from "@/components/layout/header/workspace-global-search";
 import { WorkspaceSearchableFieldsModal } from "@/components/layout/header/workspace-searchable-fields-modal";
 import { WorkspaceTopbarUser } from "@/components/layout/header/workspace-topbar-user";
 import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher/workspace-switcher";
@@ -18,9 +19,6 @@ import { workspaceTopbarStore } from "@/stores/workspace-topbar.store";
 import { uiStore } from "@/stores/ui.store";
 import { cn } from "@/lib/utils/cn";
 
-const searchIconBtn =
-  "inline-flex h-6 w-6 items-center justify-center rounded-md text-slate-400 transition hover:bg-white hover:text-[#191970] dark:hover:bg-slate-800 dark:hover:text-[#2277FF]";
-
 export function WorkspaceHeader() {
   const pathname = usePathname();
   const pageTitle = resolveWorkspacePageTitle(pathname);
@@ -29,10 +27,6 @@ export function WorkspaceHeader() {
 
   const notifications = uiStore((s) => s.notifications);
   const unread = notifications.length;
-  const searchRef = useRef<HTMLInputElement>(null);
-
-  const quickSearch = workspaceTopbarStore((s) => s.quickSearch);
-  const setQuickSearch = workspaceTopbarStore((s) => s.setQuickSearch);
   const advancedFiltersActive = workspaceTopbarStore((s) => s.advancedFiltersActive);
 
   const [fieldsOpen, setFieldsOpen] = useState(false);
@@ -41,52 +35,13 @@ export function WorkspaceHeader() {
 
   const { companyId, clockStatus, loadingClock, handleClockAction } = useAttendanceClock();
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        searchRef.current?.focus();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
   const searchBar = (
-    <div className="relative w-full sm:w-44 md:w-48 lg:w-52 xl:w-56">
-      <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-      <input
-        ref={searchRef}
-        type="search"
-        value={quickSearch}
-        onChange={(e) => setQuickSearch(e.target.value)}
-        placeholder="Search…"
-        className="h-8 w-full rounded-lg border border-slate-200/90 bg-slate-50/90 pl-8 pr-[3.25rem] text-xs text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-[#2277FF] focus:bg-white focus:ring-2 focus:ring-[#2277FF]/12 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
-      />
-      <div className="absolute right-1 top-1/2 flex -translate-y-1/2 items-center gap-0.5">
-        <button
-          type="button"
-          onClick={() => setFieldsOpen(true)}
-          aria-label="Searchable fields"
-          title="Searchable fields"
-          className={searchIconBtn}
-        >
-          <Settings2 className="h-3 w-3" />
-        </button>
-        <button
-          type="button"
-          onClick={() => setFiltersOpen(true)}
-          aria-label="Advanced search"
-          title="Advanced search"
-          className={cn(
-            searchIconBtn,
-            advancedFiltersActive && "bg-[#191970]/10 text-[#191970] dark:bg-[#2277FF]/15 dark:text-[#2277FF]",
-          )}
-        >
-          <Filter className="h-3 w-3" />
-        </button>
-      </div>
-    </div>
+    <WorkspaceGlobalSearch
+      className="w-full min-w-0 md:w-56 lg:w-64 xl:w-72"
+      onOpenSearchableFields={() => setFieldsOpen(true)}
+      onOpenAdvancedFilters={() => setFiltersOpen(true)}
+      advancedFiltersActive={advancedFiltersActive}
+    />
   );
 
   return (

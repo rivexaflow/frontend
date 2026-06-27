@@ -1,5 +1,11 @@
+import { Suspense } from "react";
+
 import { CrmDealsView } from "@/features/workspace/views/crm-deals-view";
 
 export default function DealsPage() {
-  return <CrmDealsView />;
+  return (
+    <Suspense>
+      <CrmDealsView />
+    </Suspense>
+  );
 }
