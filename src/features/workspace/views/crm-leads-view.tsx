@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
-import { CrmPageHeader } from "@/features/workspace/components/crm/crm-workspace-header";
 import { CrmShell } from "@/features/workspace/components/crm/crm-panel";
 import type { CrmViewMode } from "@/features/workspace/components/crm/crm-view-toggle";
 import { LeadFormModal } from "@/features/workspace/components/crm/lead-form-modal";
@@ -18,6 +17,7 @@ import { LeadsKanbanBoard } from "@/features/workspace/components/crm/leads/lead
 import { LeadsPipelineHierarchy } from "@/features/workspace/components/crm/leads/leads-pipeline-hierarchy";
 import { LeadsInboxPanel } from "@/features/workspace/components/crm/leads/panels/leads-inbox-panel";
 import { useDebouncedSearch } from "@/features/workspace/hooks/use-debounced-search";
+import { useListSearchFromUrl } from "@/features/workspace/hooks/use-list-search-from-url";
 import { useHrCompanyId } from "@/features/workspace/hooks/use-hr-company-id";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { matchesLeadAdvancedFilters, matchesLeadQuickSearch } from "@/lib/workspace/lead-topbar-filters";
@@ -33,10 +33,14 @@ import {
   fetchCrmLeads,
   createCrmLead,
   updateCrmLead,
+  deleteCrmLead,
+  exportCrmLeadsCsv,
+  fetchCrmLead,
   fetchCrmPipelines,
   createCrmStage,
   updateCrmStage,
   deleteCrmStage,
+  type CrmLeadDetail,
   type CrmPipeline,
 } from "@/lib/api/crm";
 import { cn } from "@/lib/utils/cn";
@@ -74,11 +78,15 @@ export function CrmLeadsView() {
   const [activePipeline, setActivePipeline] = useState<CrmPipeline | null>(null);
   const [boardStages, setBoardStages] = useState<LeadBoardStage[]>([]);
   const [filters, setFilters] = useState<LeadsFilters>(EMPTY_FILTERS);
+  useListSearchFromUrl((value) => setFilters((current) => ({ ...current, query: value })));
   const [viewMode, setViewMode] = useState<CrmViewMode>("board");
   const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null);
   const [leadModalOpen, setLeadModalOpen] = useState(false);
   const [stageModalOpen, setStageModalOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<LeadRecord | null>(null);
+  const [selectedLeadDetail, setSelectedLeadDetail] = useState<CrmLeadDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [highlightStageId, setHighlightStageId] = useState<string | null>(null);
   const [pipelinePanelOpen, setPipelinePanelOpen] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -89,16 +97,6 @@ export function CrmLeadsView() {
   const searchableFields = workspaceTopbarStore((s) => s.searchableFields);
   const advancedFilters = workspaceTopbarStore((s) => s.advancedFilters);
   const advancedFiltersActive = workspaceTopbarStore((s) => s.advancedFiltersActive);
-
-  const metrics = useMemo(() => {
-    const total = leads.length;
-    const newLeads = leads.filter((l) => l.status === "new").length;
-    const inProgress = leads.filter(
-      (l) => l.status !== "new" && l.status !== "lost" && l.status !== "qualified" && l.status !== "move_to_activation"
-    ).length;
-    const qualified = leads.filter((l) => l.status === "qualified" || l.status === "move_to_activation").length;
-    return { total, newLeads, inProgress, qualified };
-  }, [leads]);
 
   const visibleStages = useMemo(() => {
     if (!selectedPhaseId || viewMode !== "board") return boardStages;
@@ -144,6 +142,50 @@ export function CrmLeadsView() {
   useEffect(() => {
     loadPipelinesAndLeads();
   }, [loadPipelinesAndLeads]);
+
+  useEffect(() => {
+    if (!selectedLead) {
+      setSelectedLeadDetail(null);
+      return;
+    }
+    setDetailLoading(true);
+    void fetchCrmLead(selectedLead.id)
+      .then(setSelectedLeadDetail)
+      .catch(() => setSelectedLeadDetail({ ...selectedLead, activities: [] }))
+      .finally(() => setDetailLoading(false));
+  }, [selectedLead]);
+
+  const handleExport = async () => {
+    setExporting(true);
+    setError(null);
+    try {
+      await exportCrmLeadsCsv({ search: effectiveQuery || undefined });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to export leads.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleDeleteLead = async (id: string) => {
+    setError(null);
+    try {
+      await deleteCrmLead(id);
+      setLeads((prev) => prev.filter((l) => l.id !== id));
+      setSelectedLead(null);
+      setSelectedLeadDetail(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete lead.");
+    }
+  };
+
+  const handleLeadDetailRefresh = async () => {
+    if (!selectedLead) return;
+    const detail = await fetchCrmLead(selectedLead.id);
+    setSelectedLeadDetail(detail);
+    setLeads((prev) => prev.map((l) => (l.id === detail.id ? detail : l)));
+    setSelectedLead(detail);
+  };
 
   const filtered = useMemo(() => {
     const q = effectiveQuery.trim().toLowerCase();
@@ -269,7 +311,7 @@ export function CrmLeadsView() {
   return (
     <div
       className={cn(
-        viewMode === "board" ? "flex h-[calc(100dvh-8.5rem)] min-h-0 flex-col" : "pb-4",
+        viewMode === "board" ? "flex h-[calc(100dvh-5.25rem)] min-h-0 flex-col" : "pb-4",
       )}
     >
       {error ? (
@@ -277,15 +319,6 @@ export function CrmLeadsView() {
           {error}
         </div>
       ) : null}
-
-      <CrmPageHeader
-        metrics={[
-          { label: "Total", value: metrics.total },
-          { label: "New", value: metrics.newLeads },
-          { label: "In progress", value: metrics.inProgress },
-          { label: "Qualified", value: metrics.qualified },
-        ]}
-      />
 
       <CrmShell
         className={cn(
@@ -300,21 +333,13 @@ export function CrmLeadsView() {
           onViewModeChange={setViewMode}
           onCreateLead={() => setLeadModalOpen(true)}
           onCreateStage={() => setStageModalOpen(true)}
+          onExport={() => void handleExport()}
+          exporting={exporting}
           onRefresh={handleRefresh}
           refreshing={refreshing}
           showPipelineToggle={viewMode === "board"}
           pipelinePanelOpen={pipelinePanelOpen}
           onPipelinePanelToggle={() => setPipelinePanelOpen((open) => !open)}
-          pipelines={pipelines}
-          activePipelineId={activePipeline?.id}
-          onActivePipelineChange={(id) => {
-            const pipe = pipelines.find((p) => p.id === id);
-            if (pipe) {
-              setActivePipeline(pipe);
-              setBoardStages(pipe.stages.map(mapDbStageToBoardStage));
-              setSelectedPhaseId(null);
-            }
-          }}
         />
 
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -411,10 +436,16 @@ export function CrmLeadsView() {
       />
 
       <LeadDetailDrawer
-        lead={selectedLead}
-        onClose={() => setSelectedLead(null)}
+        lead={selectedLeadDetail ?? selectedLead}
+        loading={detailLoading}
+        onClose={() => {
+          setSelectedLead(null);
+          setSelectedLeadDetail(null);
+        }}
         onStatusChange={updateStatus}
         onConvert={() => router.push("/crm/pipelines")}
+        onDelete={handleDeleteLead}
+        onActivityLogged={handleLeadDetailRefresh}
       />
     </div>
   );

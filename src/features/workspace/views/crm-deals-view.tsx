@@ -3,9 +3,6 @@
 import { useMemo, useState } from "react";
 import { Eye } from "lucide-react";
 
-import { cn } from "@/lib/utils/cn";
-import { useCurrentUser } from "@/hooks/use-current-user";
-
 import { CrmPageHeader } from "@/features/workspace/components/crm/crm-workspace-header";
 import { CrmShell } from "@/features/workspace/components/crm/crm-panel";
 import type { CrmViewMode } from "@/features/workspace/components/crm/crm-view-toggle";
@@ -14,53 +11,30 @@ import { DealFormModal } from "@/features/workspace/components/crm/deals/deal-fo
 import { DealsDirectoryToolbar, type DealsFilters } from "@/features/workspace/components/crm/deals/deals-directory-toolbar";
 import { DealsKanbanBoard } from "@/features/workspace/components/crm/deals/deals-kanban-board";
 import {
-  DealsPipelineHierarchy,
-  DEAL_PIPELINE_PHASES,
-} from "@/features/workspace/components/crm/deals/deals-pipeline-hierarchy";
-import {
   EnterpriseDataTable,
   StatusBadge,
   type TableColumn,
 } from "@/features/workspace/components/enterprise/enterprise-data-table";
 import { useDebouncedSearch } from "@/features/workspace/hooks/use-debounced-search";
+import { useListSearchFromUrl } from "@/features/workspace/hooks/use-list-search-from-url";
 import {
   DEAL_STAGE_META,
   DEMO_DEALS,
   formatDealValue,
   type DealRecord,
-  type DealStage,
 } from "@/features/workspace/data/deals-demo";
 
 const EMPTY_FILTERS: DealsFilters = { query: "", stage: "", owner: "" };
 
-const BOARD_STAGES: DealStage[] = [
-  "qualification",
-  "discovery",
-  "proposal",
-  "negotiation",
-  "closed_won",
-  "closed_lost",
-];
-
 export function CrmDealsView() {
-  const currentUser = useCurrentUser();
-  const isAdmin =
-    currentUser?.role === "ADMIN" ||
-    currentUser?.role === "SUPER_ADMIN" ||
-    currentUser?.profileRole === "owner" ||
-    currentUser?.profileRole === "manager";
-
   const [deals, setDeals] = useState<DealRecord[]>(DEMO_DEALS);
   const [filters, setFilters] = useState<DealsFilters>(EMPTY_FILTERS);
+  useListSearchFromUrl((value) => setFilters((current) => ({ ...current, query: value })));
   const [viewMode, setViewMode] = useState<CrmViewMode>("board");
   const [modalOpen, setModalOpen] = useState(false);
   const [editDeal, setEditDeal] = useState<DealRecord | null>(null);
   const [selectedDeal, setSelectedDeal] = useState<DealRecord | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-
-  const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null);
-  const [highlightStageId, setHighlightStageId] = useState<string | null>(null);
-  const [pipelinePanelOpen, setPipelinePanelOpen] = useState(true);
 
   const { effectiveQuery } = useDebouncedSearch(filters.query, { minLength: 0, debounceMs: 250 });
 
@@ -80,13 +54,6 @@ export function CrmDealsView() {
       );
     });
   }, [deals, filters.stage, filters.owner, effectiveQuery]);
-
-  const visibleStages = useMemo(() => {
-    if (!selectedPhaseId || viewMode !== "board") return BOARD_STAGES;
-    const phase = DEAL_PIPELINE_PHASES.find((p) => p.id === selectedPhaseId);
-    if (!phase) return BOARD_STAGES;
-    return BOARD_STAGES.filter((s) => phase.stageIds.includes(s));
-  }, [selectedPhaseId, viewMode]);
 
   const metrics = useMemo(() => {
     const open = deals.filter((d) => d.stage !== "closed_won" && d.stage !== "closed_lost");
@@ -160,11 +127,7 @@ export function CrmDealsView() {
   };
 
   return (
-    <div
-      className={cn(
-        viewMode === "board" ? "flex h-[calc(100dvh-8.5rem)] min-h-0 flex-col" : "pb-4",
-      )}
-    >
+    <div className="pb-4">
       <CrmPageHeader
         metrics={[
           { label: "Open", value: metrics.openCount },
@@ -174,11 +137,7 @@ export function CrmDealsView() {
         ]}
       />
 
-      <CrmShell
-        className={cn(
-          viewMode === "board" && "flex min-h-0 flex-1 flex-col overflow-hidden",
-        )}
-      >
+      <CrmShell>
         <DealsDirectoryToolbar
           filters={filters}
           onChange={setFilters}
@@ -192,40 +151,12 @@ export function CrmDealsView() {
           }}
           onRefresh={handleRefresh}
           refreshing={refreshing}
-          showPipelineToggle={viewMode === "board"}
-          pipelinePanelOpen={pipelinePanelOpen}
-          onPipelinePanelToggle={() => setPipelinePanelOpen((open) => !open)}
         />
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          {viewMode === "board" && pipelinePanelOpen ? (
-            <div className="shrink-0">
-              <DealsPipelineHierarchy
-                phases={DEAL_PIPELINE_PHASES}
-                stages={BOARD_STAGES}
+        <div className="p-3 md:p-4">
+          {viewMode === "board" ? (
+            <DealsKanbanBoard
                 deals={filtered}
-                activeStageId={highlightStageId}
-                onStageSelect={setHighlightStageId}
-                selectedPhaseId={selectedPhaseId}
-                onPhaseSelect={setSelectedPhaseId}
-              />
-            </div>
-          ) : null}
-
-          <div
-            className={cn(
-              viewMode === "board"
-                ? "flex min-h-0 flex-1 flex-col overflow-hidden p-3 md:p-4"
-                : "p-3 md:p-4",
-            )}
-          >
-            {viewMode === "board" ? (
-              <DealsKanbanBoard
-                className="min-h-0 flex-1"
-                stages={visibleStages}
-                deals={filtered}
-                isAdmin={isAdmin}
-                highlightStageId={highlightStageId}
                 onChange={(next) => {
                   const ids = new Set(filtered.map((d) => d.id));
                   setDeals((prev) => {
@@ -235,25 +166,24 @@ export function CrmDealsView() {
                 }}
                 onSelect={setSelectedDeal}
                 searchQuery={effectiveQuery}
-              />
-            ) : (
-              <EnterpriseDataTable
-                columns={columns}
-                rows={filtered}
-                emptyMessage="No deals match your filters."
-                renderActions={(row) => (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedDeal(row)}
-                    className="rounded-lg p-2 text-slate-400 hover:bg-blue-50 hover:text-[#191970]"
-                    aria-label="View deal"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </button>
-                )}
-              />
-            )}
-          </div>
+            />
+          ) : (
+            <EnterpriseDataTable
+              columns={columns}
+              rows={filtered}
+              emptyMessage="No deals match your filters."
+              renderActions={(row) => (
+                <button
+                  type="button"
+                  onClick={() => setSelectedDeal(row)}
+                  className="rounded-lg p-2 text-slate-400 hover:bg-blue-50 hover:text-[#191970]"
+                  aria-label="View deal"
+                >
+                  <Eye className="h-4 w-4" />
+                </button>
+              )}
+            />
+          )}
         </div>
       </CrmShell>
 
@@ -265,7 +195,6 @@ export function CrmDealsView() {
         }}
         initial={editDeal}
         onSubmit={upsertDeal}
-        isAdmin={isAdmin}
       />
 
       <DealDetailDrawer

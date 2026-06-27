@@ -54,20 +54,8 @@ export function HrmRolesCatalogList({ roles, selectedId, onSelect }: Props) {
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-2">
                   <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">{role.name}</span>
-                  {role.isSystem ? (
-                    <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500 ring-1 ring-slate-200 dark:ring-slate-700">
-                      Template
-                    </span>
-                  ) : null}
                 </span>
                 <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">{role.description ?? "No description"}</p>
-                <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-500">
-                  <span className="tabular-nums">{role.permissionKeys.length} permissions</span>
-                  <span aria-hidden>·</span>
-                  <span>{role.memberCount} members</span>
-                  <span aria-hidden>·</span>
-                  <span className="capitalize">{role.scope}</span>
-                </span>
               </span>
 
               {selected ? <span className="mt-2 h-8 w-1 shrink-0 rounded-full bg-[#191970]" aria-hidden /> : null}

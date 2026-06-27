@@ -1,12 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Check, ChevronRight } from "lucide-react";
-
 import type { HrmPermissionCategory, HrmPermissionModule } from "@/features/workspace/data/hrm-permissions-catalog";
 import {
   hrmPermissionKey,
-  keysForHrmCategory,
   keysForHrmModule,
 } from "@/features/workspace/data/hrm-permissions-catalog";
 import { cn } from "@/lib/utils/cn";
@@ -76,69 +72,48 @@ function applyAccessLevel(
   return next;
 }
 
-function PermissionRow({
-  title,
-  description,
-  allowed,
-  readOnly,
-  onToggle,
+function Toggle({
+  on,
+  disabled,
+  onClick,
+  label,
 }: {
-  title: string;
-  description: string;
-  allowed: boolean;
-  readOnly?: boolean;
-  onToggle: () => void;
+  on: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  label: string;
 }) {
   return (
     <button
       type="button"
-      onClick={readOnly ? undefined : onToggle}
-      disabled={readOnly}
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
       className={cn(
-        "flex w-full items-start gap-3 px-4 py-3 text-left transition",
-        readOnly ? "cursor-default" : "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40",
+        "relative h-5 w-9 shrink-0 rounded-full transition-colors",
+        on ? "bg-[#191970]" : "bg-slate-200 dark:bg-slate-700",
+        disabled ? "cursor-default opacity-60" : "cursor-pointer",
       )}
     >
       <span
         className={cn(
-          "mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border-2 transition",
-          allowed
-            ? "border-[#191970] bg-[#191970] text-white"
-            : "border-slate-300 bg-white dark:border-slate-600 dark:bg-slate-900",
+          "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform",
+          on ? "left-[18px]" : "left-0.5",
         )}
-        aria-hidden
-      >
-        {allowed ? <Check className="h-3 w-3" strokeWidth={3} /> : null}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-medium text-slate-900 dark:text-white">{title}</span>
-        <span className="mt-0.5 block text-xs text-slate-500">{description}</span>
-      </span>
-      {readOnly ? (
-        <span
-          className={cn(
-            "shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase",
-            allowed ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-400",
-          )}
-        >
-          {allowed ? "On" : "Off"}
-        </span>
-      ) : null}
+      />
     </button>
   );
 }
 
+const PRESETS: { id: AccessLevel; label: string }[] = [
+  { id: "none", label: "Off" },
+  { id: "view", label: "View" },
+  { id: "full", label: "Full" },
+];
+
 export function HrmPermissionMatrixPanel({ category, selected, onChange, readOnly = false }: Props) {
-  const [activeModuleId, setActiveModuleId] = useState(category.modules[0]?.id ?? "");
-
-  useEffect(() => {
-    setActiveModuleId(category.modules[0]?.id ?? "");
-  }, [category.id, category.modules]);
-
-  const categoryKeys = keysForHrmCategory(category.id);
-  const grantedCount = categoryKeys.filter((k) => selected.has(k)).length;
-  const activeModule = category.modules.find((m) => m.id === activeModuleId) ?? category.modules[0];
-
   const toggleKey = (key: string) => {
     if (readOnly) return;
     const next = new Set(selected);
@@ -147,129 +122,62 @@ export function HrmPermissionMatrixPanel({ category, selected, onChange, readOnl
     onChange(next);
   };
 
-  if (!activeModule) return null;
-
-  const activeModKeys = keysForHrmModule(category.id, activeModule.id);
-  const activeGranted = activeModKeys.filter((k) => selected.has(k)).length;
-  const accessLevel = detectAccessLevel(activeModule, category.id, selected);
-
-  const levelSummary: Record<AccessLevel, string> = {
-    none: "Blocked",
-    view: "View only",
-    edit: "Can operate",
-    full: "Full access",
-  };
-
   return (
-    <div>
-      <div className="border-b border-slate-200/90 px-5 py-4 dark:border-slate-800">
-        <h3 className="text-base font-semibold text-slate-900 dark:text-white">{category.label} access</h3>
-        <p className="mt-1 text-sm text-slate-500">
-          {readOnly
-            ? "Review grants for this module group."
-            : "Pick an area and enable the actions this role needs — click rows or use quick presets."}
-        </p>
-      </div>
+    <div className="divide-y divide-slate-100 dark:divide-slate-800">
+      {category.modules.map((mod) => {
+        const accessLevel = detectAccessLevel(mod, category.id, selected);
 
-      <div className="grid lg:grid-cols-[200px_1fr]">
-        <nav className="border-b border-slate-200/90 p-2 lg:border-b-0 lg:border-r dark:border-slate-800">
-          <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Modules</p>
-          <ul>
-            {category.modules.map((mod) => {
-              const active = mod.id === activeModuleId;
-              const modKeys = keysForHrmModule(category.id, mod.id);
-              const modGranted = modKeys.filter((k) => selected.has(k)).length;
-              const level = detectAccessLevel(mod, category.id, selected);
-
-              return (
-                <li key={mod.id}>
-                  <button
-                    type="button"
-                    onClick={() => setActiveModuleId(mod.id)}
-                    className={cn(
-                      "mb-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left transition",
-                      active
-                        ? "bg-[#191970] text-white shadow-sm"
-                        : "text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
-                    )}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold">{mod.label}</p>
-                      <p className={cn("mt-0.5 text-[11px]", active ? "text-white/70" : "text-slate-400")}>
-                        {levelSummary[level]}
-                        {modGranted > 0 ? ` · ${modGranted} on` : ""}
-                      </p>
-                    </div>
-                    {active ? <ChevronRight className="h-4 w-4 shrink-0" /> : null}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-
-        <div className="p-5">
-          {!readOnly ? (
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="text-xs font-medium text-slate-500">{activeModule.label}:</span>
-              <div className="inline-flex rounded-lg border border-slate-200/90 bg-white p-0.5 dark:border-slate-700 dark:bg-slate-950">
-                {(
-                  [
-                    { id: "none" as const, label: "None" },
-                    { id: "view" as const, label: "View" },
-                    { id: "edit" as const, label: "Operate" },
-                    { id: "full" as const, label: "Full" },
-                  ] as const
-                ).map((preset) => (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    onClick={() => onChange(applyAccessLevel(preset.id, activeModule, category.id, selected))}
-                    className={cn(
-                      "rounded-md px-3 py-1.5 text-xs font-semibold transition",
-                      accessLevel === preset.id
-                        ? "bg-[#191970] text-white shadow-sm"
-                        : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white",
-                    )}
-                  >
-                    {preset.label}
-                  </button>
-                ))}
-              </div>
+        return (
+          <section key={mod.id} className="px-4 py-3">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <h4 className="text-sm font-semibold text-slate-900 dark:text-white">{mod.label}</h4>
+              {!readOnly ? (
+                <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-700 dark:bg-slate-950">
+                  {PRESETS.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => onChange(applyAccessLevel(preset.id, mod, category.id, selected))}
+                      className={cn(
+                        "rounded-md px-2 py-1 text-[10px] font-semibold transition",
+                        accessLevel === preset.id || (preset.id === "view" && accessLevel === "edit")
+                          ? "bg-[#191970] text-white"
+                          : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200",
+                      )}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
-          ) : (
-            <p className="text-xs font-medium text-slate-500">
-              {activeModule.label} · {levelSummary[accessLevel]}
-            </p>
-          )}
 
-          <ul className="mt-4 divide-y divide-slate-100 overflow-hidden rounded-lg border border-slate-200/90 dark:divide-slate-800 dark:border-slate-800">
-            {activeModule.actions.map((action) => {
-              const key = hrmPermissionKey(category.id, activeModule.id, action.key);
-              const enabled = selected.has(key);
-              return (
-                <li key={key}>
-                  <PermissionRow
-                    title={action.label}
-                    description={action.description}
-                    allowed={enabled}
-                    readOnly={readOnly}
-                    onToggle={() => toggleKey(key)}
-                  />
-                </li>
-              );
-            })}
-          </ul>
-
-          <p className="mt-2 text-xs text-slate-400">
-            {activeGranted} of {activeModKeys.length} enabled in {activeModule.label}
-          </p>
-        </div>
-      </div>
-
-      <div className="border-t border-slate-100 px-5 py-2.5 text-xs text-slate-400 dark:border-slate-800">
-        {grantedCount} permissions allowed in {category.label} for this role
-      </div>
+            <ul className="rounded-lg border border-slate-200/90 dark:border-slate-800">
+              {mod.actions.map((action, index) => {
+                const key = hrmPermissionKey(category.id, mod.id, action.key);
+                const enabled = selected.has(key);
+                return (
+                  <li
+                    key={key}
+                    className={cn(
+                      "flex items-center justify-between gap-3 px-3 py-2",
+                      index > 0 && "border-t border-slate-100 dark:border-slate-800",
+                    )}
+                  >
+                    <span className="min-w-0 text-sm text-slate-700 dark:text-slate-300">{action.label}</span>
+                    <Toggle
+                      on={enabled}
+                      disabled={readOnly}
+                      onClick={() => toggleKey(key)}
+                      label={action.label}
+                    />
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        );
+      })}
     </div>
   );
 }

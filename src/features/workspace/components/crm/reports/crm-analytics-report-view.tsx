@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Download, RefreshCw } from "lucide-react";
 
 import {
@@ -25,6 +25,7 @@ import {
   type CrmReportEntity,
   type CrmReportTab,
 } from "@/features/workspace/data/crm-reports-demo";
+import { fetchCrmDashboard } from "@/lib/api/crm";
 import { cn } from "@/lib/utils/cn";
 
 const DATE_PRESETS = [
@@ -50,6 +51,28 @@ export function CrmAnalyticsReportView({ entity }: Props) {
   const [toDate, setToDate] = useState("2026-05-31");
   const [staffGenerated, setStaffGenerated] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [liveKpis, setLiveKpis] = useState<{ label: string; value: string }[] | null>(null);
+
+  const loadDashboard = useCallback(async () => {
+    if (entity !== "lead") return;
+    try {
+      const stats = await fetchCrmDashboard();
+      setLiveKpis([
+        { label: "Total leads", value: String(stats.totalLeads) },
+        { label: "New leads", value: String(stats.newLeads) },
+        { label: "Qualified", value: String(stats.qualifiedLeads) },
+        { label: "Conversion", value: `${stats.conversionRate}%` },
+      ]);
+    } catch {
+      setLiveKpis(null);
+    }
+  }, [entity]);
+
+  useEffect(() => {
+    void loadDashboard();
+  }, [loadDashboard]);
+
+  const headerMetrics = liveKpis ?? dataset.kpis.slice(0, 3).map((k) => ({ label: k.label, value: k.value }));
 
   const entityLabel = entity === "lead" ? "Lead" : "Deal";
   const weeklyTitle = entity === "lead" ? "Weekly lead conversions" : "Weekly deal conversions";
@@ -58,13 +81,15 @@ export function CrmAnalyticsReportView({ entity }: Props) {
 
   const handleRefresh = () => {
     setRefreshing(true);
-    window.setTimeout(() => setRefreshing(false), 500);
+    void loadDashboard().finally(() => {
+      window.setTimeout(() => setRefreshing(false), 500);
+    });
   };
 
   return (
     <div className="pb-8">
       <CrmPageHeader
-        metrics={dataset.kpis.slice(0, 3).map((k) => ({ label: k.label, value: k.value }))}
+        metrics={headerMetrics}
         actions={
           <div className="flex flex-wrap gap-2">
             <CrmGhostButton onClick={handleRefresh}>

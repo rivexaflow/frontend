@@ -2,17 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import {
-  Copy,
-  KeyRound,
-  Layers,
-  Lock,
-  Pencil,
-  Shield,
-  Trash2,
-  Users,
-  X,
-} from "lucide-react";
+import { KeyRound, Layers, Lock, Pencil, Shield, Trash2, Users } from "lucide-react";
 
 import type { WorkspaceRoleRecord } from "@/features/workspace/data/workspace-roles-demo";
 import {
@@ -23,40 +13,12 @@ import {
 import { DEMO_WORKSPACE_USERS } from "@/features/workspace/data/workspace-users-demo";
 import { roleEditPath, workspacePaths } from "@/lib/workspace/paths";
 import { cn } from "@/lib/utils/cn";
-import { workspaceRolesStore } from "@/stores/workspace-roles.store";
-
-type TabId = "overview" | "permissions" | "members" | "pipeline";
 
 type Props = {
   role: WorkspaceRoleRecord;
   onDelete?: () => void;
   onDuplicate?: () => void;
 };
-
-const TABS: { id: TabId; label: string }[] = [
-  { id: "overview", label: "Overview" },
-  { id: "permissions", label: "Permissions" },
-  { id: "members", label: "Members" },
-  { id: "pipeline", label: "Pipeline access" },
-];
-
-function summarizeCategories(keys: string[]) {
-  const counts = new Map<string, number>();
-  for (const key of keys) {
-    const catId = key.split(".")[0] ?? "";
-    if (catId) counts.set(catId, (counts.get(catId) ?? 0) + 1);
-  }
-  return PERMISSION_CATEGORIES.filter((c) => counts.has(c.id)).map((c) => ({
-    id: c.id,
-    label: c.label,
-    count: counts.get(c.id) ?? 0,
-    total: c.modules.reduce((sum, m) => sum + m.actions.length, 0),
-  }));
-}
-
-function stageCount(stageAccess: WorkspaceRoleRecord["stageAccess"]) {
-  return Object.values(stageAccess).filter((s) => s.view || s.move || s.edit).length;
-}
 
 function permissionsByCategory(keys: string[]) {
   const grouped = new Map<string, string[]>();
@@ -71,16 +33,19 @@ function permissionsByCategory(keys: string[]) {
   }));
 }
 
+function stageCount(stageAccess: WorkspaceRoleRecord["stageAccess"]) {
+  return Object.values(stageAccess).filter((s) => s.view || s.move || s.edit).length;
+}
+
 export function RoleInspector({ role, onDelete, onDuplicate }: Props) {
-  const [tab, setTab] = useState<TabId>("overview");
+  const [activeCategory, setActiveCategory] = useState(PERMISSION_CATEGORIES[0]?.id ?? "");
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
-  const upsertRole = workspaceRolesStore((s) => s.upsertRole);
-
   const members = DEMO_WORKSPACE_USERS.filter((u) => role.memberIds.includes(u.id));
-  const categories = summarizeCategories(role.permissionKeys);
   const groupedPermissions = permissionsByCategory(role.permissionKeys);
   const stagesConfigured = stageCount(role.stageAccess);
+  const activeGroup =
+    groupedPermissions.find((g) => g.category.id === activeCategory) ?? groupedPermissions[0];
 
   const handleDelete = () => {
     if (!deleteConfirm) {
@@ -92,344 +57,181 @@ export function RoleInspector({ role, onDelete, onDuplicate }: Props) {
   };
 
   return (
-    <div className="flex h-full min-h-[520px] flex-col">
-      <div className="relative shrink-0 border-b border-slate-200/90 bg-slate-50/70 px-6 py-5 dark:border-slate-800 dark:bg-slate-900/40">
-        <div className="relative flex flex-wrap items-start justify-between gap-4">
-          <div className="flex min-w-0 items-start gap-3.5">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#191970]/8 text-[#191970] ring-1 ring-[#191970]/15 dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-800/30">
-              {role.systemLocked ? <Lock className="h-5 w-5" /> : <Shield className="h-5 w-5" />}
-            </div>
+    <div className="flex h-full min-h-[520px] flex-col bg-white dark:bg-slate-900">
+      <div className="shrink-0 border-b border-slate-200/90 px-5 py-4 dark:border-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#191970]/10 text-[#191970] dark:bg-[#2277FF]/15 dark:text-[#2277FF]">
+              {role.systemLocked ? <Lock className="h-4 w-4" /> : <Shield className="h-4 w-4" />}
+            </span>
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400 dark:text-slate-500">Access policy</p>
-              <h2 className="mt-1.5 truncate text-xl font-bold tracking-tight text-slate-900 dark:text-white leading-none">{role.name}</h2>
-              <p className="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-                {role.systemLocked ? "Built-in system role · read-only" : "Custom workspace role"}
+              <h2 className="truncate text-base font-semibold text-slate-900 dark:text-white">{role.name}</h2>
+              <p className="text-xs text-slate-500">
+                {role.permissionKeys.length} permissions · {members.length} members
+                {stagesConfigured > 0 ? ` · ${stagesConfigured} pipeline stages` : ""}
               </p>
             </div>
           </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href={roleEditPath(role.id)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#191970] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#12124a] dark:bg-blue-600 dark:hover:bg-blue-700"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-              Edit policy
-            </Link>
-            {!role.systemLocked && onDuplicate ? (
-              <button
-                type="button"
-                onClick={onDuplicate}
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-              >
-                <Copy className="h-3.5 w-3.5" />
-                Duplicate
-              </button>
-            ) : null}
-          </div>
+          <Link
+            href={roleEditPath(role.id)}
+            className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-[#191970] px-3 text-xs font-semibold text-white hover:bg-[#12124a]"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Edit permissions
+          </Link>
         </div>
+      </div>
 
-        <dl className="relative mt-6 grid grid-cols-3 gap-3">
-          {[
-            { label: "Permissions", value: role.permissionKeys.length, icon: KeyRound },
-            { label: "Members", value: members.length, icon: Users },
-            { label: "Pipeline stages", value: stagesConfigured, icon: Layers },
-          ].map((item) => (
-            <div key={item.label} className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <dt className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                <item.icon className="h-3.5 w-3.5 text-slate-400 dark:text-slate-550" />
-                {item.label}
-              </dt>
-              <dd className="mt-1.5 text-xl font-bold tabular-nums text-slate-900 dark:text-white leading-none">{item.value}</dd>
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        <aside className="shrink-0 border-b border-slate-200/90 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-950/40 lg:w-56 lg:border-b-0 lg:border-r">
+          <div className="flex items-center justify-between px-4 py-3">
+            <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">
+              <Users className="h-3.5 w-3.5" />
+              Members
+            </h3>
+            <span className="rounded-md bg-white px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-slate-600 ring-1 ring-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:ring-slate-700">
+              {members.length}
+            </span>
+          </div>
+          {members.length === 0 ? (
+            <div className="px-4 pb-4 text-center">
+              <p className="text-xs text-slate-500">No members assigned</p>
+              <Link
+                href={workspacePaths.user}
+                className="mt-1 inline-block text-[11px] font-semibold text-[#191970] hover:underline dark:text-[#2277FF]"
+              >
+                User directory
+              </Link>
             </div>
-          ))}
-        </dl>
-      </div>
-
-      <div className="shrink-0 border-b border-slate-200/90 bg-white px-6 dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex gap-6 py-2.5" role="tablist">
-          {TABS.map((t) => {
-            const active = tab === t.id;
-            return (
-              <button
-                key={t.id}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => setTab(t.id)}
-                className={cn(
-                  "relative py-1 text-sm font-semibold transition outline-none",
-                  active
-                    ? "text-[#191970] dark:text-blue-400"
-                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-250",
-                )}
-              >
-                {t.label}
-                {active && (
-                  <span className="absolute bottom-[-11px] left-0 right-0 h-[2.5px] bg-[#191970] dark:bg-blue-500 rounded-t-full shadow-[0_-1px_4px_rgba(25,25,112,0.15)]" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto bg-slate-50/50 p-5 dark:bg-slate-950/30">
-        {tab === "overview" ? (
-          <div className="space-y-5">
-            <section className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Module coverage</h3>
-              <div className="mt-4 space-y-3">
-                {categories.length === 0 ? (
-                  <p className="text-sm text-slate-500">No permissions assigned to this role.</p>
-                ) : (
-                  categories.map((cat) => {
-                    const pct = cat.total > 0 ? Math.round((cat.count / cat.total) * 100) : 0;
-                    return (
-                      <div key={cat.id}>
-                        <div className="mb-1 flex items-center justify-between text-sm">
-                          <span className="font-medium text-slate-800 dark:text-slate-200">{cat.label}</span>
-                          <span className="tabular-nums text-xs text-slate-500">
-                            {cat.count} / {cat.total} grants
-                          </span>
-                        </div>
-                        <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                          <div
-                            className="h-full rounded-full bg-[#191970] transition-all dark:bg-blue-600"
-                            style={{ width: `${Math.max(pct, cat.count > 0 ? 8 : 0)}%` }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </section>
-
-            <section className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Security restrictions</h3>
-              <div className="mt-4 space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium text-slate-800 dark:text-slate-200">IP Filtering</span>
-                  <span className={cn(
-                    "rounded-full px-2 py-0.5 text-xs font-semibold",
-                    role.allowedIps
-                      ? "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
-                      : "bg-slate-100 text-slate-500 dark:bg-slate-800"
-                  )}>
-                    {role.allowedIps ? "Restricted" : "Unrestricted"}
+          ) : (
+            <ul className="max-h-48 divide-y divide-slate-200/80 overflow-y-auto dark:divide-slate-800 lg:max-h-none">
+              {members.map((m) => (
+                <li key={m.id} className="flex items-center gap-2.5 px-4 py-2.5">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#191970] to-[#2277ff] text-[10px] font-bold text-white">
+                    {m.name
+                      .split(" ")
+                      .map((p) => p[0])
+                      .join("")
+                      .slice(0, 2)}
                   </span>
-                </div>
-                {role.allowedIps ? (
-                  <div className="mt-2 rounded-lg bg-slate-50 p-3 text-xs font-mono text-slate-600 dark:bg-slate-950 dark:text-slate-400">
-                    {role.allowedIps.split(",").map((ip) => ip.trim()).join(", ")}
-                  </div>
-                ) : (
-                  <p className="text-xs text-slate-500 mt-1">
-                    No IP address filters configured. Workspace members with this role can log in from any location.
-                  </p>
-                )}
-              </div>
-            </section>
-          </div>
-        ) : null}
+                  <span className="min-w-0">
+                    <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-200">{m.name}</p>
+                    <p className="truncate text-[10px] text-slate-500">{m.email}</p>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </aside>
 
-        {tab === "permissions" ? (
-          <div className="space-y-4">
-            {groupedPermissions.length === 0 ? (
-              <p className="text-sm text-slate-500">No permission grants configured.</p>
-            ) : (
-              groupedPermissions.map(({ category, keys }) => (
-                <section
-                  key={category.id}
-                  className="overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
-                >
-                  <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/60">
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">{category.label}</h3>
-                    <span className="rounded-md bg-[#191970]/8 px-2 py-0.5 text-xs font-semibold tabular-nums text-[#191970] dark:bg-blue-950/40 dark:text-blue-300">
-                      {keys.length} grants
-                    </span>
-                  </div>
-                  <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {keys.map((key) => (
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          {groupedPermissions.length > 0 ? (
+            <>
+              <div className="shrink-0 border-b border-slate-200/90 px-4 py-2 dark:border-slate-800">
+                <div className="flex flex-wrap gap-1">
+                  {groupedPermissions.map(({ category, keys }) => {
+                    const active = activeCategory === category.id;
+                    return (
+                      <button
+                        key={category.id}
+                        type="button"
+                        onClick={() => setActiveCategory(category.id)}
+                        className={cn(
+                          "rounded-lg px-2.5 py-1.5 text-xs font-semibold transition",
+                          active
+                            ? "bg-[#191970] text-white"
+                            : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800",
+                        )}
+                      >
+                        {category.label}
+                        <span className={cn("ml-1 tabular-nums", active ? "text-white/80" : "text-slate-400")}>
+                          {keys.length}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="min-h-0 flex-1 overflow-y-auto p-4">
+                {activeGroup ? (
+                  <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200/90 bg-white dark:divide-slate-800 dark:border-slate-800 dark:bg-slate-900">
+                    {activeGroup.keys.map((key) => (
                       <li key={key} className="flex items-center gap-3 px-4 py-2.5 text-sm">
-                        <KeyRound className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                        <span className="font-medium text-slate-800 dark:text-slate-200">{labelForPermissionKey(key)}</span>
-                        <span className="ml-auto font-mono text-[10px] text-slate-400">{key}</span>
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 border-[#191970] bg-[#191970] text-white">
+                          <KeyRound className="h-3 w-3" />
+                        </span>
+                        <span className="font-medium text-slate-800 dark:text-slate-200">
+                          {labelForPermissionKey(key)}
+                        </span>
                       </li>
                     ))}
                   </ul>
-                </section>
-              ))
-            )}
-          </div>
-        ) : null}
+                ) : null}
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-1 items-center justify-center p-8 text-sm text-slate-500">
+              No permissions assigned to this role.
+            </div>
+          )}
 
-        {tab === "members" ? (
-          <section className="rounded-xl border border-slate-200/90 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex flex-wrap items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800 gap-2">
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Assigned members</h3>
-                <p className="text-xs text-slate-500">Manage who is assigned to this role policy.</p>
-              </div>
-              <div className="flex items-center gap-2">
-                {DEMO_WORKSPACE_USERS.filter((u) => !role.memberIds.includes(u.id)).length > 0 && (
-                  <select
-                    value=""
-                    onChange={(e) => {
-                      const userId = e.target.value;
-                      if (userId) {
-                        upsertRole({
-                          ...role,
-                          memberIds: [...role.memberIds, userId]
-                        });
-                      }
-                    }}
-                    className="h-8 rounded-lg border border-slate-200 bg-slate-50/50 px-2 text-[10px] font-bold uppercase tracking-wider outline-none transition focus:border-blue-500 focus:bg-white dark:border-slate-700 dark:bg-slate-900 text-slate-750 dark:text-slate-350 cursor-pointer"
-                  >
-                    <option value="">+ Assign Member</option>
-                    {DEMO_WORKSPACE_USERS.filter((u) => !role.memberIds.includes(u.id)).map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.name} ({u.profileRole})
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
+          {stagesConfigured > 0 ? (
+            <div className="shrink-0 border-t border-slate-200/90 px-4 py-3 dark:border-slate-800">
+              <p className="flex items-center gap-1.5 text-xs text-slate-500">
+                <Layers className="h-3.5 w-3.5" />
+                CRM pipeline access on {stagesConfigured} of {CRM_PIPELINE_STAGES.length} stages — edit role to change
+              </p>
             </div>
-            {members.length === 0 ? (
-              <div className="px-4 py-10 text-center">
-                <Users className="mx-auto h-8 w-8 text-slate-300" />
-                <p className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-300">No members assigned</p>
-                <p className="mt-1 text-xs text-slate-500">Use the dropdown above to assign a member to this role.</p>
-              </div>
-            ) : (
-              <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-                {members.map((m) => (
-                  <li key={m.id} className="flex items-center gap-3 px-4 py-3">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#191970] to-indigo-700 text-[11px] font-bold text-white">
-                      {m.name
-                        .split(" ")
-                        .map((p) => p[0])
-                        .join("")
-                        .slice(0, 2)}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{m.name}</p>
-                      <p className="truncate text-xs text-slate-500">{m.email}</p>
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                        {m.status}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          upsertRole({
-                            ...role,
-                            memberIds: role.memberIds.filter(id => id !== m.id)
-                          });
-                        }}
-                        className="p-1 text-slate-450 hover:text-rose-600 transition"
-                        title="Remove member assignment"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        ) : null}
-
-        {tab === "pipeline" ? (
-          <section className="overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="border-b border-slate-100 px-4 py-3 dark:border-slate-800">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">CRM pipeline stage access</h3>
-              <p className="mt-1 text-xs text-slate-500">View, move, and edit permissions per pipeline stage.</p>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[480px] text-left text-sm">
-                <thead>
-                  <tr className="bg-[#191970] text-[11px] font-bold uppercase tracking-wider text-white">
-                    <th className="px-4 py-2.5">Stage</th>
-                    <th className="px-4 py-2.5 text-center">View</th>
-                    <th className="px-4 py-2.5 text-center">Move</th>
-                    <th className="px-4 py-2.5 text-center">Edit</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {CRM_PIPELINE_STAGES.map((stage, i) => {
-                    const rule = role.stageAccess[stage.id] ?? { view: false, move: false, edit: false };
-                    return (
-                      <tr
-                        key={stage.id}
-                        className={cn(
-                          "border-t border-slate-100 dark:border-slate-800",
-                          i % 2 === 1 ? "bg-slate-50/60 dark:bg-slate-950/40" : "",
-                        )}
-                      >
-                        <td className="px-4 py-2.5 font-medium text-slate-800 dark:text-slate-200">{stage.label}</td>
-                        {(["view", "move", "edit"] as const).map((action) => (
-                          <td key={action} className="px-4 py-2.5 text-center">
-                            <span
-                              className={cn(
-                                "inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold",
-                                rule[action]
-                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
-                                  : "bg-slate-100 text-slate-400 dark:bg-slate-800",
-                              )}
-                            >
-                              {rule[action] ? "✓" : "—"}
-                            </span>
-                          </td>
-                        ))}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        ) : null}
+          ) : null}
+        </div>
       </div>
 
-      {!role.systemLocked && onDelete ? (
-        <div className="shrink-0 border-t border-slate-200/90 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-900">
-          {deleteConfirm ? (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50/80 px-4 py-3 dark:border-rose-900/40 dark:bg-rose-950/20">
-              <p className="text-sm font-medium text-rose-800 dark:text-rose-300">
-                Delete &ldquo;{role.name}&rdquo;? This cannot be undone.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setDeleteConfirm(false)}
-                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-white dark:border-slate-700 dark:text-slate-300"
-                >
-                  Cancel
-                </button>
+      {!role.systemLocked && (onDelete || onDuplicate) ? (
+        <div className="shrink-0 border-t border-slate-200/90 px-5 py-2.5 dark:border-slate-800">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            {onDuplicate ? (
+              <button
+                type="button"
+                onClick={onDuplicate}
+                className="text-xs font-semibold text-[#191970] hover:underline dark:text-[#2277FF]"
+              >
+                Duplicate role
+              </button>
+            ) : (
+              <span />
+            )}
+            {onDelete ? (
+              deleteConfirm ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-rose-600">Delete this role?</span>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteConfirm(false)}
+                    className="rounded-md px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    className="inline-flex items-center gap-1 rounded-md bg-rose-600 px-2 py-1 text-xs font-semibold text-white hover:bg-rose-700"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    Delete
+                  </button>
+                </div>
+              ) : (
                 <button
                   type="button"
                   onClick={handleDelete}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700"
+                  className="text-xs font-semibold text-rose-600 hover:text-rose-700"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Confirm delete
+                  Delete role
                 </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={handleDelete}
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-rose-600 transition hover:text-rose-700 dark:text-rose-400"
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete role
-            </button>
-          )}
+              )
+            ) : null}
+          </div>
         </div>
       ) : null}
     </div>

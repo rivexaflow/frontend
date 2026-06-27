@@ -1,5 +1,11 @@
+import { Suspense } from "react";
+
 import { HrmSetupView } from "@/features/workspace/views/hrm-setup-view";
 
 export default function HrmSetupPage() {
-  return <HrmSetupView />;
+  return (
+    <Suspense>
+      <HrmSetupView />
+    </Suspense>
+  );
 }

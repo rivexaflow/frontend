@@ -7,6 +7,7 @@ import {
   toApiError,
   unwrapApiData,
 } from "@/lib/api/api-envelope";
+import { filenameFromContentDisposition, triggerBlobDownload } from "@/lib/hrm/download-blob";
 import {
   DEMO_LEADS,
   type LeadRecord,
@@ -60,6 +61,67 @@ export function normalizeLead(raw: any): LeadRecord {
   };
 }
 
+export type CrmLeadActivity = {
+  id: string;
+  type: string;
+  title?: string;
+  notes?: string;
+  status?: string;
+  createdAt: string;
+  createdBy?: string;
+};
+
+export type CrmLeadDetail = LeadRecord & {
+  activities: CrmLeadActivity[];
+  notes?: string;
+};
+
+export type CrmDashboardStats = {
+  totalLeads: number;
+  newLeads: number;
+  qualifiedLeads: number;
+  conversionRate: number;
+  leadsByStage?: { stage: string; count: number }[];
+  leadsBySource?: { source: string; count: number }[];
+  weeklyConversions?: { label: string; count: number }[];
+};
+
+function normalizeLeadActivity(raw: Record<string, unknown>): CrmLeadActivity {
+  return {
+    id: String(raw.id ?? ""),
+    type: String(raw.type ?? "note"),
+    title: raw.title ? String(raw.title) : undefined,
+    notes: raw.notes ? String(raw.notes) : undefined,
+    status: raw.status ? String(raw.status) : undefined,
+    createdAt: raw.createdAt ? String(raw.createdAt) : new Date().toISOString(),
+    createdBy: raw.createdBy ? String(raw.createdBy) : undefined,
+  };
+}
+
+function normalizeDashboardStats(raw: Record<string, unknown>): CrmDashboardStats {
+  const pickList = <T,>(key: string): T[] | undefined => {
+    const list = raw[key];
+    if (!Array.isArray(list)) return undefined;
+    return list as T[];
+  };
+
+  return {
+    totalLeads: Number(raw.totalLeads ?? raw.total ?? 0),
+    newLeads: Number(raw.newLeads ?? raw.new ?? 0),
+    qualifiedLeads: Number(raw.qualifiedLeads ?? raw.qualified ?? 0),
+    conversionRate: Number(raw.conversionRate ?? raw.conversion ?? 0),
+    leadsByStage:
+      pickList<{ stage: string; count: number }>("leadsByStage") ??
+      pickList<{ stage: string; count: number }>("byStage"),
+    leadsBySource:
+      pickList<{ source: string; count: number }>("leadsBySource") ??
+      pickList<{ source: string; count: number }>("bySource"),
+    weeklyConversions:
+      pickList<{ label: string; count: number }>("weeklyConversions") ??
+      pickList<{ label: string; count: number }>("weekly"),
+  };
+}
+
 export async function fetchCrmLeads(query: { search?: string; stage?: string; limit?: number } = {}): Promise<LeadRecord[]> {
   try {
     const { data } = await apiClient.get<any>(endpoints.crm.leads, {
@@ -76,6 +138,31 @@ export async function fetchCrmLeads(query: { search?: string; stage?: string; li
   } catch (err) {
     if (useDummy()) return DEMO_LEADS;
     throw toApiError(err, "Could not load CRM leads.");
+  }
+}
+
+export async function fetchCrmLead(id: string): Promise<CrmLeadDetail> {
+  try {
+    const { data } = await apiClient.get<any>(endpoints.crm.lead(id));
+    assertApiSuccess(data);
+    const raw = unwrapApiData(data) as Record<string, unknown>;
+    const activitiesRaw = raw.activities ?? raw.activityHistory ?? [];
+    const activities = Array.isArray(activitiesRaw)
+      ? activitiesRaw.map((item) => normalizeLeadActivity(item as Record<string, unknown>))
+      : [];
+
+    return {
+      ...normalizeLead(raw),
+      activities,
+      notes: raw.notes ? String(raw.notes) : undefined,
+    };
+  } catch (err) {
+    if (useDummy()) {
+      const lead = DEMO_LEADS.find((l) => l.id === id);
+      if (!lead) throw toApiError(err, "Lead not found.");
+      return { ...lead, activities: [] };
+    }
+    throw toApiError(err, "Could not load lead.");
   }
 }
 
@@ -148,6 +235,56 @@ export async function deleteCrmLead(id: string): Promise<void> {
     assertApiSuccess(data);
   } catch (err) {
     throw toApiError(err, "Could not delete lead.");
+  }
+}
+
+export async function logCrmLeadActivity(
+  leadId: string,
+  payload: { type: string; title?: string; notes?: string; status?: string },
+): Promise<CrmLeadActivity> {
+  try {
+    const { data } = await apiClient.post<any>(endpoints.crm.leadActivities(leadId), payload);
+    assertApiSuccess(data);
+    return normalizeLeadActivity(unwrapApiData(data) as Record<string, unknown>);
+  } catch (err) {
+    throw toApiError(err, "Could not log lead activity.");
+  }
+}
+
+export async function fetchCrmDashboard(): Promise<CrmDashboardStats> {
+  try {
+    const { data } = await apiClient.get<any>(endpoints.crm.dashboard);
+    assertApiSuccess(data);
+    return normalizeDashboardStats(unwrapApiData(data) as Record<string, unknown>);
+  } catch (err) {
+    if (useDummy()) {
+      return {
+        totalLeads: DEMO_LEADS.length,
+        newLeads: DEMO_LEADS.filter((l) => l.status === "new").length,
+        qualifiedLeads: DEMO_LEADS.filter((l) => l.status === "qualified" || l.status === "interested").length,
+        conversionRate: 24,
+      };
+    }
+    throw toApiError(err, "Could not load CRM dashboard.");
+  }
+}
+
+export async function exportCrmLeadsCsv(params: { search?: string; stage?: string } = {}): Promise<void> {
+  try {
+    const response = await apiClient.get(endpoints.crm.exportCsv, {
+      params: {
+        search: params.search || undefined,
+        stage: params.stage || undefined,
+      },
+      responseType: "blob",
+    });
+    const filename = filenameFromContentDisposition(
+      response.headers["content-disposition"] as string | undefined,
+      "crm-leads-export.csv",
+    );
+    triggerBlobDownload(response.data as Blob, filename);
+  } catch (err) {
+    throw toApiError(err, "Could not export leads.");
   }
 }
 

@@ -17,6 +17,7 @@ import {
   type EmployeesFilters,
 } from "@/features/workspace/components/hrm/employees/employees-directory-toolbar";
 import { useDebouncedSearch } from "@/features/workspace/hooks/use-debounced-search";
+import { useListSearchFromUrl } from "@/features/workspace/hooks/use-list-search-from-url";
 import { useHrCompanyId } from "@/features/workspace/hooks/use-hr-company-id";
 import { MISSING_COMPANY_CONTEXT_MESSAGE } from "@/lib/workspace/company-context";
 import type { HrmEmployeeRecord } from "@/types/hrm";
@@ -63,6 +64,7 @@ export function HrmEmployeesView() {
   const [departments, setDepartments] = useState<HrmDepartment[]>([]);
   const [roles, setRoles] = useState<HrmRole[]>([]);
   const [filters, setFilters] = useState<EmployeesFilters>(EMPTY_FILTERS);
+  useListSearchFromUrl((value) => setFilters((current) => ({ ...current, query: value })));
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);

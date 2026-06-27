@@ -121,10 +121,30 @@ export type HrmEmployeeIdentityInfo = {
   workPermitNumber?: string;
 };
 
+export type PayrollSalaryComponentType = "earning" | "deduction";
+
+/** Company-wide salary head configured by HR in System setup → Payroll. */
+export type PayrollSalaryComponent = {
+  id: string;
+  code: string;
+  label: string;
+  type: PayrollSalaryComponentType;
+  enabled: boolean;
+  sortOrder: number;
+  isStatutory?: boolean;
+};
+
+export type HrmEmployeeSalaryComponentAmount = {
+  componentId: string;
+  amount: number;
+};
+
 export type HrmEmployeePayrollInfo = {
   ctc?: number;
   basicSalary?: number;
   allowances?: number;
+  /** Per-employee monthly amounts for each enabled salary head — set by HR on the employee profile. */
+  componentAmounts?: HrmEmployeeSalaryComponentAmount[];
   bankName?: string;
   accountNumber?: string;
   ifscSwift?: string;
@@ -314,9 +334,6 @@ export type CreateEmployeePayload = {
   status?: HrmEmploymentStatus;
   joiningDate?: string;
   workMode?: HrmWorkMode;
-  roleType?: string;
-  teamId?: string | null;
-  assignedTeamIds?: string[];
 };
 
 export type UpdateEmployeePayload = Partial<CreateEmployeePayload>;
@@ -403,6 +420,8 @@ export type PayrollRecord = {
   employeeCode: string;
   department: string;
   location: string;
+  basicPay?: number;
+  allowance?: number;
   grossPay: number;
   deductions: number;
   netPay: number;
@@ -419,8 +438,31 @@ export type PayrollLineItem = {
 
 export type PayrollRunDetail = PayrollRecord & {
   lineItems?: PayrollLineItem[];
+  earningLines?: PayrollLineItem[];
+  deductionLines?: PayrollLineItem[];
+  designation?: string;
+  pan?: string;
+  uan?: string;
+  bankAccountMasked?: string;
+  payableDays?: number;
+  lopDays?: number;
+  companyName?: string;
+  companyAddress?: string;
+  payDate?: string;
   taxRegion?: string;
   notes?: string;
+};
+
+export type PayrollBatchRun = {
+  id: string;
+  runCode: string;
+  period: string;
+  employeeCount: number;
+  grossPay: number;
+  deductions: number;
+  netPay: number;
+  currency: string;
+  status: PayrollRunStatus;
 };
 
 export type TriggerPayrollRunPayload = {
@@ -750,6 +792,8 @@ export type HrmSetupSettings = {
     pfEnabled: boolean;
     esiEnabled: boolean;
     proRataOnJoin: boolean;
+    /** Earnings & deduction heads that appear on payslips (Basic, HRA, PF, TDS, …). */
+    salaryComponents: PayrollSalaryComponent[];
   };
   compliance: {
     dataRetentionYears: number;

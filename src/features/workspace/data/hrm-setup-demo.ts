@@ -1,4 +1,5 @@
 import type { HrmSetupSection, HrmSetupSettings } from "@/types/hrm";
+import { DEFAULT_PAYROLL_SALARY_COMPONENTS } from "@/features/workspace/data/hrm-payroll-salary-components";
 
 export type { HrmSetupSection, HrmSetupSettings } from "@/types/hrm";
 
@@ -44,6 +45,7 @@ export const DEFAULT_HRM_SETUP: HrmSetupSettings = {
     pfEnabled: true,
     esiEnabled: true,
     proRataOnJoin: true,
+    salaryComponents: DEFAULT_PAYROLL_SALARY_COMPONENTS,
   },
   compliance: {
     dataRetentionYears: 7,

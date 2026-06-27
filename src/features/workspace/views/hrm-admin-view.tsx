@@ -4,11 +4,8 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
-  KeyRound,
   Loader2,
-  RefreshCw,
   Shield,
-  Users,
 } from "lucide-react";
 
 import { CrmPanel, CrmShell } from "@/features/workspace/components/crm/crm-panel";
@@ -26,11 +23,8 @@ import {
   HrmRolesToolbar,
   type HrmRoleTypeFilter,
 } from "@/features/workspace/components/hrm/settings/hrm-roles-toolbar";
-import { HrmCompactBanner } from "@/features/workspace/components/hrm/hrm-compact-banner";
-import { OrgChartStatStrip } from "@/features/workspace/components/hrm/org-chart-stat-strip";
 import {
   enrichHrmRoles,
-  getHrmRoleStats,
   type HrmRoleRecord,
 } from "@/features/workspace/data/hrm-roles-demo";
 import { useHrCompanyId } from "@/features/workspace/hooks/use-hr-company-id";
@@ -40,7 +34,6 @@ import { authStore } from "@/stores/auth.store";
 import { duplicateHrmRole, hrmRolesStore } from "@/stores/hrm-roles.store";
 import { effectiveNavRole, type CurrentUser, type Role } from "@/types/auth";
 import type { HrmRole } from "@/types/hrm";
-import { cn } from "@/lib/utils/cn";
 
 /** Workspace owners/admins — or any session with HR company context on this settings page. */
 function canManageHrmRoleSettings(
@@ -101,8 +94,6 @@ export function HrmAdminView() {
     setLoading(true);
     void load();
   }, [load]);
-
-  const stats = useMemo(() => getHrmRoleStats(roles), [roles]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -198,31 +189,9 @@ export function HrmAdminView() {
   };
 
   return (
-    <div className="pb-8">
+    <div className="pb-4">
       <CrmShell>
-        <HrmCompactBanner
-          title="Roles & permissions"
-          subtitle="Super admin defines HR access policies · module matrix · least privilege"
-          stats={[
-            { label: "Roles", value: stats.total },
-            { label: "Templates", value: stats.system },
-            { label: "Custom", value: stats.custom },
-            { label: "Members", value: stats.members },
-          ]}
-          actions={
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-white/15 px-3 text-xs font-semibold text-white ring-1 ring-white/20 hover:bg-white/25 disabled:opacity-50"
-            >
-              <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
-              Refresh
-            </button>
-          }
-        />
-
-        <div className="space-y-4 p-3 md:p-4">
+        <div className="space-y-3 p-3 md:p-4">
           {!companyId ? (
             <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -251,32 +220,6 @@ export function HrmAdminView() {
             </div>
           ) : null}
 
-          <OrgChartStatStrip
-            stats={[
-              {
-                label: "Permission grants",
-                value: roles.reduce((s, r) => s + r.permissionKeys.length, 0),
-                hint: "Across all roles",
-                icon: KeyRound,
-                tone: "blue",
-              },
-              {
-                label: "Role templates",
-                value: stats.system,
-                hint: "Editable defaults",
-                icon: Shield,
-                tone: "emerald",
-              },
-              {
-                label: "Assigned members",
-                value: stats.members,
-                hint: "Workforce coverage",
-                icon: Users,
-                tone: "amber",
-              },
-            ]}
-          />
-
           <CrmPanel className="overflow-hidden">
             <HrmRolesToolbar
               query={query}
@@ -286,6 +229,8 @@ export function HrmAdminView() {
               resultCount={filtered.length}
               onCreateRole={() => setRoleModalOpen(true)}
               canManage={canManage}
+              onRefresh={handleRefresh}
+              refreshing={refreshing}
             />
 
             {loading ? (

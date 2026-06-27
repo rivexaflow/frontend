@@ -13,6 +13,7 @@ import {
   type MembersViewMode,
 } from "@/features/workspace/components/user-management/members-directory-toolbar";
 import { UserDetailPanel } from "@/features/workspace/components/user-management/user-detail-panel";
+import { useListSearchFromUrl } from "@/features/workspace/hooks/use-list-search-from-url";
 import {
   DEMO_WORKSPACE_USERS,
   type WorkspaceUserRecord,
@@ -29,6 +30,7 @@ export function UserManagementUsersView() {
   const [users, setUsers] = useState<WorkspaceUserRecord[]>(DEMO_WORKSPACE_USERS);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [filters, setFilters] = useState<MembersFilters>(EMPTY_FILTERS);
+  useListSearchFromUrl((value) => setFilters((current) => ({ ...current, query: value })));
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<MembersViewMode>("grid");
 

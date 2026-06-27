@@ -48,7 +48,7 @@ import { DEMO_HRM_EMPLOYEE_DIRECTORY } from "@/features/workspace/data/hrm-emplo
 import { DEMO_HRM_EVENTS } from "@/features/workspace/data/hrm-events-demo";
 import { DEMO_HRM_LEAVE } from "@/features/workspace/data/hrm-leave-demo";
 import { DEMO_HRM_EMPLOYEES } from "@/features/workspace/data/hrm-org-demo";
-import { DEMO_HRM_PAYROLL } from "@/features/workspace/data/hrm-payroll-demo";
+import { DEMO_HRM_PAYROLL, getDemoPayslipDetail } from "@/features/workspace/data/hrm-payroll-demo";
 import { DEMO_HRM_POLICIES } from "@/features/workspace/data/hrm-policies-demo";
 import { DEMO_HRM_REPORT_RUNS, HRM_REPORT_TEMPLATES } from "@/features/workspace/data/hrm-reports-demo";
 import { DEMO_HRM_ROLES } from "@/features/workspace/data/hrm-roles-demo";
@@ -423,7 +423,7 @@ export async function fetchHrPayrollRun(
   } catch (err) {
     if (useDummy()) {
       const found = DEMO_HRM_PAYROLL.find((r) => r.id === id);
-      if (found) return { ...found, lineItems: [] };
+      if (found) return getDemoPayslipDetail(found);
     }
     throw apiError(err, "Could not load payroll details.");
   }

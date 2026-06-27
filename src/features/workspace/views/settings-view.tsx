@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Building2,
   Key,
@@ -103,9 +104,38 @@ const TAB_COPY: Record<string, { title: string; description: string }> = {
   },
 };
 
+const VALID_TABS = new Set(["profile", "domains", "branding", "modules", "members", "api-keys", "security"]);
+
+function normalizeSettingsTab(tab: string | null): string {
+  if (!tab) return "profile";
+  if (tab === "branding") return "domains";
+  return VALID_TABS.has(tab) ? tab : "profile";
+}
+
 export function SettingsView() {
   const companyId = useHrCompanyId();
-  const [activeTab, setActiveTab] = useState("profile");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState(() => normalizeSettingsTab(searchParams.get("tab")));
+
+  useEffect(() => {
+    setActiveTab(normalizeSettingsTab(searchParams.get("tab")));
+  }, [searchParams]);
+
+  const selectTab = (tabId: string) => {
+    setActiveTab(tabId);
+    const params = new URLSearchParams(searchParams.toString());
+    if (tabId === "profile") {
+      params.delete("tab");
+      params.delete("section");
+    } else {
+      params.set("tab", tabId);
+      if (tabId !== "domains") params.delete("section");
+      else if (!params.get("section")) params.set("section", "identity");
+    }
+    const query = params.toString();
+    router.replace(query ? `/settings?${query}` : "/settings", { scroll: false });
+  };
   const [counts, setCounts] = useState({
     memberCount: 0,
     activeModuleCount: 0,
@@ -197,17 +227,19 @@ export function SettingsView() {
       <div className="grid gap-6 lg:grid-cols-[272px_minmax(0,1fr)]">
         <aside className="lg:sticky lg:top-6 lg:self-start">
           <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <SettingsNav groups={NAV_GROUPS} activeId={activeTab} onSelect={setActiveTab} />
+            <SettingsNav groups={NAV_GROUPS} activeId={activeTab} onSelect={selectTab} />
           </div>
         </aside>
 
-        <main className="min-w-0 space-y-4">
-          <div className="rounded-2xl border border-slate-200/80 bg-white px-5 py-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:px-6">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">{activeCopy.title}</h2>
-            <p className="mt-0.5 text-sm text-slate-500">{activeCopy.description}</p>
-          </div>
+        <main className="min-w-0 max-w-full space-y-4 overflow-x-hidden">
+          {activeTab !== "domains" ? (
+            <div className="rounded-2xl border border-slate-200/80 bg-white px-5 py-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:px-6">
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">{activeCopy.title}</h2>
+              <p className="mt-0.5 text-sm text-slate-500">{activeCopy.description}</p>
+            </div>
+          ) : null}
 
-          <div className={cn("min-w-0", activeTab === "security" && "max-w-2xl")}>{content}</div>
+          <div className={cn("min-w-0 max-w-full", activeTab === "security" && "max-w-2xl")}>{content}</div>
         </main>
       </div>
     </div>
