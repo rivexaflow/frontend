@@ -73,6 +73,11 @@ export function CrmLeadsView() {
   
   const isOwner = currentUser?.profileRole === "owner";
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const [leads, setLeads] = useState<LeadRecord[]>([]);
   const [pipelines, setPipelines] = useState<CrmPipeline[]>([]);
   const [activePipeline, setActivePipeline] = useState<CrmPipeline | null>(null);
@@ -299,6 +304,14 @@ export function CrmLeadsView() {
       setError(err instanceof Error ? err.message : "Failed to delete stage.");
     }
   };
+
+  if (!mounted) {
+    return (
+      <div className="flex h-[calc(100dvh-5.25rem)] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   if (!companyId) {
     return (
