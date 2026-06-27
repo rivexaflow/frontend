@@ -64,16 +64,21 @@ apiClient.interceptors.response.use(
   async (error) => {
     const status = error?.response?.status;
     const url: string | undefined = error?.config?.url;
-    // Rate limits are enforced server-side; never clear session or redirect on 429.
-    if (status === 429) {
+    // Rate limits (429) and temporary server restarts (502, 503, 504, ERR_NETWORK) should never clear session
+    if (status === 429 || status === 502 || status === 503 || status === 504 || !status) {
       return Promise.reject(error);
     }
     if (status === 401 && !isAuthEndpoint(url)) {
-      authStore.getState().logout();
-      if (typeof window !== "undefined") {
-        window.location.href = "/login";
+      // Only force logout if explicit authentication failure occurred and user token is present
+      const currentToken = authStore.getState().token;
+      if (currentToken) {
+        authStore.getState().logout();
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
       }
     }
     return Promise.reject(error);
   },
 );
+
