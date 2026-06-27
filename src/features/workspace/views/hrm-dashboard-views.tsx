@@ -37,6 +37,10 @@ type MainPanel =
 
 export function HrmDashboardView() {
   const companyId = useHrCompanyId();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const [employees, setEmployees] = useState<HrmEmployeeRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -124,6 +128,14 @@ export function HrmDashboardView() {
   };
 
   const backToOverview = () => setPanel({ view: "overview" });
+
+  if (!mounted) {
+    return (
+      <div className="flex items-center justify-center py-24 text-sm text-slate-500">
+        <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   if (!companyId) {
     return (
