@@ -32,6 +32,7 @@ import {
   Database,
   Waypoints,
   FileSpreadsheet,
+  Key,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { CRM_NAV_CHILDREN, isCrmNavSubGroup } from "@/features/workspace/data/crm-nav";
@@ -142,6 +143,7 @@ const workspaceNavFooter: NavItem[] = [
 
 const adminNavItems: NavItem[] = [
   { name: "Overview", href: "/super-admin", icon: LayoutDashboard, category: "Platform" },
+  { name: "Licenses & Clusters", href: "/super-admin/licenses", icon: Key, category: "Platform" },
   { name: "Tenants", href: "/super-admin/tenants", icon: Building2, category: "Platform" },
   { name: "KYC Submissions", href: "/super-admin/kyc", icon: ShieldCheck, category: "Management" },
   { name: "Support Tickets", href: "/super-admin/support", icon: Ticket, category: "Management" },

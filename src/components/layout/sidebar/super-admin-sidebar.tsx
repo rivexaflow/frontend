@@ -6,6 +6,7 @@ import {
   Building2,
   Cpu,
   GitBranch,
+  Key,
   LayoutDashboard,
   Shield,
   Users,
@@ -16,6 +17,7 @@ import { cn } from "@/lib/utils";
 
 const items = [
   { href: "/super-admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/super-admin/licenses", label: "Licenses & Clusters", icon: Key },
   { href: "/super-admin/users", label: "Users", icon: Users },
   { href: "/super-admin/companies", label: "Companies", icon: Building2 },
   { href: "/super-admin/ai-models", label: "AI models", icon: Cpu },
