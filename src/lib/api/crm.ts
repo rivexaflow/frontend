@@ -122,13 +122,24 @@ function normalizeDashboardStats(raw: Record<string, unknown>): CrmDashboardStat
   };
 }
 
-export async function fetchCrmLeads(query: { search?: string; stage?: string; limit?: number } = {}): Promise<LeadRecord[]> {
+export interface PaginatedLeadsResult {
+  leads: LeadRecord[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export async function fetchCrmLeads(query: { search?: string; stage?: string; page?: number; limit?: number } = {}): Promise<LeadRecord[]> {
   try {
     const { data } = await apiClient.get<any>(endpoints.crm.leads, {
       params: {
         search: query.search || undefined,
         stage: query.stage || undefined,
-        limit: query.limit || 1000,
+        page: query.page || 1,
+        limit: query.limit || 250,
       },
     });
     assertApiSuccess(data);
@@ -138,6 +149,34 @@ export async function fetchCrmLeads(query: { search?: string; stage?: string; li
   } catch (err) {
     if (useDummy()) return DEMO_LEADS;
     throw toApiError(err, "Could not load CRM leads.");
+  }
+}
+
+export async function fetchCrmLeadsPaginated(query: { search?: string; stage?: string; page?: number; limit?: number } = {}): Promise<PaginatedLeadsResult> {
+  try {
+    const { data } = await apiClient.get<any>(endpoints.crm.leads, {
+      params: {
+        search: query.search || undefined,
+        stage: query.stage || undefined,
+        page: query.page || 1,
+        limit: query.limit || 50,
+      },
+    });
+    assertApiSuccess(data);
+    const rawList = data?.data || [];
+    const pagination = data?.pagination || { page: 1, limit: 50, total: Array.isArray(rawList) ? rawList.length : 0, totalPages: 1 };
+    return {
+      leads: Array.isArray(rawList) ? rawList.map(normalizeLead) : [],
+      pagination,
+    };
+  } catch (err) {
+    if (useDummy()) {
+      return {
+        leads: DEMO_LEADS,
+        pagination: { page: 1, limit: 50, total: DEMO_LEADS.length, totalPages: 1 },
+      };
+    }
+    throw toApiError(err, "Could not load paginated CRM leads.");
   }
 }
 
