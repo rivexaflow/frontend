@@ -398,6 +398,20 @@ export function CrmSheetsView() {
   }, [gridData, gridColumns, colWidths, rowHeights, activeSheet]);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("rvx-sheets-cache");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setSheets(parsed);
+            setLoading(false);
+          }
+        }
+      } catch {
+        // Cache read fallback
+      }
+    }
     fetchSheets();
   }, []);
 
@@ -417,10 +431,17 @@ export function CrmSheetsView() {
 
   const fetchSheets = async () => {
     try {
-      setLoading(true);
       const { data } = await apiClient.get("/integrations/rivexaflow-sheet/list");
       if (data?.success) {
-        setSheets(data.data || []);
+        const listData = data.data || [];
+        setSheets(listData);
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem("rvx-sheets-cache", JSON.stringify(listData));
+          } catch {
+            // Cache write fallback
+          }
+        }
       }
     } catch (err: any) {
       console.error(err);
