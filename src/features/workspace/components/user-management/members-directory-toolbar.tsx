@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutGrid, List, Plus, Search } from "lucide-react";
+import { FileSpreadsheet, LayoutGrid, List, Plus, Search } from "lucide-react";
 
 import {
   WORKSPACE_PROFILE_ROLES,
@@ -22,6 +22,7 @@ type Props = {
   onChange: (next: MembersFilters) => void;
   departments: string[];
   onInvite: () => void;
+  onBulkImport?: () => void;
   resultCount: number;
   viewMode: MembersViewMode;
   onViewModeChange: (mode: MembersViewMode) => void;
@@ -35,6 +36,7 @@ export function MembersDirectoryToolbar({
   onChange,
   departments,
   onInvite,
+  onBulkImport,
   resultCount,
   viewMode,
   onViewModeChange,
@@ -97,7 +99,7 @@ export function MembersDirectoryToolbar({
         ))}
       </select>
 
-      <div className="flex items-center gap-3 sm:ml-auto">
+      <div className="flex flex-wrap items-center gap-2.5 sm:ml-auto">
         <div className="flex items-center rounded-lg border border-slate-200 p-0.5 dark:border-slate-700">
           <button
             type="button"
@@ -129,10 +131,20 @@ export function MembersDirectoryToolbar({
         <span className="hidden text-sm text-slate-500 sm:inline">
           <span className="font-medium text-slate-800 dark:text-slate-200">{resultCount}</span> shown
         </span>
+        {onBulkImport ? (
+          <button
+            type="button"
+            onClick={onBulkImport}
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 transition"
+          >
+            <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+            Import Users List
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={onInvite}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#191970] px-4 text-sm font-semibold text-white hover:bg-[#12124a]"
+          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#191970] px-4 text-sm font-semibold text-white hover:bg-[#12124a] transition"
         >
           <Plus className="h-4 w-4" />
           Invite member

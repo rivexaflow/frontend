@@ -5,6 +5,7 @@ import { AnimatePresence } from "framer-motion";
 import { ShieldCheck, UserCheck, UserPlus, Users } from "lucide-react";
 
 import { InviteMemberWizard } from "@/features/workspace/components/user-management/invite-member-wizard";
+import { BulkUserImportModal } from "@/features/workspace/components/user-management/bulk-user-import-modal";
 import { MembersDirectoryGrid } from "@/features/workspace/components/user-management/members-directory-grid";
 import { MembersDirectoryTable } from "@/features/workspace/components/user-management/members-directory-table";
 import {
@@ -29,6 +30,7 @@ const EMPTY_FILTERS: MembersFilters = {
 export function UserManagementUsersView() {
   const [users, setUsers] = useState<WorkspaceUserRecord[]>(DEMO_WORKSPACE_USERS);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [showBulkImportModal, setShowBulkImportModal] = useState(false);
   const [filters, setFilters] = useState<MembersFilters>(EMPTY_FILTERS);
   useListSearchFromUrl((value) => setFilters((current) => ({ ...current, query: value })));
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -107,6 +109,7 @@ export function UserManagementUsersView() {
           onChange={setFilters}
           departments={departments}
           onInvite={() => setInviteOpen(true)}
+          onBulkImport={() => setShowBulkImportModal(true)}
           resultCount={filtered.length}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
@@ -152,6 +155,17 @@ export function UserManagementUsersView() {
           />
         ) : null}
       </AnimatePresence>
+
+      {showBulkImportModal && (
+        <BulkUserImportModal
+          open={showBulkImportModal}
+          onClose={() => setShowBulkImportModal(false)}
+          onImport={(newUsers) => {
+            setUsers((prev) => [...newUsers, ...prev]);
+            if (newUsers[0]) setSelectedId(newUsers[0].id);
+          }}
+        />
+      )}
     </div>
   );
 }
