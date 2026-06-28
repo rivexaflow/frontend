@@ -51,6 +51,7 @@ export function CrmDialerView() {
       const iconEl = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
       if (iconEl && iconEl.href) {
         setCompanyLogo(iconEl.href);
+        return; // Favicon found — skip unnecessary API call
       }
     }
     if (!workspaceId) return;

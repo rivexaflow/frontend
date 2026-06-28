@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
@@ -74,6 +74,7 @@ export function CrmLeadsView() {
   const isOwner = currentUser?.profileRole === "owner";
 
   const [mounted, setMounted] = useState(false);
+  const lastFetchedRef = useRef<{ companyId: string | null; query: string }>({ companyId: null, query: "" });
 
   const [leads, setLeads] = useState<LeadRecord[]>([]);
   const [pipelines, setPipelines] = useState<CrmPipeline[]>([]);
@@ -141,6 +142,11 @@ export function CrmLeadsView() {
       setLoading(false);
       return;
     }
+    // Skip if we already fetched these exact parameters
+    if (lastFetchedRef.current.companyId === companyId && lastFetchedRef.current.query === effectiveQuery) {
+      return;
+    }
+    lastFetchedRef.current = { companyId, query: effectiveQuery };
     setError(null);
     try {
       // Background revalidate fresh pipelines and leads
@@ -299,6 +305,7 @@ export function CrmLeadsView() {
 
   const handleRefresh = () => {
     setRefreshing(true);
+    lastFetchedRef.current = { companyId: null, query: "" };
     loadPipelinesAndLeads();
   };
 

@@ -162,7 +162,7 @@ export function SettingsView() {
       }
     }
     void loadStats();
-  }, [companyId, activeTab]);
+  }, [companyId]);
 
   const activeCopy = TAB_COPY[activeTab] ?? TAB_COPY.profile;
 
