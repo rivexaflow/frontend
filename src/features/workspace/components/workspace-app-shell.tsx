@@ -10,8 +10,8 @@ export function WorkspaceAppShell({ children }: { children: ReactNode }) {
       <ModernSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <WorkspaceHeader />
-        <main className="flex-1 px-4 pb-4 pt-2 md:px-6 md:pb-6 md:pt-2.5 lg:px-8 lg:pb-8 lg:pt-3">
-          <div className="mx-auto w-full max-w-[1600px]">{children}</div>
+        <main className="flex-1 px-2.5 pb-3 pt-2 sm:px-4 md:px-5">
+          <div className="mx-auto w-full max-w-full">{children}</div>
         </main>
       </div>
     </div>

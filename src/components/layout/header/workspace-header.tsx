@@ -51,7 +51,7 @@ export function WorkspaceHeader() {
       <WorkspaceCreateWorkspaceModal open={createOpen} onClose={() => setCreateOpen(false)} />
 
       <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/95">
-        <div className="flex items-center gap-3 px-4 py-2 md:gap-4 md:px-6">
+        <div className="flex items-center gap-3 px-3.5 py-2 sm:px-4 md:gap-4 md:px-5">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <span
               className="hidden h-10 w-1 shrink-0 rounded-full bg-gradient-to-b from-[#191970] to-[#2277FF] shadow-sm sm:block"
