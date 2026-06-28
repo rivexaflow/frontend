@@ -139,7 +139,7 @@ export async function fetchCrmLeads(query: { search?: string; stage?: string; pa
         search: query.search || undefined,
         stage: query.stage || undefined,
         page: query.page || 1,
-        limit: query.limit || 250,
+        limit: query.limit || 50,
       },
     });
     assertApiSuccess(data);

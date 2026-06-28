@@ -167,14 +167,16 @@ export function DialerActiveCallPanel({
           ) : (
             <div className="flex flex-col items-center mt-3">
               <div className="relative flex items-center justify-center">
-                <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#191970] to-[#2277ff] shadow-lg shadow-black/25 overflow-hidden border border-white/20">
+                <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#191970] to-[#2277ff] shadow-lg shadow-black/25 overflow-hidden border border-white/20 p-1 bg-white dark:bg-slate-900">
                   {companyLogo ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={companyLogo} alt={companyName || "Company logo"} className="h-full w-full object-cover" />
+                    <img
+                      src={companyLogo}
+                      alt={companyName || "Company logo"}
+                      className="h-full w-full object-contain"
+                    />
                   ) : (
-                    <span className="text-2xl font-black text-white">
-                      {companyName ? companyName.slice(0, 1).toUpperCase() : "C"}
-                    </span>
+                    <Building2 className="h-7 w-7 text-[#191970] dark:text-[#2277FF]" />
                   )}
                 </div>
                 {/* Status Indicator (Green online dot at bottom-right corner of company logo) */}

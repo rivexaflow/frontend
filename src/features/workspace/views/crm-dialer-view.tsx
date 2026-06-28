@@ -25,29 +25,63 @@ import { cn } from "@/lib/utils/cn";
 export function CrmDialerView() {
   const session = useDialerSession();
   const user = useCurrentUser();
-  const { workspaceId, workspaceName } = workspaceStore();
+  const { workspaceId, workspaceName, logo: storeLogo, brandName } = workspaceStore();
 
   const isOwner = user?.profileRole === "owner";
 
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [showStageQueueModal, setShowStageQueueModal] = useState(false);
+  const [selectedAutoStages, setSelectedAutoStages] = useState<string[]>([
+    "Document Receive",
+    "UCC Pending",
+    "KYC Rejected",
+    "Intake"
+  ]);
+  const [autoCallingActive, setAutoCallingActive] = useState(false);
   const [selectedHistoryEntry, setSelectedHistoryEntry] = useState<CallLogEntry | null>(null);
-  const [companyLogo, setCompanyLogo] = useState<string | null>(null);
+  const [companyLogo, setCompanyLogo] = useState<string | null>(storeLogo || null);
 
-  // Load company logo image reactively when workspaceId resolves
+  // Synchronize logged in company logo / favicon reactively
   useEffect(() => {
+    if (storeLogo) {
+      setCompanyLogo(storeLogo);
+      return;
+    }
+    if (typeof window !== "undefined") {
+      const iconEl = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
+      if (iconEl && iconEl.href) {
+        setCompanyLogo(iconEl.href);
+      }
+    }
     if (!workspaceId) return;
     async function loadCompanyLogo() {
       try {
         const { data } = await apiClient.get(`/company/${workspaceId}`);
-        if (data.success && data.data) {
-          setCompanyLogo(data.data.logo || null);
+        if (data.success && data.data && data.data.logo) {
+          setCompanyLogo(data.data.logo);
         }
       } catch (err) {
         console.error("Failed to load company logo in dialer view:", err);
       }
     }
     loadCompanyLogo();
-  }, [workspaceId]);
+  }, [workspaceId, storeLogo]);
+
+  // Stage Auto-Calling Queue controller effect
+  useEffect(() => {
+    if (!autoCallingActive) return;
+    if (session.phase === "idle" && !session.pendingDisposition) {
+      const nextContact = session.queue.find(c => c.queueStatus === "pending" || c.queueStatus === "no_answer");
+      if (nextContact) {
+        const timer = setTimeout(() => {
+          session.callContact(nextContact);
+        }, 1500);
+        return () => clearTimeout(timer);
+      } else {
+        setAutoCallingActive(false);
+      }
+    }
+  }, [autoCallingActive, session.phase, session.pendingDisposition, session.queue, session.callContact]);
 
   // Dialer configuration state (mock settings)
   const [config, setConfig] = useState({
@@ -244,6 +278,25 @@ export function CrmDialerView() {
       <CrmPageHeader
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            {autoCallingActive ? (
+              <button
+                type="button"
+                onClick={() => setAutoCallingActive(false)}
+                className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 px-3.5 py-2 text-xs font-bold text-white shadow-md shadow-emerald-600/20 animate-pulse transition-all"
+              >
+                <Pause className="h-3.5 w-3.5 fill-white" />
+                Auto-Calling Active ({selectedAutoStages.length} Stages)
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowStageQueueModal(true)}
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#191970] to-[#2277FF] hover:from-[#12124a] hover:to-[#1a5ecc] px-3.5 py-2 text-xs font-bold text-white shadow-md shadow-[#2277FF]/25 transition-all"
+              >
+                <Play className="h-3.5 w-3.5 fill-white" />
+                Continue Calling (Stage Queue)
+              </button>
+            )}
             {isOwner && (
               <button
                 type="button"
@@ -331,7 +384,7 @@ export function CrmDialerView() {
             onCancel={session.cancelCall}
             onEndCall={session.endCall}
             companyLogo={companyLogo}
-            companyName={workspaceName}
+            companyName={brandName || workspaceName}
           />
         </main>
 
@@ -720,6 +773,118 @@ export function CrmDialerView() {
                 className={cn(crm.btnPrimary, "min-w-[130px]")}
               >
                 Save outcome
+              </button>
+            </div>
+          </div>
+        </AdminModal>
+      )}
+
+      {/* Continue Calling / Stage Auto-Dialer Modal */}
+      {showStageQueueModal && (
+        <AdminModal
+          open={showStageQueueModal}
+          onClose={() => setShowStageQueueModal(false)}
+          title="Continue Calling / Stage Queue Auto-Dialer"
+          className="max-w-lg"
+        >
+          <div className="space-y-5 py-2">
+            <div className="rounded-xl border border-blue-100 bg-blue-50/70 p-4 dark:border-blue-950 dark:bg-blue-950/30">
+              <div className="flex items-start gap-3">
+                <Play className="mt-0.5 h-5 w-5 shrink-0 text-[#2277FF] fill-[#2277FF]" />
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Target Calling Stages
+                  </h4>
+                  <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
+                    Select the pipeline stages you want to call. The auto-dialer will sequentially queue and dial leads belonging exclusively to these selected stages.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Select Pipeline Stages to Call
+              </label>
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-2">
+                {[
+                  { id: "Document Receive", label: "Document Receive", color: "#10b981" },
+                  { id: "KYC Rejected", label: "KYC Rejected", color: "#ef4444" },
+                  { id: "KYC Accepted", label: "KYC Accepted", color: "#10b981" },
+                  { id: "UCC Pending", label: "UCC Pending", color: "#f59e0b" },
+                  { id: "Account Activated", label: "Account Activated", color: "#10b981" },
+                  { id: "Intake", label: "Intake", color: "#2277ff" },
+                  { id: "Engagement", label: "Engagement", color: "#6366f1" },
+                  { id: "Account Opening", label: "Account Opening", color: "#8b5cf6" },
+                ].map((stg) => {
+                  const isChecked = selectedAutoStages.includes(stg.id);
+                  return (
+                    <button
+                      key={stg.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedAutoStages((prev) =>
+                          isChecked ? prev.filter((s) => s !== stg.id) : [...prev, stg.id],
+                        );
+                      }}
+                      className={cn(
+                        "flex items-center justify-between rounded-xl border p-3 text-left text-xs font-semibold transition-all",
+                        isChecked
+                          ? "border-[#191970] bg-[#191970]/5 text-[#191970] ring-2 ring-[#191970]/20 dark:bg-indigo-950/30 dark:text-indigo-200"
+                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300",
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: stg.color }} />
+                        <span>{stg.label}</span>
+                      </div>
+                      <span
+                        className={cn(
+                          "flex h-4 w-4 items-center justify-center rounded border transition",
+                          isChecked
+                            ? "border-[#191970] bg-[#191970] text-white dark:border-[#2277FF] dark:bg-[#2277FF]"
+                            : "border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-800",
+                        )}
+                      >
+                        {isChecked ? <CheckCircle2 className="h-3.5 w-3.5" /> : null}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-slate-50/50 p-3.5 dark:border-slate-800 dark:bg-slate-900/40">
+              <div>
+                <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">Auto-Dial Delay</p>
+                <p className="text-[11px] text-slate-500">Wait 1.5 seconds between call completions</p>
+              </div>
+              <span className="rounded-lg bg-white px-2.5 py-1 text-xs font-mono font-bold text-[#191970] shadow-sm border border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-indigo-300">
+                1.5s delay
+              </span>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowStageQueueModal(false)}
+                className={crm.btnSecondary}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={selectedAutoStages.length === 0}
+                onClick={() => {
+                  setShowStageQueueModal(false);
+                  setAutoCallingActive(true);
+                }}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#191970] to-[#2277FF] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-[#2277FF]/25 hover:opacity-95 transition-all disabled:opacity-50",
+                )}
+              >
+                <Play className="h-4 w-4 fill-white" />
+                Start Stage Calling Queue ({selectedAutoStages.length})
               </button>
             </div>
           </div>

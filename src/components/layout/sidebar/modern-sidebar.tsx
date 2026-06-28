@@ -33,6 +33,8 @@ import {
   Waypoints,
   FileSpreadsheet,
   Key,
+  Store,
+  MessageCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { CRM_NAV_CHILDREN, isCrmNavSubGroup } from "@/features/workspace/data/crm-nav";
@@ -69,6 +71,8 @@ const workspaceNavItems: NavItem[] = [
   { name: "KYC Center", href: "/kyc", icon: ShieldCheck, category: "Operations", badge: "Live" },
   { name: "Invoices", href: "/invoices", icon: FileText, category: "Operations" },
   { name: "Sheets", href: "/sheets", icon: FileSpreadsheet, category: "Operations" },
+  { name: "Marketplace", href: "/tools-marketplace", icon: Store, category: "Operations", badge: "New" },
+  { name: "WhatsApp CRM", href: "/crm/whatsapp", icon: MessageCircle, category: "Operations" },
   { name: "AI Agents", href: "/ai", icon: Sparkles, category: "Intelligence" },
   { name: "Analytics", href: "/reports", icon: Zap, category: "Intelligence" },
 ];

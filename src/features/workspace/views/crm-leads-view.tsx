@@ -74,9 +74,6 @@ export function CrmLeadsView() {
   const isOwner = currentUser?.profileRole === "owner";
 
   const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const [leads, setLeads] = useState<LeadRecord[]>([]);
   const [pipelines, setPipelines] = useState<CrmPipeline[]>([]);
@@ -97,6 +94,32 @@ export function CrmLeadsView() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Load from localStorage cache immediately on client mount
+  useEffect(() => {
+    setMounted(true);
+    if (typeof window !== "undefined") {
+      try {
+        const cacheKey = `rvx-crm-cache-${companyId || 'default'}`;
+        const cachedStr = localStorage.getItem(cacheKey);
+        if (cachedStr) {
+          const cached = JSON.parse(cachedStr);
+          if (cached.leads && Array.isArray(cached.leads)) setLeads(cached.leads);
+          if (cached.pipelines && Array.isArray(cached.pipelines)) {
+            setPipelines(cached.pipelines);
+            const activePipe = cached.pipelines[0] || null;
+            setActivePipeline(activePipe);
+            if (activePipe && activePipe.stages) {
+              setBoardStages(activePipe.stages.map(mapDbStageToBoardStage));
+            }
+          }
+          setLoading(false); // Render instantly from cache!
+        }
+      } catch {
+        // Cache read fallback
+      }
+    }
+  }, [companyId]);
 
   const quickSearch = workspaceTopbarStore((s) => s.quickSearch);
   const searchableFields = workspaceTopbarStore((s) => s.searchableFields);
@@ -120,22 +143,34 @@ export function CrmLeadsView() {
     }
     setError(null);
     try {
-      // 1. Fetch Pipelines
-      const pipelinesData = await fetchCrmPipelines();
-      setPipelines(pipelinesData);
-      
-      const activePipe = pipelinesData[0] || null;
-      setActivePipeline(activePipe);
-      
-      let mappedStages: LeadBoardStage[] = [];
-      if (activePipe && activePipe.stages) {
-        mappedStages = activePipe.stages.map(mapDbStageToBoardStage);
-      }
-      setBoardStages(mappedStages);
+      // Background revalidate fresh pipelines and leads
+      const [pipelinesData, leadsData] = await Promise.all([
+        fetchCrmPipelines().catch(() => []),
+        fetchCrmLeads({ search: effectiveQuery || undefined }).catch(() => [])
+      ]);
 
-      // 2. Fetch Leads
-      const leadsData = await fetchCrmLeads({ search: effectiveQuery || undefined });
-      setLeads(leadsData);
+      if (pipelinesData.length > 0 || leadsData.length > 0) {
+        setPipelines(pipelinesData);
+        const activePipe = pipelinesData[0] || null;
+        setActivePipeline(activePipe);
+
+        let mappedStages: LeadBoardStage[] = [];
+        if (activePipe && activePipe.stages) {
+          mappedStages = activePipe.stages.map(mapDbStageToBoardStage);
+        }
+        setBoardStages(mappedStages);
+        setLeads(leadsData);
+
+        // Save fresh snapshot to localStorage
+        if (typeof window !== "undefined") {
+          try {
+            const cacheKey = `rvx-crm-cache-${companyId || 'default'}`;
+            localStorage.setItem(cacheKey, JSON.stringify({ pipelines: pipelinesData, leads: leadsData }));
+          } catch {
+            // Cache write fallback
+          }
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch CRM data.");
     } finally {
@@ -255,6 +290,13 @@ export function CrmLeadsView() {
     }
   };
 
+  const handleSelectPipeline = useCallback((pipeline: CrmPipeline) => {
+    setActivePipeline(pipeline);
+    if (pipeline && pipeline.stages) {
+      setBoardStages(pipeline.stages.map(mapDbStageToBoardStage));
+    }
+  }, []);
+
   const handleRefresh = () => {
     setRefreshing(true);
     loadPipelinesAndLeads();
@@ -353,6 +395,9 @@ export function CrmLeadsView() {
           showPipelineToggle={viewMode === "board"}
           pipelinePanelOpen={pipelinePanelOpen}
           onPipelinePanelToggle={() => setPipelinePanelOpen((open) => !open)}
+          pipelines={pipelines}
+          activePipeline={activePipeline}
+          onSelectPipeline={handleSelectPipeline}
         />
 
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">

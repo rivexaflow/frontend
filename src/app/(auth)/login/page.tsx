@@ -235,18 +235,7 @@ function LoginPageContent() {
         : await loginUser(parsed.data);
 
       const fallbackSlug = appConfig.defaultWorkspaceSlug;
-      const slug = result.user.workspaceSlug ?? fallbackSlug;
-
-      let onboardingState = null;
-      try {
-        if (result.user.id) {
-          onboardingState = await onboardingApi.getOnboardingState(result.user.id);
-        }
-      } catch {
-        // Non-fatal: login still succeeds; dashboard uses auth profile data.
-      }
-
-      const { user: sessionUser } = mergeAuthWithOnboarding(result, onboardingState);
+      const { user: sessionUser } = mergeAuthWithOnboarding(result, null);
 
       setSession({
         token: result.token,

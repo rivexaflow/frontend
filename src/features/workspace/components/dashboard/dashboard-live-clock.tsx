@@ -42,10 +42,10 @@ function AnalogClockFace({ date }: { date: Date }) {
       <circle cx="50" cy="50" r="44" fill="none" stroke="url(#clockFaceGrad)" strokeWidth="2" opacity="0.35" />
       {Array.from({ length: 12 }).map((_, i) => {
         const angle = (i * 30 * Math.PI) / 180;
-        const x1 = 50 + Math.sin(angle) * 36;
-        const y1 = 50 - Math.cos(angle) * 36;
-        const x2 = 50 + Math.sin(angle) * (i % 3 === 0 ? 30 : 33);
-        const y2 = 50 - Math.cos(angle) * (i % 3 === 0 ? 30 : 33);
+        const x1 = Number((50 + Math.sin(angle) * 36).toFixed(4));
+        const y1 = Number((50 - Math.cos(angle) * 36).toFixed(4));
+        const x2 = Number((50 + Math.sin(angle) * (i % 3 === 0 ? 30 : 33)).toFixed(4));
+        const y2 = Number((50 - Math.cos(angle) * (i % 3 === 0 ? 30 : 33)).toFixed(4));
         return (
           <line
             key={i}
@@ -100,17 +100,19 @@ function AnalogClockFace({ date }: { date: Date }) {
 export function DashboardLiveClock({ embedded = false }: { embedded?: boolean }) {
   const { clockStatus, getLiveHoursWorked } = useAttendanceClock();
   const [now, setNow] = useState(() => new Date());
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const id = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(id);
   }, []);
 
-  const hours = now.toLocaleTimeString("en-US", { hour: "2-digit", hour12: false }).slice(0, 2);
-  const minutes = now.toLocaleTimeString("en-US", { minute: "2-digit", hour12: false });
-  const seconds = now.toLocaleTimeString("en-US", { second: "2-digit", hour12: false });
-  const weekday = now.toLocaleDateString("en-US", { weekday: "long" });
-  const monthDay = now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const hours = mounted ? now.toLocaleTimeString("en-US", { hour: "2-digit", hour12: false }).slice(0, 2) : "00";
+  const minutes = mounted ? now.toLocaleTimeString("en-US", { minute: "2-digit", hour12: false }) : "00";
+  const seconds = mounted ? now.toLocaleTimeString("en-US", { second: "2-digit", hour12: false }) : "00";
+  const weekday = mounted ? now.toLocaleDateString("en-US", { weekday: "long" }) : "Today";
+  const monthDay = mounted ? now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
 
   const worked = clockStatus?.isClockedIn && !clockStatus.isClockedOut ? formatHours(getLiveHoursWorked()) : null;
   const onShift = clockStatus?.isClockedIn && !clockStatus.isClockedOut;
