@@ -15,12 +15,13 @@ export function WorkspaceGraphView() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Workspace graph</h1>
-        <p className="mt-1 max-w-3xl text-sm text-slate-500">
-          Visual map of your main company, child workspaces, module stacks, and peer connections. Demo data
-          is shown until backend APIs are connected.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-1 border-b border-slate-200/60 dark:border-slate-800">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Workspace Graph & Topology</h1>
+          <p className="mt-1 text-xs font-medium text-slate-500">
+            Enterprise multi-workspace topology, hierarchy structure, module stacks, and peer-to-peer data sync connections.
+          </p>
+        </div>
       </div>
 
       <WorkspaceGraphPanel canManage={canManage} expanded />

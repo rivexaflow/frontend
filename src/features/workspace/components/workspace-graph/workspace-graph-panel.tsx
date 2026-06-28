@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { WorkspaceConnectModal } from "@/features/workspace/components/workspace-graph/workspace-connect-modal";
+import { CreateWorkspaceModal } from "@/features/workspace/components/workspace-graph/create-workspace-modal";
 import { WorkspaceGraphCanvas } from "@/features/workspace/components/workspace-graph/workspace-graph-canvas";
 import { WorkspaceGraphDetail } from "@/features/workspace/components/workspace-graph/workspace-graph-detail";
 import {
@@ -34,6 +35,7 @@ export function WorkspaceGraphPanel({ canManage = false, className, expanded = f
   const startConnect = workspaceGraphStore((s) => s.startConnect);
 
   const [connectOpen, setConnectOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const focusedNode = focusedNodeId ? nodes.find((n) => n.id === focusedNodeId) : null;
 
@@ -60,6 +62,7 @@ export function WorkspaceGraphPanel({ canManage = false, className, expanded = f
       <WorkspaceGraphToolbar
         canManage={canManage}
         onConnectNew={() => setConnectOpen(true)}
+        onCreateNew={() => setCreateOpen(true)}
       />
 
       <div className={cn("relative bg-slate-50/40 dark:bg-slate-950/30", expanded ? "min-h-[620px]" : "min-h-[580px]")}>
@@ -86,6 +89,7 @@ export function WorkspaceGraphPanel({ canManage = false, className, expanded = f
       <WorkspaceGraphLegend />
 
       <WorkspaceConnectModal open={connectOpen} onClose={() => setConnectOpen(false)} />
+      <CreateWorkspaceModal open={createOpen} onClose={() => setCreateOpen(false)} />
     </section>
   );
 }

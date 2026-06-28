@@ -16,6 +16,7 @@ type WorkspaceGraphState = {
   focusNode: (id: string | null) => void;
   startConnect: (sourceId: string) => void;
   cancelConnect: () => void;
+  addNode: (node: WorkspaceGraphNode) => void;
   addPeerConnection: (
     sourceId: string,
     targetId: string,
@@ -32,6 +33,24 @@ export const workspaceGraphStore = create<WorkspaceGraphState>((set, get) => ({
   focusedNodeId: null,
   connectMode: false,
   connectSourceId: null,
+
+  addNode: (newNode) => {
+    const { nodes, edges } = get();
+    const mainNode = nodes.find((n) => n.isMain) || nodes[0];
+    const newEdges = [...edges];
+    if (mainNode) {
+      newEdges.push({
+        id: `h_${mainNode.id}_${newNode.id}`,
+        sourceId: mainNode.id,
+        targetId: newNode.id,
+        type: "hierarchy",
+        crossAccess: true,
+        createdAt: "Just now",
+        sharedDomains: ["employees", "crm", "hrm"],
+      });
+    }
+    set({ nodes: [...nodes, newNode], edges: newEdges, focusedNodeId: newNode.id, selectedNodeId: newNode.id });
+  },
 
   setGraph: ({ organizationName, nodes, edges }) =>
     set({ organizationName, nodes, edges }),
