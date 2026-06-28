@@ -35,6 +35,10 @@ import {
   Key,
   Store,
   MessageCircle,
+  Truck,
+  BarChart2,
+  BookOpen,
+  Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { CRM_NAV_CHILDREN, isCrmNavSubGroup } from "@/features/workspace/data/crm-nav";
@@ -68,7 +72,20 @@ interface NavGroup {
 
 const workspaceNavItems: NavItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, category: "General" },
+  { name: "Community Board", href: "/community", icon: MessageCircle, category: "General" },
   { name: "KYC Center", href: "/kyc", icon: ShieldCheck, category: "Operations", badge: "Live" },
+  { name: "Projects Board", href: "/projects", icon: Briefcase, category: "Operations" },
+  { name: "Inventory Stock", href: "/inventory", icon: Layers, category: "Operations" },
+  { name: "POS Checkout", href: "/pos", icon: Store, category: "Operations" },
+  { name: "Sales Orders", href: "/sales", icon: FileText, category: "Operations" },
+  { name: "Purchase Orders", href: "/purchase", icon: FileText, category: "Operations" },
+  { name: "Logistics Tracking", href: "/logistics", icon: Truck, category: "Operations" },
+  { name: "PDF Template Editor", href: "/pdf-editor", icon: FileText, category: "Operations" },
+  { name: "Email Campaigns", href: "/email-marketing", icon: Mail, category: "Operations" },
+  { name: "Accounting General", href: "/accounting", icon: BookOpen, category: "Operations" },
+  { name: "Budgeting Plans", href: "/budgeting", icon: BarChart2, category: "Operations" },
+  { name: "SLA Policies", href: "/sla", icon: ShieldCheck, category: "Operations" },
+  { name: "DupliGuard Scan", href: "/dupliguard", icon: Activity, category: "Operations" },
   { name: "Invoices", href: "/invoices", icon: FileText, category: "Operations" },
   { name: "Sheets", href: "/sheets", icon: FileSpreadsheet, category: "Operations" },
   { name: "Marketplace", href: "/tools-marketplace", icon: Store, category: "Operations", badge: "New" },
