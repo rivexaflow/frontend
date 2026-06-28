@@ -15,15 +15,6 @@ export function WorkspaceGraphView() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-1 border-b border-slate-200/60 dark:border-slate-800">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Workspace Graph & Topology</h1>
-          <p className="mt-1 text-xs font-medium text-slate-500">
-            Enterprise multi-workspace topology, hierarchy structure, module stacks, and peer-to-peer data sync connections.
-          </p>
-        </div>
-      </div>
-
       <WorkspaceGraphPanel canManage={canManage} expanded />
     </div>
   );
