@@ -26,9 +26,9 @@ type WorkspaceGraphState = {
 };
 
 export const workspaceGraphStore = create<WorkspaceGraphState>((set, get) => ({
-  organizationName: DEMO_WORKSPACE_GRAPH.organizationName,
-  nodes: DEMO_WORKSPACE_GRAPH.nodes,
-  edges: DEMO_WORKSPACE_GRAPH.edges,
+  organizationName: "Workspace Organization",
+  nodes: [],
+  edges: [],
   selectedNodeId: null,
   focusedNodeId: null,
   connectMode: false,
