@@ -19,6 +19,7 @@ export const WORKSPACE_ROOT_SEGMENTS = [
   "sheets",
   "tools-marketplace",
   "whatsapp-chat",
+  "tickets",
 ] as const;
 
 export type WorkspaceRootSegment = (typeof WORKSPACE_ROOT_SEGMENTS)[number];
@@ -86,6 +87,7 @@ export const workspacePaths = {
   role: "/role",
   roleNew: "/role/new",
   userActivity: "/user/activity",
+  tickets: "/tickets",
 } as const;
 
 /** @deprecated Use workspacePaths.role */

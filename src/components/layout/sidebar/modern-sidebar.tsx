@@ -90,6 +90,7 @@ const workspaceNavItems: NavItem[] = [
   { name: "Sheets", href: "/sheets", icon: FileSpreadsheet, category: "Operations" },
   { name: "Marketplace", href: "/tools-marketplace", icon: Store, category: "Operations", badge: "New" },
   { name: "WhatsApp CRM", href: "/crm/whatsapp", icon: MessageCircle, category: "Operations" },
+  { name: "Tickets", href: "/tickets", icon: Ticket, category: "Operations" },
   { name: "AI Agents", href: "/ai", icon: Sparkles, category: "Intelligence" },
   { name: "Analytics", href: "/reports", icon: Zap, category: "Intelligence" },
 ];
@@ -236,6 +237,7 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
           if (item.href === "/budgeting" && !installedToolIds.includes("budgeting")) return false;
           if (item.href === "/sla" && !installedToolIds.includes("sla")) return false;
           if (item.href === "/dupliguard" && !installedToolIds.includes("dupliguard")) return false;
+          if (item.href === "/tickets" && !installedToolIds.includes("tickets")) return false;
 
           // 2. Check if selected during onboarding (modules array)
           if (modules === null) return true;

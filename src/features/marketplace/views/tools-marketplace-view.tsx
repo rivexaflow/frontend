@@ -24,7 +24,8 @@ import {
   Mail,
   BookOpen,
   BarChart2,
-  Activity
+  Activity,
+  Ticket
 } from "lucide-react";
 import Link from "next/link";
 
@@ -266,6 +267,18 @@ export function ToolsMarketplaceView() {
         features: ["Similarity score check threshold", "Batch database scans scheduler", "Email & Phone index filters", "Auto-merge profile parameters"]
       },
       {
+        id: "tickets",
+        name: "Customer Support Tickets System",
+        category: "Productivity & Team",
+        description: "Raise query requests, monitor unresolved ticket queues, and live chat with support managers.",
+        icon: "Ticket",
+        publisher: "Rivexa Flow",
+        isOfficial: true,
+        rating: 4.8,
+        reviewsCount: 76,
+        features: ["Support Ticket submission form", "Active / Closed ticket directory", "Live chat reply messaging thread", "SLA tracking metrics alerts"]
+      },
+      {
         id: "slack_integration",
         name: "Slack Alerts & Notifications",
         category: "Productivity & Team",
@@ -323,6 +336,7 @@ export function ToolsMarketplaceView() {
       case "BarChart2": return <BarChart2 className="h-6 w-6 text-amber-600 dark:text-amber-400" />;
       case "ShieldCheck": return <ShieldCheck className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />;
       case "Activity": return <Activity className="h-6 w-6 text-rose-600 dark:text-rose-400" />;
+      case "Ticket": return <Ticket className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />;
       default: return <Sparkles className="h-6 w-6 text-[#191970] dark:text-indigo-400" />;
     }
   };
