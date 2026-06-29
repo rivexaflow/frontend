@@ -64,27 +64,15 @@ export function ToolsMarketplaceView() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("rivexaflow_installed_tools");
+      const saved = localStorage.getItem("rivexaflow_installed_tools_v2");
       if (saved) {
         setInstalledToolIds(JSON.parse(saved));
       } else {
         const defaultInstalled = [
           "whatsapp",
-          "google_sheets",
-          "projects",
-          "inventory",
-          "pos",
-          "sales",
-          "purchase",
-          "logistics",
-          "pdf-editor",
-          "email-marketing",
-          "accounting",
-          "budgeting",
-          "sla",
-          "dupliguard"
+          "google_sheets"
         ];
-        localStorage.setItem("rivexaflow_installed_tools", JSON.stringify(defaultInstalled));
+        localStorage.setItem("rivexaflow_installed_tools_v2", JSON.stringify(defaultInstalled));
         setInstalledToolIds(defaultInstalled);
       }
     }
@@ -314,7 +302,7 @@ export function ToolsMarketplaceView() {
         updated = [...installedToolIds, toolId];
       }
       setInstalledToolIds(updated);
-      localStorage.setItem("rivexaflow_installed_tools", JSON.stringify(updated));
+      localStorage.setItem("rivexaflow_installed_tools_v2", JSON.stringify(updated));
       setInstallingId(null);
     }, 600);
   };

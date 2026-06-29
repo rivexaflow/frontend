@@ -188,27 +188,15 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   useEffect(() => {
     setMounted(true);
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("rivexaflow_installed_tools");
+      const saved = localStorage.getItem("rivexaflow_installed_tools_v2");
       if (saved) {
         setInstalledToolIds(JSON.parse(saved));
       } else {
         const defaultInstalled = [
           "whatsapp",
-          "google_sheets",
-          "projects",
-          "inventory",
-          "pos",
-          "sales",
-          "purchase",
-          "logistics",
-          "pdf-editor",
-          "email-marketing",
-          "accounting",
-          "budgeting",
-          "sla",
-          "dupliguard"
+          "google_sheets"
         ];
-        localStorage.setItem("rivexaflow_installed_tools", JSON.stringify(defaultInstalled));
+        localStorage.setItem("rivexaflow_installed_tools_v2", JSON.stringify(defaultInstalled));
         setInstalledToolIds(defaultInstalled);
       }
     }
