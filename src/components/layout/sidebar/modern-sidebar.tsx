@@ -253,6 +253,7 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
           if (item.href === "/projects") return lowerModules.includes("project_management") || lowerModules.includes("projects");
           if (item.href === "/email-marketing") return lowerModules.includes("email_marketing") || lowerModules.includes("email");
           if (item.href === "/crm/whatsapp") return lowerModules.includes("whatsapp");
+          if (item.href === "/tickets") return lowerModules.includes("support");
 
           return true;
         });
