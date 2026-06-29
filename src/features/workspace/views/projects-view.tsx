@@ -51,7 +51,7 @@ export function ProjectsView() {
     if (!companyId) return;
     setLoading(true);
     try {
-      const res = await apiClient.get(`/api/projects/${companyId}`);
+      const res = await apiClient.get(`/projects/${companyId}`);
       if (res.data?.success) {
         setProjects(res.data.data || []);
       }
@@ -64,7 +64,7 @@ export function ProjectsView() {
 
   const loadProjectKanban = useCallback(async (projectId: string) => {
     try {
-      const res = await apiClient.get(`/api/projects/${companyId}/${projectId}`);
+      const res = await apiClient.get(`/projects/${companyId}/${projectId}`);
       if (res.data?.success) {
         const board = res.data.data.kanban || {
           TODO: [],
@@ -92,7 +92,7 @@ export function ProjectsView() {
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiClient.post(`/api/projects/${companyId}`, {
+      await apiClient.post(`/projects/${companyId}`, {
         ...newProject,
         budget: newProject.budget ? parseFloat(newProject.budget) : undefined
       });
@@ -108,7 +108,7 @@ export function ProjectsView() {
     e.preventDefault();
     if (!selectedProject) return;
     try {
-      await apiClient.post(`/api/projects/${companyId}/${selectedProject.id}/tasks`, newTask);
+      await apiClient.post(`/projects/${companyId}/${selectedProject.id}/tasks`, newTask);
       setTaskModal(false);
       setNewTask({ title: "", description: "", priority: "MEDIUM", status: "TODO" });
       loadProjectKanban(selectedProject.id);
@@ -120,7 +120,7 @@ export function ProjectsView() {
   const handleMoveTask = async (task: Task, newStatus: string) => {
     if (!selectedProject) return;
     try {
-      await apiClient.patch(`/api/projects/${companyId}/${selectedProject.id}/tasks/${task.id}`, {
+      await apiClient.patch(`/projects/${companyId}/${selectedProject.id}/tasks/${task.id}`, {
         status: newStatus
       });
       loadProjectKanban(selectedProject.id);

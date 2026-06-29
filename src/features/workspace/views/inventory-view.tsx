@@ -63,10 +63,10 @@ export function InventoryView() {
     setLoading(true);
     try {
       const [prodRes, whRes, movRes, lowRes] = await Promise.all([
-        apiClient.get(`/api/inventory/${companyId}/products`),
-        apiClient.get(`/api/inventory/${companyId}/warehouses`),
-        apiClient.get(`/api/inventory/${companyId}/movements`),
-        apiClient.get(`/api/inventory/${companyId}/low-stock`),
+        apiClient.get(`/inventory/${companyId}/products`),
+        apiClient.get(`/inventory/${companyId}/warehouses`),
+        apiClient.get(`/inventory/${companyId}/movements`),
+        apiClient.get(`/inventory/${companyId}/low-stock`),
       ]);
       setProducts(prodRes.data?.data || []);
       setWarehouses(whRes.data?.data || []);
@@ -86,7 +86,7 @@ export function InventoryView() {
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiClient.post(`/api/inventory/${companyId}/products`, {
+      await apiClient.post(`/inventory/${companyId}/products`, {
         ...newProduct,
         costPrice: parseFloat(newProduct.costPrice || "0"),
         salePrice: parseFloat(newProduct.salePrice || "0"),
@@ -104,7 +104,7 @@ export function InventoryView() {
   const handleCreateWarehouse = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiClient.post(`/api/inventory/${companyId}/warehouses`, newWarehouse);
+      await apiClient.post(`/inventory/${companyId}/warehouses`, newWarehouse);
       setWarehouseModal(false);
       setNewWarehouse({ name: "", address: "", isDefault: false });
       loadData();
@@ -116,7 +116,7 @@ export function InventoryView() {
   const handleCreateMovement = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiClient.post(`/api/inventory/${companyId}/movements`, {
+      await apiClient.post(`/inventory/${companyId}/movements`, {
         ...newMovement,
         quantity: parseFloat(newMovement.quantity)
       });

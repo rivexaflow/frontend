@@ -29,9 +29,9 @@ export function EmailMarketingView() {
     setError(null);
     try {
       const [tplRes, listRes, campRes] = await Promise.all([
-        apiClient.get(`/api/email-marketing/templates/${companyId}`).catch(() => ({ data: { data: [] } })),
-        apiClient.get(`/api/email-marketing/lists/${companyId}`).catch(() => ({ data: { data: [] } })),
-        apiClient.get(`/api/email-marketing/campaigns/${companyId}`).catch(() => ({ data: { data: [] } })),
+        apiClient.get(`/email-marketing/templates/${companyId}`).catch(() => ({ data: { data: [] } })),
+        apiClient.get(`/email-marketing/lists/${companyId}`).catch(() => ({ data: { data: [] } })),
+        apiClient.get(`/email-marketing/campaigns/${companyId}`).catch(() => ({ data: { data: [] } })),
       ]);
       setTemplates(tplRes.data.data || []);
       setLists(listRes.data.data || []);
@@ -50,7 +50,7 @@ export function EmailMarketingView() {
   const handleCreateTemplate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiClient.post("/api/email-marketing/templates", {
+      await apiClient.post("/email-marketing/templates", {
         ...newTemplate,
         companyId,
         designJson: {}
@@ -66,7 +66,7 @@ export function EmailMarketingView() {
   const handleCreateList = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiClient.post("/api/email-marketing/lists", {
+      await apiClient.post("/email-marketing/lists", {
         ...newList,
         companyId
       });
@@ -81,7 +81,7 @@ export function EmailMarketingView() {
   const handleCreateCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiClient.post("/api/email-marketing/campaigns", {
+      await apiClient.post("/email-marketing/campaigns", {
         ...newCampaign,
         companyId
       });
@@ -95,7 +95,7 @@ export function EmailMarketingView() {
 
   const handleSendCampaign = async (id: string) => {
     try {
-      await apiClient.post(`/api/email-marketing/campaigns/${id}/send`);
+      await apiClient.post(`/email-marketing/campaigns/${id}/send`);
       alert("Campaign delivery initialized!");
       loadData();
     } catch (err: any) {

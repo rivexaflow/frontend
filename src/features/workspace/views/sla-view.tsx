@@ -42,7 +42,7 @@ export function SlaView() {
     setLoading(true);
     try {
       const [polRes, usrRes] = await Promise.all([
-        apiClient.get(`/api/support/sla/policies/${companyId}`),
+        apiClient.get(`/support/sla/policies/${companyId}`),
         apiClient.get(`/admin/users`).catch(() => ({ data: { data: [] } }))
       ]);
       setPolicies(polRes.data?.data || []);
@@ -64,7 +64,7 @@ export function SlaView() {
   const handleCreatePolicy = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiClient.post("/api/support/sla/policies", {
+      await apiClient.post("/support/sla/policies", {
         ...newPolicy,
         companyId,
         maxFirstResponseMin: parseFloat(newPolicy.maxFirstResponseMin),

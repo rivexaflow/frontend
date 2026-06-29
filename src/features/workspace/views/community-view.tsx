@@ -30,7 +30,7 @@ export function CommunityView() {
     try {
       const categoryParam = selectedCategory !== "ALL" ? `&category=${selectedCategory}` : "";
       const companyParam = companyId ? `?companyId=${companyId}` : "";
-      const res = await apiClient.get(`/api/community/posts${companyParam}${categoryParam}`);
+      const res = await apiClient.get(`/community/posts${companyParam}${categoryParam}`);
       if (res.data?.success) {
         setPosts(res.data.data || []);
       }
@@ -48,7 +48,7 @@ export function CommunityView() {
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiClient.post("/api/community/posts", {
+      await apiClient.post("/community/posts", {
         ...newPost,
         companyId
       });

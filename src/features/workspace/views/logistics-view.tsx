@@ -46,7 +46,7 @@ export function LogisticsView() {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiClient.get(`/api/logistics/tracking/${trackingNumber}`);
+      const res = await apiClient.get(`/logistics/tracking/${trackingNumber}`);
       if (res.data?.success) {
         setShipment(res.data.data);
       }
@@ -61,7 +61,7 @@ export function LogisticsView() {
   const handleCreateShipment = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiClient.post("/api/logistics/shipments", newShipment);
+      await apiClient.post("/logistics/shipments", newShipment);
       setShipmentModal(false);
       alert(`Shipment registered successfully: ${newShipment.trackingNumber}`);
       setTrackingNumber(newShipment.trackingNumber);
@@ -74,7 +74,7 @@ export function LogisticsView() {
 
   const handleOptimizeRoute = async () => {
     try {
-      const res = await apiClient.post("/api/logistics/optimize-route", {
+      const res = await apiClient.post("/logistics/optimize-route", {
         points: routePoints
       });
       if (res.data?.success) {

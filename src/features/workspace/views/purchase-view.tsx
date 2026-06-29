@@ -51,8 +51,8 @@ export function PurchaseView() {
     setLoading(true);
     try {
       const [vRes, oRes] = await Promise.all([
-        apiClient.get(`/api/purchase/${companyId}/vendors`),
-        apiClient.get(`/api/purchase/${companyId}/orders`),
+        apiClient.get(`/purchase/${companyId}/vendors`),
+        apiClient.get(`/purchase/${companyId}/orders`),
       ]);
       setVendors(vRes.data?.data || []);
       setOrders(oRes.data?.data || []);
@@ -70,7 +70,7 @@ export function PurchaseView() {
   const handleCreateVendor = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiClient.post(`/api/purchase/${companyId}/vendors`, newVendor);
+      await apiClient.post(`/purchase/${companyId}/vendors`, newVendor);
       setVendorModal(false);
       setNewVendor({ name: "", email: "", phone: "", address: "", gstNumber: "" });
       loadData();
@@ -82,7 +82,7 @@ export function PurchaseView() {
   const handleCreateOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiClient.post(`/api/purchase/${companyId}/orders`, {
+      await apiClient.post(`/purchase/${companyId}/orders`, {
         ...newOrder,
         taxPercent: parseFloat(newOrder.taxPercent),
         discount: parseFloat(newOrder.discount),

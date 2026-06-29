@@ -52,7 +52,7 @@ export function BudgetingView() {
     if (!companyId) return;
     setLoading(true);
     try {
-      const res = await apiClient.get(`/api/budgeting/${companyId}/budgets`);
+      const res = await apiClient.get(`/budgeting/${companyId}/budgets`);
       if (res.data?.success) {
         setBudgets(res.data.data || []);
       }
@@ -65,7 +65,7 @@ export function BudgetingView() {
 
   const loadBudgetDetails = useCallback(async (budgetId: string) => {
     try {
-      const res = await apiClient.get(`/api/budgeting/${companyId}/budgets/${budgetId}`);
+      const res = await apiClient.get(`/budgeting/${companyId}/budgets/${budgetId}`);
       if (res.data?.success) {
         setSelectedBudget(res.data.data);
       }
@@ -86,7 +86,7 @@ export function BudgetingView() {
   const handleCreateBudget = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiClient.post(`/api/budgeting/${companyId}/budgets`, newBudget);
+      await apiClient.post(`/budgeting/${companyId}/budgets`, newBudget);
       setBudgetModal(false);
       setNewBudget({
         name: "",

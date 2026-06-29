@@ -54,7 +54,7 @@ export function PdfEditorView() {
     setLoading(true);
     setPdfLink(null);
     try {
-      const res = await apiClient.post("/api/pdf-editor/create", {
+      const res = await apiClient.post("/pdf-editor/create", {
         companyId,
         title,
         elements
@@ -86,7 +86,7 @@ export function PdfEditorView() {
       mergeFiles.forEach(file => {
         formData.append("files", file);
       });
-      const res = await apiClient.post("/api/pdf-editor/merge", formData, {
+      const res = await apiClient.post("/pdf-editor/merge", formData, {
         headers: { "Content-Type": "multipart/form-data" }
       });
       if (res.data?.success) {

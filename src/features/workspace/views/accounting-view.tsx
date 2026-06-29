@@ -62,8 +62,8 @@ export function AccountingView() {
     setLoading(true);
     try {
       const [accRes, jrRes] = await Promise.all([
-        apiClient.get(`/api/accounting/${companyId}/accounts`),
-        apiClient.get(`/api/accounting/${companyId}/journal-entries`),
+        apiClient.get(`/accounting/${companyId}/accounts`),
+        apiClient.get(`/accounting/${companyId}/journal-entries`),
       ]);
       setAccounts(accRes.data?.data || []);
       setJournalEntries(jrRes.data?.data || []);
@@ -81,7 +81,7 @@ export function AccountingView() {
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiClient.post(`/api/accounting/${companyId}/accounts`, newAccount);
+      await apiClient.post(`/accounting/${companyId}/accounts`, newAccount);
       setAccountModal(false);
       setNewAccount({ name: "", code: "", type: "ASSET", subType: "", currency: "INR" });
       loadData();
@@ -109,7 +109,7 @@ export function AccountingView() {
     }
 
     try {
-      await apiClient.post(`/api/accounting/${companyId}/journal-entries`, {
+      await apiClient.post(`/accounting/${companyId}/journal-entries`, {
         ...newJournal,
         lines: formattedLines
       });

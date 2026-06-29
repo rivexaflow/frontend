@@ -65,8 +65,8 @@ export function SalesView() {
     setLoading(true);
     try {
       const [qRes, oRes] = await Promise.all([
-        apiClient.get(`/api/sales/${companyId}/quotations`),
-        apiClient.get(`/api/sales/${companyId}/orders`),
+        apiClient.get(`/sales/${companyId}/quotations`),
+        apiClient.get(`/sales/${companyId}/orders`),
       ]);
       setQuotations(qRes.data?.data || []);
       setOrders(oRes.data?.data || []);
@@ -84,7 +84,7 @@ export function SalesView() {
   const handleCreateQuotation = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiClient.post(`/api/sales/${companyId}/quotations`, {
+      await apiClient.post(`/sales/${companyId}/quotations`, {
         ...newQuote,
         taxPercent: parseFloat(newQuote.taxPercent),
         discount: parseFloat(newQuote.discount),
@@ -115,7 +115,7 @@ export function SalesView() {
 
   const handleConfirmQuote = async (quoteId: string) => {
     try {
-      await apiClient.patch(`/api/sales/${companyId}/quotations/${quoteId}/confirm`);
+      await apiClient.patch(`/sales/${companyId}/quotations/${quoteId}/confirm`);
       alert("Quotation confirmed and converted to Sales Order!");
       loadData();
     } catch (err) {

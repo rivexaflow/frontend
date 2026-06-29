@@ -33,7 +33,7 @@ export function PosView() {
 
   const loadProducts = useCallback(async () => {
     try {
-      const res = await apiClient.get(`/api/inventory/${companyId}/products?limit=50`);
+      const res = await apiClient.get(`/inventory/${companyId}/products?limit=50`);
       if (res.data?.success) {
         setProducts(res.data.data || []);
       }
@@ -46,7 +46,7 @@ export function PosView() {
     if (!companyId) return;
     setLoading(true);
     try {
-      const res = await apiClient.get(`/api/pos/${companyId}/sessions?status=OPEN`);
+      const res = await apiClient.get(`/pos/${companyId}/sessions?status=OPEN`);
       if (res.data?.success && res.data.data?.length > 0) {
         setSession(res.data.data[0]);
         await loadProducts();
@@ -67,7 +67,7 @@ export function PosView() {
   const handleOpenSession = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await apiClient.post(`/api/pos/${companyId}/sessions/open`, {
+      const res = await apiClient.post(`/pos/${companyId}/sessions/open`, {
         openingCash: parseFloat(openingCash)
       });
       if (res.data?.success) {
@@ -82,7 +82,7 @@ export function PosView() {
   const handleCloseSession = async () => {
     if (!session) return;
     try {
-      const res = await apiClient.post(`/api/pos/${companyId}/sessions/${session.id}/close`, {
+      const res = await apiClient.post(`/pos/${companyId}/sessions/${session.id}/close`, {
         closingCash: session.openingCash
       });
       if (res.data?.success) {
@@ -118,7 +118,7 @@ export function PosView() {
   const handleCheckout = async () => {
     if (!session || cart.length === 0) return;
     try {
-      const res = await apiClient.post(`/api/pos/${companyId}/sales`, {
+      const res = await apiClient.post(`/pos/${companyId}/sales`, {
         sessionId: session.id,
         paymentMode,
         cashReceived: cashReceived ? parseFloat(cashReceived) : undefined,

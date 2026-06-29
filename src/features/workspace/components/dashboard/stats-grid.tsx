@@ -24,7 +24,7 @@ export function StatsGrid() {
     if (!companyId) return;
     async function loadStats() {
       try {
-        const res = await apiClient.get(`/api/dashboard/${companyId}/overview`);
+        const res = await apiClient.get(`/dashboard/${companyId}/overview`);
         if (res.data?.success && res.data.data) {
           setData(res.data.data);
         }

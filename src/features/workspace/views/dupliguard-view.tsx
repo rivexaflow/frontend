@@ -53,8 +53,8 @@ export function DupliGuardView() {
     setLoading(true);
     try {
       const [dashRes, setRes] = await Promise.all([
-        apiClient.get(`/api/dupliguard/dashboard/${companyId}`),
-        apiClient.get(`/api/dupliguard/settings/${companyId}`),
+        apiClient.get(`/dupliguard/dashboard/${companyId}`),
+        apiClient.get(`/dupliguard/settings/${companyId}`),
       ]);
       if (dashRes.data?.success) {
         setScorecard(dashRes.data.data.scorecard || { totalGroups: 0, leadDuplicates: 0, customerDuplicates: 0, contactDuplicates: 0 });
@@ -79,7 +79,7 @@ export function DupliGuardView() {
     if (!companyId) return;
     setScanning(true);
     try {
-      await apiClient.post(`/api/dupliguard/scan/${companyId}`);
+      await apiClient.post(`/dupliguard/scan/${companyId}`);
       alert("Manual scan triggered successfully!");
       // Poll status or reload
       setTimeout(() => {
@@ -95,7 +95,7 @@ export function DupliGuardView() {
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiClient.put(`/api/dupliguard/settings/${companyId}`, settings);
+      await apiClient.put(`/dupliguard/settings/${companyId}`, settings);
       setSettingsModal(false);
       loadDashboard();
     } catch (err) {
