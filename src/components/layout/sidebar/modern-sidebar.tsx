@@ -183,8 +183,35 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  const [installedToolIds, setInstalledToolIds] = useState<string[]>([]);
+
   useEffect(() => {
     setMounted(true);
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("rivexaflow_installed_tools");
+      if (saved) {
+        setInstalledToolIds(JSON.parse(saved));
+      } else {
+        const defaultInstalled = [
+          "whatsapp",
+          "google_sheets",
+          "projects",
+          "inventory",
+          "pos",
+          "sales",
+          "purchase",
+          "logistics",
+          "pdf-editor",
+          "email-marketing",
+          "accounting",
+          "budgeting",
+          "sla",
+          "dupliguard"
+        ];
+        localStorage.setItem("rivexaflow_installed_tools", JSON.stringify(defaultInstalled));
+        setInstalledToolIds(defaultInstalled);
+      }
+    }
   }, []);
 
   const user = authStore((s) => s.user);
@@ -205,13 +232,38 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const items = useMemo(() => {
     const rawItems = isAdmin
       ? adminNavItems
-      : modules === null
-      ? workspaceNavItems
       : workspaceNavItems.filter((item) => {
-          if (item.href === "/kyc") return modules.includes("kyc");
-          if (item.href === "/invoices") return modules.includes("invoices");
-          if (item.href === "/ai") return modules.includes("ai");
-          if (item.href === "/reports") return modules.includes("reports");
+          // 1. Check if the tool is installed in the marketplace
+          if (item.href === "/crm/whatsapp" && !installedToolIds.includes("whatsapp")) return false;
+          if (item.href === "/sheets" && !installedToolIds.includes("google_sheets")) return false;
+          if (item.href === "/projects" && !installedToolIds.includes("projects")) return false;
+          if (item.href === "/inventory" && !installedToolIds.includes("inventory")) return false;
+          if (item.href === "/pos" && !installedToolIds.includes("pos")) return false;
+          if (item.href === "/sales" && !installedToolIds.includes("sales")) return false;
+          if (item.href === "/purchase" && !installedToolIds.includes("purchase")) return false;
+          if (item.href === "/logistics" && !installedToolIds.includes("logistics")) return false;
+          if (item.href === "/pdf-editor" && !installedToolIds.includes("pdf-editor")) return false;
+          if (item.href === "/email-marketing" && !installedToolIds.includes("email-marketing")) return false;
+          if (item.href === "/accounting" && !installedToolIds.includes("accounting")) return false;
+          if (item.href === "/budgeting" && !installedToolIds.includes("budgeting")) return false;
+          if (item.href === "/sla" && !installedToolIds.includes("sla")) return false;
+          if (item.href === "/dupliguard" && !installedToolIds.includes("dupliguard")) return false;
+
+          // 2. Check if selected during onboarding (modules array)
+          if (modules === null) return true;
+
+          const lowerModules = modules.map((m) => m.toLowerCase());
+          
+          if (item.href === "/kyc") return lowerModules.includes("kyc");
+          if (item.href === "/invoices") return lowerModules.includes("invoice");
+          if (item.href === "/ai") return lowerModules.includes("ai_agents");
+          if (item.href === "/reports") return lowerModules.includes("analytics");
+
+          // Map other tools to onboarding modules
+          if (item.href === "/projects") return lowerModules.includes("project_management") || lowerModules.includes("projects");
+          if (item.href === "/email-marketing") return lowerModules.includes("email_marketing") || lowerModules.includes("email");
+          if (item.href === "/crm/whatsapp") return lowerModules.includes("whatsapp");
+
           return true;
         });
 
@@ -255,7 +307,7 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
       }
     }
     return rawItems;
-  }, [isAdmin, modules, user, mounted]);
+  }, [isAdmin, modules, user, mounted, installedToolIds]);
 
   const groups = useMemo(() => {
     if (isAdmin) return [];

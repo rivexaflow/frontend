@@ -16,7 +16,15 @@ import {
   ArrowRight,
   RefreshCw,
   ShieldCheck,
-  Star
+  Star,
+  Briefcase,
+  Layers,
+  FileText,
+  Truck,
+  Mail,
+  BookOpen,
+  BarChart2,
+  Activity
 } from "lucide-react";
 import Link from "next/link";
 
@@ -41,7 +49,7 @@ interface ToolCatalogItem {
 
 export function ToolsMarketplaceView() {
   const [catalog, setCatalog] = useState<ToolCatalogItem[]>([]);
-  const [installedToolIds, setInstalledToolIds] = useState<string[]>(["whatsapp", "google_sheets"]);
+  const [installedToolIds, setInstalledToolIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [installingId, setInstallingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -55,6 +63,31 @@ export function ToolsMarketplaceView() {
   const categories = ["All", "Communication & Sales", "Data & Operations", "Productivity & Team", "Automation"];
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("rivexaflow_installed_tools");
+      if (saved) {
+        setInstalledToolIds(JSON.parse(saved));
+      } else {
+        const defaultInstalled = [
+          "whatsapp",
+          "google_sheets",
+          "projects",
+          "inventory",
+          "pos",
+          "sales",
+          "purchase",
+          "logistics",
+          "pdf-editor",
+          "email-marketing",
+          "accounting",
+          "budgeting",
+          "sla",
+          "dupliguard"
+        ];
+        localStorage.setItem("rivexaflow_installed_tools", JSON.stringify(defaultInstalled));
+        setInstalledToolIds(defaultInstalled);
+      }
+    }
     fetchCatalogAndInstalled();
   }, []);
 
@@ -90,7 +123,7 @@ export function ToolsMarketplaceView() {
       },
       {
         id: "google_sheets",
-        name: "Google Sheets & Spreadsheets",
+        name: "Stockology Sheets & Spreadsheets",
         category: "Data & Operations",
         description: "Real-time collaborative spreadsheets embedded in your workspace. Synchronize lead lists, sales data, and automated reporting seamlessly.",
         icon: "FileSpreadsheet",
@@ -99,6 +132,150 @@ export function ToolsMarketplaceView() {
         rating: 4.8,
         reviewsCount: 94,
         features: ["Real-time Multi-user Collaboration", "CSV / Excel Import & Export", "CRM Lead Syncing & Formulas", "Custom Views & Field Mapping"]
+      },
+      {
+        id: "projects",
+        name: "Projects Board & Kanban",
+        category: "Productivity & Team",
+        description: "Configure project pipelines, task cards, backlogs milestones, and Trello-style statuses lists.",
+        icon: "Briefcase",
+        publisher: "Rivexa Flow",
+        isOfficial: true,
+        rating: 4.8,
+        reviewsCount: 112,
+        features: ["Kanban Board Operations", "Task Checklist Items", "Team Assignments", "Progress Meter Dashboard"]
+      },
+      {
+        id: "inventory",
+        name: "Inventory Stock Management",
+        category: "Data & Operations",
+        description: "Manage multiple warehouses catalogs, trace product listings, trace low stocks, and log stock movements.",
+        icon: "Layers",
+        publisher: "Rivexa Flow",
+        isOfficial: true,
+        rating: 4.7,
+        reviewsCount: 88,
+        features: ["Multi-warehouse Catalogs", "Stock Movements Audit Logs", "Low Stock Alerts threshold", "Product Catalogs list"]
+      },
+      {
+        id: "pos",
+        name: "POS Checkout Drawer Terminal",
+        category: "Communication & Sales",
+        description: "Retail checkout screen. Register transaction, process discounts, calculate VAT taxes, and generate receipt prints.",
+        icon: "Store",
+        publisher: "Rivexa Flow",
+        isOfficial: true,
+        rating: 4.9,
+        reviewsCount: 154,
+        features: ["Cash Drawer Checkout Terminal", "Auto VAT & Discount calculations", "Interactive product search selection", "Printable receipt formatters"]
+      },
+      {
+        id: "sales",
+        name: "Sales Orders Pipeline",
+        category: "Communication & Sales",
+        description: "Generate quotes proposals, register customers acceptances, and convert quotes into sales orders.",
+        icon: "FileText",
+        publisher: "Rivexa Flow",
+        isOfficial: true,
+        rating: 4.8,
+        reviewsCount: 79,
+        features: ["Customer Proposal Generator", "Quotation to Sales Order conversion", "Client details history ledger", "Order fulfill status updates"]
+      },
+      {
+        id: "purchase",
+        name: "Purchase Orders & Vendor Supply",
+        category: "Data & Operations",
+        description: "Log vendors listings, maintain supplier addresses, compile purchase pipelines, and record supply logs.",
+        icon: "FileText",
+        publisher: "Rivexa Flow",
+        isOfficial: true,
+        rating: 4.6,
+        reviewsCount: 61,
+        features: ["Vendor Supply Catalogs", "Purchase Orders pipeline", "Deliveries tracking status", "Costing logs audit details"]
+      },
+      {
+        id: "logistics",
+        name: "Logistics Tracking & Path Router",
+        category: "Data & Operations",
+        description: "Register logistics hub cargos, trace shipment consignment route waypoints, and optimize TSP paths.",
+        icon: "Truck",
+        publisher: "Rivexa Flow",
+        isOfficial: true,
+        rating: 4.7,
+        reviewsCount: 45,
+        features: ["Consignment Tracker route details", "Path sequence solver logic", "Waypoints delivery checkpoints", "Optimized mileage router solver"]
+      },
+      {
+        id: "pdf-editor",
+        name: "PDF Template Canvas Editor",
+        category: "Productivity & Team",
+        description: "Drag template elements. Compile invoices headings, text notes, margins alignments, and merge documents.",
+        icon: "FileText",
+        publisher: "Rivexa Flow",
+        isOfficial: true,
+        rating: 4.8,
+        reviewsCount: 83,
+        features: ["Canvas Document component layout", "Table element rows configurator", "JSON structural compiler", "PDF Multi-files Merger engine"]
+      },
+      {
+        id: "email-marketing",
+        name: "Email Marketing & Campaigns",
+        category: "Communication & Sales",
+        description: "Schedule bulk marketing mailings, manage templates designs, and compile subscribers database lists.",
+        icon: "Mail",
+        publisher: "Rivexa Flow",
+        isOfficial: true,
+        rating: 4.7,
+        reviewsCount: 97,
+        features: ["Bulk newsletter campaigns compiler", "Template drafts catalog", "Subscribers segment builders", "Deliverability success reports"]
+      },
+      {
+        id: "accounting",
+        name: "Accounting Ledger & journal",
+        category: "Data & Operations",
+        description: "General double-entry accounting ledger entries. Chart of accounts registry, assets/liability categories, and credit/debit balances.",
+        icon: "BookOpen",
+        publisher: "Rivexa Flow",
+        isOfficial: true,
+        rating: 4.9,
+        reviewsCount: 110,
+        features: ["Double-entry Journal logs", "Debit / Credit balance registers", "Chart of accounts selector", "Financial statement summaries"]
+      },
+      {
+        id: "budgeting",
+        name: "Budgeting Plans Allocations",
+        category: "Data & Operations",
+        description: "Define corporate budgeting cycles, track department variances, and view actual vs allocated expenditures.",
+        icon: "BarChart2",
+        publisher: "Rivexa Flow",
+        isOfficial: true,
+        rating: 4.8,
+        reviewsCount: 71,
+        features: ["Budget Plan periods calendar", "Target allocation limits", "Department variance graph", "Expenditure meters warning indicators"]
+      },
+      {
+        id: "sla",
+        name: "SLA Support Policies",
+        category: "Productivity & Team",
+        description: "Define service response times, first touch milestones warnings limits, and configure escalation contacts.",
+        icon: "ShieldCheck",
+        publisher: "Rivexa Flow",
+        isOfficial: true,
+        rating: 4.8,
+        reviewsCount: 52,
+        features: ["Ticket SLA breach alarms", "Warning lead minutes limit", "Escalation Contacts directory", "Priority rules filters definition"]
+      },
+      {
+        id: "dupliguard",
+        name: "DupliGuard Duplicate Scan",
+        category: "Automation",
+        description: "Database deduplicator scans. Check duplicate email/phone indices, score similarity matches, and auto-merge profiles.",
+        icon: "Activity",
+        publisher: "Rivexa Flow",
+        isOfficial: true,
+        rating: 4.9,
+        reviewsCount: 130,
+        features: ["Similarity score check threshold", "Batch database scans scheduler", "Email & Phone index filters", "Auto-merge profile parameters"]
       },
       {
         id: "slack_integration",
@@ -130,11 +307,14 @@ export function ToolsMarketplaceView() {
   const handleToggleInstall = async (toolId: string) => {
     setInstallingId(toolId);
     setTimeout(() => {
+      let updated: string[];
       if (installedToolIds.includes(toolId)) {
-        setInstalledToolIds(installedToolIds.filter(id => id !== toolId));
+        updated = installedToolIds.filter(id => id !== toolId);
       } else {
-        setInstalledToolIds([...installedToolIds, toolId]);
+        updated = [...installedToolIds, toolId];
       }
+      setInstalledToolIds(updated);
+      localStorage.setItem("rivexaflow_installed_tools", JSON.stringify(updated));
       setInstallingId(null);
     }, 600);
   };
@@ -145,6 +325,16 @@ export function ToolsMarketplaceView() {
       case "FileSpreadsheet": return <FileSpreadsheet className="h-6 w-6 text-green-600 dark:text-green-400" />;
       case "Slack": return <Share2 className="h-6 w-6 text-purple-600 dark:text-purple-400" />;
       case "Zap": return <Zap className="h-6 w-6 text-amber-500 dark:text-amber-400" />;
+      case "Briefcase": return <Briefcase className="h-6 w-6 text-blue-600 dark:text-blue-400" />;
+      case "Layers": return <Layers className="h-6 w-6 text-sky-600 dark:text-sky-400" />;
+      case "Store": return <Store className="h-6 w-6 text-orange-600 dark:text-orange-400" />;
+      case "FileText": return <FileText className="h-6 w-6 text-slate-600 dark:text-slate-400" />;
+      case "Truck": return <Truck className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />;
+      case "Mail": return <Mail className="h-6 w-6 text-pink-600 dark:text-pink-400" />;
+      case "BookOpen": return <BookOpen className="h-6 w-6 text-violet-600 dark:text-violet-400" />;
+      case "BarChart2": return <BarChart2 className="h-6 w-6 text-amber-600 dark:text-amber-400" />;
+      case "ShieldCheck": return <ShieldCheck className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />;
+      case "Activity": return <Activity className="h-6 w-6 text-rose-600 dark:text-rose-400" />;
       default: return <Sparkles className="h-6 w-6 text-[#191970] dark:text-indigo-400" />;
     }
   };
