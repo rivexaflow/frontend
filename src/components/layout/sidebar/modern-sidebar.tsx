@@ -189,15 +189,16 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   useEffect(() => {
     setMounted(true);
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("rivexaflow_installed_tools_v2");
+      const saved = localStorage.getItem("rivexaflow_installed_tools_v3");
       if (saved) {
         setInstalledToolIds(JSON.parse(saved));
       } else {
         const defaultInstalled = [
           "whatsapp",
-          "google_sheets"
+          "google_sheets",
+          "tickets"
         ];
-        localStorage.setItem("rivexaflow_installed_tools_v2", JSON.stringify(defaultInstalled));
+        localStorage.setItem("rivexaflow_installed_tools_v3", JSON.stringify(defaultInstalled));
         setInstalledToolIds(defaultInstalled);
       }
     }
