@@ -36,13 +36,14 @@ export function TicketsView() {
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [loading, setLoading] = useState(true);
   const [createModal, setCreateModal] = useState(false);
+  const [departments, setDepartments] = useState<string[]>([]);
 
   // Form states
   const [newTicket, setNewTicket] = useState({
     subject: "",
     description: "",
     priority: "MEDIUM",
-    category: "General"
+    category: "General Support"
   });
 
   const [replyMessage, setReplyMessage] = useState("");
@@ -73,9 +74,29 @@ export function TicketsView() {
     }
   }, [selectedTicket]);
 
+  const fetchDepartments = useCallback(async () => {
+    if (!companyId) return;
+    try {
+      const res = await apiClient.get(`/company/${companyId}/departments`);
+      if (res.data?.success && res.data.data) {
+        const fetchedDepts = Array.isArray(res.data.data) ? res.data.data : [];
+        const deptNames = fetchedDepts.map((d: any) => d.name).filter(Boolean);
+        if (deptNames.length > 0) {
+          setDepartments(deptNames);
+          setNewTicket(prev => ({ ...prev, category: deptNames[0] }));
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load company departments:", err);
+    }
+  }, [companyId]);
+
   useEffect(() => {
     loadTickets();
-  }, []);
+    if (companyId) {
+      fetchDepartments();
+    }
+  }, [companyId, fetchDepartments]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -87,7 +108,7 @@ export function TicketsView() {
       const res = await apiClient.post("/support/tickets", newTicket);
       if (res.data?.success) {
         setCreateModal(false);
-        setNewTicket({ subject: "", description: "", priority: "MEDIUM", category: "General" });
+        setNewTicket({ subject: "", description: "", priority: "MEDIUM", category: departments[0] || "General Support" });
         await loadTickets(res.data.data?.id);
       }
     } catch (err) {
@@ -203,7 +224,7 @@ export function TicketsView() {
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                     {selectedTicket.subject}
                   </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">Category: <span className="font-bold">{selectedTicket.category}</span> | Priority: <span className="font-bold">{selectedTicket.priority}</span></p>
+                  <p className="text-xs text-slate-400 mt-0.5">Department: <span className="font-bold">{selectedTicket.category}</span> | Priority: <span className="font-bold">{selectedTicket.priority}</span></p>
                 </div>
                 {selectedTicket.status !== "CLOSED" && (
                   <button onClick={() => handleCloseTicket(selectedTicket.id)} className="flex items-center gap-1 text-xs border border-red-200 text-red-600 px-2.5 py-1.5 rounded-lg bg-red-50/50 hover:bg-red-50 font-semibold">
@@ -283,12 +304,18 @@ export function TicketsView() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500">Category</label>
-                  <select value={newTicket.category} onChange={e => setNewTicket(p => ({ ...p, category: e.target.value }))} className="mt-1 w-full rounded-lg border border-slate-200 p-2.5 dark:border-slate-800 dark:bg-slate-800">
-                    <option value="General">General</option>
-                    <option value="Billing">Billing</option>
-                    <option value="Sales">Sales</option>
-                    <option value="Technical">Technical</option>
+                  <label className="block text-xs font-semibold text-slate-500">Target Department</label>
+                  <select 
+                    value={newTicket.category} 
+                    onChange={e => setNewTicket(p => ({ ...p, category: e.target.value }))} 
+                    className="mt-1 w-full rounded-lg border border-slate-200 p-2.5 dark:border-slate-800 dark:bg-slate-800"
+                  >
+                    {(departments.length > 0 
+                      ? departments 
+                      : ["Customer Support", "Technical Support", "Billing & Finance", "Sales & Marketing", "Human Resources", "General Helpdesk"]
+                    ).map((dept) => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
