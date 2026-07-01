@@ -39,6 +39,7 @@ import {
   BarChart2,
   BookOpen,
   Mail,
+  Server,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { CRM_NAV_CHILDREN, isCrmNavSubGroup } from "@/features/workspace/data/crm-nav";
@@ -286,12 +287,19 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                 ...rawItems.slice(dashboardIdx + 1),
               ]
             : [graphItem, ...rawItems];
+        const dbBaseUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
         return [
           ...withGraph,
           {
             name: "Data Merge",
             href: workspacePaths.migration,
             icon: Database,
+            category: "Operations",
+          } as NavItem,
+          {
+            name: "Connect Database",
+            href: `${dbBaseUrl}/databases`,
+            icon: Server,
             category: "Operations",
           } as NavItem,
         ];
