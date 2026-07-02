@@ -300,7 +300,7 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
           } as NavItem,
           {
             name: "Connect Database",
-            href: "/databases",
+            href: workspacePaths.databases,
             icon: Server,
             category: "Operations",
           } as NavItem,
