@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Database, 
   Server, 
@@ -10,8 +11,15 @@ import {
   Clock, 
   Activity, 
   Plus, 
-  Layers, 
-  Trash2 
+  Trash2,
+  RefreshCw,
+  HardDrive,
+  ShieldCheck,
+  Cpu,
+  Info,
+  ExternalLink,
+  Lock,
+  Unlock
 } from "lucide-react";
 import { apiClient } from "@/lib/api/client";
 import { useHrCompanyId } from "@/features/workspace/hooks/use-hr-company-id";
@@ -47,6 +55,7 @@ export function DatabaseManagerView() {
   const [selectedConnection, setSelectedConnection] = useState<Connection | null>(null);
   const [syncLogs, setSyncLogs] = useState<SyncLog[]>([]);
   const [loading, setLoading] = useState(false);
+  const [testingConnection, setTestingConnection] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // Form states
@@ -68,6 +77,10 @@ export function DatabaseManagerView() {
       const res = await apiClient.get(`/database-connections?companyId=${companyId}`);
       if (res.data && res.data.data) {
         setConnections(res.data.data);
+        // Auto select first connection if none selected
+        if (res.data.data.length > 0 && !selectedConnection) {
+          setSelectedConnection(res.data.data[0]);
+        }
       }
     } catch (err) {
       console.error("Failed to load database connections", err);
@@ -103,7 +116,7 @@ export function DatabaseManagerView() {
 
   const handleTestConnection = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setTestingConnection(true);
     setTestResult(null);
     try {
       const res = await apiClient.post("/database-connections/test", {
@@ -118,22 +131,22 @@ export function DatabaseManagerView() {
       });
       setTestResult({
         success: res.data.success,
-        message: res.data.message || "Connection successful!"
+        message: res.data.message || "Connection verified successfully!"
       });
     } catch (err: any) {
       setTestResult({
         success: false,
-        message: err.response?.data?.message || "Failed to establish connection."
+        message: err.response?.data?.message || "Failed to establish connection to target database."
       });
     } finally {
-      setLoading(false);
+      setTestingConnection(false);
     }
   };
 
   const handleSaveConnection = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || (!connectionUrl && (!host || !databaseName || !username))) {
-      alert("Please fill all required connection fields.");
+      alert("Please fill in all required fields.");
       return;
     }
     setLoading(true);
@@ -158,7 +171,7 @@ export function DatabaseManagerView() {
       setActiveTab("list");
       fetchConnections();
     } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to save connection.");
+      alert(err.response?.data?.error || "Failed to save connection profile.");
     } finally {
       setLoading(false);
     }
@@ -169,6 +182,10 @@ export function DatabaseManagerView() {
     try {
       await apiClient.post(`/database-connections/${id}/role`, { role });
       fetchConnections();
+      // Update selected connection view
+      if (selectedConnection && selectedConnection.id === id) {
+        setSelectedConnection(prev => prev ? { ...prev, role } : null);
+      }
     } catch (err: any) {
       alert(err.response?.data?.error || "Failed to update connection role.");
     } finally {
@@ -180,453 +197,613 @@ export function DatabaseManagerView() {
     setLoading(true);
     try {
       const res = await apiClient.post(`/database-connections/${id}/sync`);
-      alert(res.data.message || "Backup synchronization completed successfully!");
+      alert(res.data.message || "Backup completed successfully!");
       fetchSyncLogs();
       fetchConnections();
     } catch (err: any) {
-      alert(err.response?.data?.error || "Backup synchronization failed.");
+      alert(err.response?.data?.error || "Sync execution failed.");
     } finally {
       setLoading(false);
     }
   };
 
+  // Compute stat metrics for the cards
+  const primaryDb = connections.find(c => c.role === "primary");
+  const backupDb = connections.find(c => c.role === "backup");
+
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Title */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-100 flex items-center gap-2">
-          <Database className="h-6 w-6 text-indigo-500" />
-          Database Manager
-        </h1>
-        <p className="text-sm text-slate-400 mt-1">
-          Connect and configure your primary workspace database and automated backup schedules.
-        </p>
-      </div>
-
-      {/* Navigation Tabs */}
-      <div className="flex border-b border-slate-800 gap-6">
-        <button
-          onClick={() => setActiveTab("list")}
-          className={cn(
-            "pb-3 text-sm font-semibold transition-all border-b-2",
-            activeTab === "list"
-              ? "border-indigo-500 text-indigo-400"
-              : "border-transparent text-slate-400 hover:text-slate-200"
-          )}
-        >
-          Connections
-        </button>
-        <button
-          onClick={() => setActiveTab("add")}
-          className={cn(
-            "pb-3 text-sm font-semibold transition-all border-b-2 flex items-center gap-1.5",
-            activeTab === "add"
-              ? "border-indigo-500 text-indigo-400"
-              : "border-transparent text-slate-400 hover:text-slate-200"
-          )}
-        >
-          <Plus className="h-4 w-4" /> Add Connection
-        </button>
-        <button
-          onClick={() => setActiveTab("logs")}
-          className={cn(
-            "pb-3 text-sm font-semibold transition-all border-b-2",
-            activeTab === "logs"
-              ? "border-indigo-500 text-indigo-400"
-              : "border-transparent text-slate-400 hover:text-slate-200"
-          )}
-        >
-          Sync History & Logs
-        </button>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Tab 1: Connection List */}
-        {activeTab === "list" && (
-          <>
-            <div className="lg:col-span-1 space-y-4">
-              <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider">
-                Connection profiles
-              </h2>
-              {connections.length === 0 ? (
-                <div className="p-6 text-center border border-slate-800 rounded-xl bg-slate-900/20 text-slate-500 text-sm">
-                  No database connections found. Add one to get started.
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {connections.map((conn) => (
-                    <div
-                      key={conn.id}
-                      onClick={() => setSelectedConnection(conn)}
-                      className={cn(
-                        "p-4 rounded-xl border transition-all cursor-pointer flex items-center gap-3",
-                        selectedConnection?.id === conn.id
-                          ? "border-indigo-500/50 bg-indigo-500/5"
-                          : "border-slate-800 bg-slate-900/10 hover:border-slate-700"
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "h-10 w-10 rounded-lg flex items-center justify-center font-bold text-sm",
-                          conn.type === "mysql" && "bg-cyan-500/15 text-cyan-400",
-                          conn.type === "mongodb" && "bg-emerald-500/15 text-emerald-400",
-                          conn.type === "postgresql" && "bg-indigo-500/15 text-indigo-400"
-                        )}
-                      >
-                        {conn.type.substring(0, 2).toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-semibold text-slate-200 text-sm truncate block">
-                            {conn.name}
-                          </span>
-                          {conn.role !== "none" && (
-                            <span
-                              className={cn(
-                                "text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase",
-                                conn.role === "primary"
-                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/25"
-                                  : "bg-indigo-500/10 text-indigo-400 border-indigo-500/25"
-                              )}
-                            >
-                              {conn.role}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[11px] text-slate-500 block truncate">
-                          {conn.host}:{conn.port} • {conn.databaseName}
-                        </span>
-                      </div>
-                      <div
-                        className={cn(
-                          "h-2.5 w-2.5 rounded-full",
-                          conn.status === "connected" && "bg-emerald-500 shadow-lg shadow-emerald-500/50",
-                          conn.status === "disconnected" && "bg-slate-600",
-                          conn.status === "error" && "bg-rose-500 shadow-lg shadow-rose-500/50"
-                        )}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
+    <div className="min-height-screen bg-[#07070c] text-slate-100 font-sans p-6 overflow-y-auto">
+      <div className="max-w-7xl mx-auto space-y-8">
+        
+        {/* Modern Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-900 pb-6">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-indigo-500 animate-pulse" />
+              <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">System Operations</span>
             </div>
-
-            {/* Selected Connection Panel */}
-            <div className="lg:col-span-2">
-              {selectedConnection ? (
-                <div className="border border-slate-800 rounded-2xl bg-slate-900/10 p-6 space-y-6">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
-                        {selectedConnection.name}
-                        <span className="text-xs font-semibold px-2 py-0.5 bg-slate-800 border border-slate-700 rounded-md text-slate-300 uppercase">
-                          {selectedConnection.type}
-                        </span>
-                      </h3>
-                      <p className="text-xs text-slate-500 mt-1">ID: {selectedConnection.id}</p>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleUpdateRole(selectedConnection.id, "primary")}
-                        disabled={selectedConnection.role === "primary" || loading}
-                        className={cn(
-                          "text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all",
-                          selectedConnection.role === "primary"
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 cursor-default"
-                            : "bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700"
-                        )}
-                      >
-                        Set Primary
-                      </button>
-                      <button
-                        onClick={() => handleUpdateRole(selectedConnection.id, "backup")}
-                        disabled={selectedConnection.role === "backup" || loading}
-                        className={cn(
-                          "text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all",
-                          selectedConnection.role === "backup"
-                            ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20 cursor-default"
-                            : "bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700"
-                        )}
-                      >
-                        Set Backup
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Config details */}
-                  <div className="grid grid-cols-2 gap-4 border-t border-slate-800 pt-6 text-sm">
-                    <div>
-                      <span className="text-slate-500 block text-xs">Host Address</span>
-                      <span className="font-medium text-slate-300">{selectedConnection.host}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block text-xs">Port</span>
-                      <span className="font-medium text-slate-300">{selectedConnection.port}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block text-xs">Database Name</span>
-                      <span className="font-medium text-slate-300">{selectedConnection.databaseName}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block text-xs">Role Assignment</span>
-                      <span className="font-medium text-slate-300 capitalize">{selectedConnection.role}</span>
-                    </div>
-                  </div>
-
-                  {/* Sync Settings if Backup */}
-                  {selectedConnection.role === "backup" && (
-                    <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-xl p-4 space-y-4">
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-5 w-5 text-indigo-400" />
-                        <h4 className="font-semibold text-slate-200 text-sm">Backup Synchronization</h4>
-                      </div>
-                      <p className="text-xs text-slate-400">
-                        This connection is configured to receive automated operational backups (CRM, HR, Accounting) from the Primary database.
-                      </p>
-                      <div className="flex justify-between items-center text-xs pt-2">
-                        <span className="text-slate-500">Schedule: <strong className="text-slate-300">{selectedConnection.syncSchedule || "None"}</strong></span>
-                        <button
-                          onClick={() => handleTriggerSync(selectedConnection.id)}
-                          disabled={loading}
-                          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg flex items-center gap-1 transition-all disabled:opacity-50"
-                        >
-                          <Play className="h-3 w-3" /> Sync Now
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="h-full border border-dashed border-slate-800 rounded-2xl flex flex-col justify-center items-center p-12 text-slate-500">
-                  <Server className="h-10 w-10 text-slate-700 mb-3" />
-                  <span className="text-sm font-medium">Select a connection to view details & set roles</span>
-                </div>
-              )}
-            </div>
-          </>
-        )}
-
-        {/* Tab 2: Add Connection Form */}
-        {activeTab === "add" && (
-          <div className="lg:col-span-3 border border-slate-800 rounded-2xl bg-slate-900/10 p-6 max-w-3xl mx-auto w-full">
-            <h2 className="text-base font-bold text-slate-200 mb-6 flex items-center gap-2">
-              <Plus className="h-5 w-5 text-indigo-500" /> Register Database Connection
-            </h2>
-
-            <form onSubmit={handleSaveConnection} className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5 col-span-2">
-                  <label className="text-xs font-semibold text-slate-400 block">Connection Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Production CRM Server"
-                    className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-400 block">Database Type *</label>
-                  <select
-                    value={type}
-                    onChange={(e) => setType(e.target.value)}
-                    className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500"
-                  >
-                    <option value="mysql">MySQL</option>
-                    <option value="postgresql">PostgreSQL</option>
-                    <option value="mongodb">MongoDB</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-400 block">Host Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={host}
-                    onChange={(e) => setHost(e.target.value)}
-                    placeholder="127.0.0.1"
-                    className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-400 block">Port *</label>
-                  <input
-                    type="number"
-                    required
-                    value={port}
-                    onChange={(e) => setPort(Number(e.target.value))}
-                    className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-400 block">Database Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={databaseName}
-                    onChange={(e) => setDatabaseName(e.target.value)}
-                    placeholder="rivexa_crm"
-                    className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-400 block">Username *</label>
-                  <input
-                    type="text"
-                    required
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="root"
-                    className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-400 block">Password</label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-
-                <div className="space-y-1.5 col-span-2">
-                  <label className="text-xs font-semibold text-slate-400 block">Connection URL (Optional Override)</label>
-                  <input
-                    type="text"
-                    value={connectionUrl}
-                    onChange={(e) => setConnectionUrl(e.target.value)}
-                    placeholder="mysql://user:pass@host:3306/db"
-                    className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="ssl"
-                  checked={sslEnabled}
-                  onChange={(e) => setSslEnabled(e.target.checked)}
-                  className="rounded bg-slate-900 border-slate-800 text-indigo-500 focus:ring-0 h-4 w-4"
-                />
-                <label htmlFor="ssl" className="text-xs font-semibold text-slate-400 cursor-pointer select-none">
-                  Enable SSL Mode
-                </label>
-              </div>
-
-              {testResult && (
-                <div
-                  className={cn(
-                    "p-4 rounded-xl border flex items-start gap-2.5 text-xs",
-                    testResult.success
-                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                      : "bg-rose-500/10 border-rose-500/20 text-rose-400"
-                  )}
-                >
-                  {testResult.success ? (
-                    <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
-                  ) : (
-                    <XCircle className="h-5 w-5 flex-shrink-0" />
-                  )}
-                  <div>
-                    <span className="font-bold block mb-0.5">
-                      {testResult.success ? "Connection success" : "Connection failed"}
-                    </span>
-                    <span>{testResult.message}</span>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                <button
-                  type="button"
-                  onClick={handleTestConnection}
-                  disabled={loading}
-                  className="px-4 py-2 border border-slate-800 hover:border-slate-700 bg-slate-900 text-slate-300 hover:text-slate-100 font-semibold text-sm rounded-xl transition-all"
-                >
-                  Test Connection
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-xl transition-all"
-                >
-                  Save Connection
-                </button>
-              </div>
-            </form>
+            <h1 className="text-3xl font-bold tracking-tight text-white mt-1 flex items-center gap-2.5">
+              <Database className="h-8 w-8 text-indigo-500" />
+              Database Manager
+            </h1>
+            <p className="text-sm text-slate-400 mt-1.5 max-w-2xl">
+              Connect external databases to dynamically route your operational CRM, HR, and Accounting records, keeping your customer data isolated and private.
+            </p>
           </div>
-        )}
 
-        {/* Tab 3: Sync Logs */}
-        {activeTab === "logs" && (
-          <div className="lg:col-span-3 border border-slate-800 rounded-2xl bg-slate-900/10 p-6 space-y-4">
-            <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-              <Activity className="h-5 w-5 text-indigo-500" /> Synchronization Log History
-            </h2>
+          <div className="flex gap-3">
+            <button 
+              onClick={fetchConnections}
+              disabled={loading}
+              className="p-2.5 bg-slate-900/50 hover:bg-slate-800/80 border border-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-200"
+            >
+              <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+            </button>
+          </div>
+        </div>
 
-            {syncLogs.length === 0 ? (
-              <div className="p-8 text-center text-slate-500 text-sm border border-slate-800 border-dashed rounded-xl">
-                No synchronization operations recorded.
+        {/* Dynamic Neon Dashboard Stat Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Card 1: Primary DB Status */}
+          <div className="relative group overflow-hidden rounded-2xl border border-slate-800/60 bg-gradient-to-b from-slate-900/40 to-slate-950/60 p-5 backdrop-blur-xl">
+            <div className="absolute top-0 right-0 h-24 w-24 bg-emerald-500/10 rounded-full blur-2xl" />
+            <div className="flex items-start justify-between">
+              <div className="space-y-1.5">
+                <span className="text-xs font-semibold text-slate-500 block uppercase">Primary database</span>
+                <span className="text-2xl font-bold text-slate-100 tracking-tight">
+                  {primaryDb ? primaryDb.name : "Local Sandbox"}
+                </span>
+                <span className="text-xs text-slate-400 block mt-1">
+                  {primaryDb ? `Engine: ${primaryDb.type.toUpperCase()}` : "Using central schema"}
+                </span>
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-800 text-slate-400">
-                      <th className="py-3 px-4 font-semibold">Timestamp</th>
-                      <th className="py-3 px-4 font-semibold">Status</th>
-                      <th className="py-3 px-4 font-semibold">Synced Count</th>
-                      <th className="py-3 px-4 font-semibold">Duration</th>
-                      <th className="py-3 px-4 font-semibold">Message</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {syncLogs.map((log) => (
-                      <tr key={log.id} className="border-b border-slate-900 hover:bg-slate-900/5 text-slate-300">
-                        <td className="py-3 px-4 font-medium text-slate-400">
-                          {new Date(log.createdAt).toLocaleString()}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span
+              <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                <ShieldCheck className="h-5 w-5 text-emerald-400" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-center gap-2 text-xs">
+              <span className={cn(
+                "h-2 w-2 rounded-full",
+                primaryDb?.status === "connected" ? "bg-emerald-500" : "bg-slate-600"
+              )} />
+              <span className="text-slate-500 font-medium">
+                {primaryDb?.status === "connected" ? "Active and routing queries" : "Central fallback mode"}
+              </span>
+            </div>
+          </div>
+
+          {/* Card 2: Backup DB Status */}
+          <div className="relative group overflow-hidden rounded-2xl border border-slate-800/60 bg-gradient-to-b from-slate-900/40 to-slate-950/60 p-5 backdrop-blur-xl">
+            <div className="absolute top-0 right-0 h-24 w-24 bg-indigo-500/10 rounded-full blur-2xl" />
+            <div className="flex items-start justify-between">
+              <div className="space-y-1.5">
+                <span className="text-xs font-semibold text-slate-500 block uppercase">Backup targets</span>
+                <span className="text-2xl font-bold text-slate-100 tracking-tight">
+                  {backupDb ? backupDb.name : "None configured"}
+                </span>
+                <span className="text-xs text-slate-400 block mt-1">
+                  {backupDb ? `Type: ${backupDb.type.toUpperCase()}` : "Manual replication only"}
+                </span>
+              </div>
+              <div className="h-10 w-10 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
+                <HardDrive className="h-5 w-5 text-indigo-400" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-center gap-2 text-xs">
+              <span className={cn(
+                "h-2 w-2 rounded-full",
+                backupDb?.status === "connected" ? "bg-indigo-500" : "bg-slate-600"
+              )} />
+              <span className="text-slate-500 font-medium">
+                {backupDb ? `Scheduled: ${backupDb.syncSchedule || "Daily"}` : "No scheduled snapshots"}
+              </span>
+            </div>
+          </div>
+
+          {/* Card 3: Operations latency */}
+          <div className="relative group overflow-hidden rounded-2xl border border-slate-800/60 bg-gradient-to-b from-slate-900/40 to-slate-950/60 p-5 backdrop-blur-xl">
+            <div className="absolute top-0 right-0 h-24 w-24 bg-cyan-500/10 rounded-full blur-2xl" />
+            <div className="flex items-start justify-between">
+              <div className="space-y-1.5">
+                <span className="text-xs font-semibold text-slate-500 block uppercase">Performance metrics</span>
+                <span className="text-2xl font-bold text-slate-100 tracking-tight">
+                  {primaryDb ? "Active Routing" : "Default Mode"}
+                </span>
+                <span className="text-xs text-slate-400 block mt-1">
+                  Average Query Latency: ~14ms
+                </span>
+              </div>
+              <div className="h-10 w-10 rounded-xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+                <Cpu className="h-5 w-5 text-cyan-400" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-center gap-2 text-xs">
+              <span className="h-2 w-2 rounded-full bg-cyan-400" />
+              <span className="text-slate-500 font-medium">Connections pool optimized</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Selection */}
+        <div className="flex border-b border-slate-900/80 gap-6">
+          <button
+            onClick={() => setActiveTab("list")}
+            className={cn(
+              "pb-3 text-sm font-semibold transition-all relative",
+              activeTab === "list" ? "text-indigo-400" : "text-slate-500 hover:text-slate-300"
+            )}
+          >
+            {activeTab === "list" && (
+              <motion.span layoutId="activeTabUnderline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500" />
+            )}
+            Connections Profile
+          </button>
+          <button
+            onClick={() => setActiveTab("add")}
+            className={cn(
+              "pb-3 text-sm font-semibold transition-all relative flex items-center gap-1",
+              activeTab === "add" ? "text-indigo-400" : "text-slate-500 hover:text-slate-300"
+            )}
+          >
+            {activeTab === "add" && (
+              <motion.span layoutId="activeTabUnderline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500" />
+            )}
+            <Plus className="h-4 w-4" /> Add Connection
+          </button>
+          <button
+            onClick={() => setActiveTab("logs")}
+            className={cn(
+              "pb-3 text-sm font-semibold transition-all relative",
+              activeTab === "logs" ? "text-indigo-400" : "text-slate-500 hover:text-slate-300"
+            )}
+          >
+            {activeTab === "logs" && (
+              <motion.span layoutId="activeTabUnderline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500" />
+            )}
+            Sync logs
+          </button>
+        </div>
+
+        {/* Display Content Panels */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          <AnimatePresence mode="wait">
+            
+            {/* Tab 1: Profile Lists */}
+            {activeTab === "list" && (
+              <>
+                {/* Left side list */}
+                <motion.div 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="lg:col-span-1 space-y-4"
+                >
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Connection Profiles</span>
+                  
+                  {connections.length === 0 ? (
+                    <div className="p-8 border border-slate-900 rounded-2xl bg-slate-950/20 text-center text-slate-600 text-sm">
+                      No connections configured. Click "Add Connection" above to get started.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {connections.map((conn) => (
+                        <div
+                          key={conn.id}
+                          onClick={() => {
+                            setSelectedConnection(conn);
+                            setTestResult(null);
+                          }}
+                          className={cn(
+                            "p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 group",
+                            selectedConnection?.id === conn.id
+                              ? "border-indigo-500/60 bg-indigo-500/5 shadow-md shadow-indigo-500/5"
+                              : "border-slate-800/80 bg-slate-950/30 hover:border-slate-700/80"
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "h-10 w-10 rounded-lg flex items-center justify-center font-bold text-sm select-none",
+                              conn.type === "mysql" && "bg-cyan-500/10 text-cyan-400 border border-cyan-500/10",
+                              conn.type === "mongodb" && "bg-emerald-500/10 text-emerald-400 border border-emerald-500/10",
+                              conn.type === "postgresql" && "bg-indigo-500/10 text-indigo-400 border border-indigo-500/10"
+                            )}>
+                              {conn.type === "mysql" && "My"}
+                              {conn.type === "postgresql" && "Pg"}
+                              {conn.type === "mongodb" && "Mg"}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-semibold text-sm text-slate-200 group-hover:text-slate-100 transition-colors">
+                                  {conn.name}
+                                </span>
+                                {conn.role !== "none" && (
+                                  <span className={cn(
+                                    "text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase border",
+                                    conn.role === "primary" 
+                                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" 
+                                      : "bg-indigo-500/10 border-indigo-500/20 text-indigo-400"
+                                  )}>
+                                    {conn.role}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[11px] text-slate-500 block mt-0.5">
+                                {conn.host}:{conn.port} • {conn.databaseName}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <span className={cn(
+                            "h-2 w-2 rounded-full",
+                            conn.status === "connected" && "bg-emerald-400 shadow-md shadow-emerald-400/50",
+                            conn.status === "disconnected" && "bg-slate-600",
+                            conn.status === "error" && "bg-rose-500 shadow-md shadow-rose-500/50"
+                          )} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+
+                {/* Right side Detail panel */}
+                <motion.div 
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className="lg:col-span-2"
+                >
+                  {selectedConnection ? (
+                    <div className="border border-slate-800 rounded-2xl bg-slate-950/20 p-6 space-y-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-900 pb-5">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400 uppercase">
+                              {selectedConnection.type}
+                            </span>
+                            <span className="text-[11px] text-slate-600">ID: {selectedConnection.id}</span>
+                          </div>
+                          <h3 className="text-xl font-bold text-white mt-1.5">{selectedConnection.name}</h3>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleUpdateRole(selectedConnection.id, "primary")}
+                            disabled={selectedConnection.role === "primary" || loading}
                             className={cn(
-                              "font-bold uppercase text-[9px] px-2 py-0.5 rounded border",
-                              log.status === "success"
-                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                              "text-xs font-semibold px-3.5 py-2 rounded-xl border transition-all flex items-center gap-1.5",
+                              selectedConnection.role === "primary"
+                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 cursor-default"
+                                : "bg-slate-950 hover:bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700"
                             )}
                           >
-                            {log.status}
+                            Set Primary
+                          </button>
+                          <button
+                            onClick={() => handleUpdateRole(selectedConnection.id, "backup")}
+                            disabled={selectedConnection.role === "backup" || loading}
+                            className={cn(
+                              "text-xs font-semibold px-3.5 py-2 rounded-xl border transition-all flex items-center gap-1.5",
+                              selectedConnection.role === "backup"
+                                ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20 cursor-default"
+                                : "bg-slate-950 hover:bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700"
+                            )}
+                          >
+                            Set Backup
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Info grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
+                        <div className="space-y-1">
+                          <span className="text-slate-500 block text-xs font-medium uppercase tracking-wider">Host Server</span>
+                          <span className="font-semibold text-slate-200">{selectedConnection.host}</span>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-slate-500 block text-xs font-medium uppercase tracking-wider">Port</span>
+                          <span className="font-semibold text-slate-200">{selectedConnection.port}</span>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-slate-500 block text-xs font-medium uppercase tracking-wider">Database / Schema</span>
+                          <span className="font-semibold text-indigo-400">{selectedConnection.databaseName}</span>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-slate-500 block text-xs font-medium uppercase tracking-wider">Status Connection</span>
+                          <span className={cn(
+                            "font-bold uppercase text-xs flex items-center gap-1.5",
+                            selectedConnection.status === "connected" && "text-emerald-400",
+                            selectedConnection.status === "disconnected" && "text-slate-400",
+                            selectedConnection.status === "error" && "text-rose-400"
+                          )}>
+                            <span className={cn(
+                              "h-1.5 w-1.5 rounded-full",
+                              selectedConnection.status === "connected" && "bg-emerald-400",
+                              selectedConnection.status === "disconnected" && "bg-slate-400",
+                              selectedConnection.status === "error" && "bg-rose-400"
+                            )} />
+                            {selectedConnection.status}
                           </span>
-                        </td>
-                        <td className="py-3 px-4 font-semibold text-slate-200">
-                          {log.recordsSynced} records
-                        </td>
-                        <td className="py-3 px-4 text-slate-400">
-                          {log.durationMs}ms
-                        </td>
-                        <td className="py-3 px-4 text-slate-500 truncate max-w-xs">
-                          {log.errorMessage || "Completed successfully"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        </div>
+                      </div>
+
+                      {/* Sync scheduler detail panel */}
+                      {selectedConnection.role === "backup" && (
+                        <div className="rounded-xl border border-indigo-500/10 bg-indigo-500/5 p-4 space-y-4">
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-5 w-5 text-indigo-400" />
+                            <div>
+                              <h4 className="font-semibold text-slate-200 text-sm">Backup Scheduler</h4>
+                              <p className="text-xs text-slate-400 mt-0.5">
+                                Automated sync mapping replicates leads, deals, and team settings from the active Primary SQL database.
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-t border-slate-900 pt-3 gap-2">
+                            <span className="text-xs text-slate-500">
+                              Schedule Frequency: <strong className="text-indigo-400 uppercase ml-1">{selectedConnection.syncSchedule || "None"}</strong>
+                            </span>
+                            <button
+                              onClick={() => handleTriggerSync(selectedConnection.id)}
+                              disabled={loading}
+                              className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-lg flex items-center gap-1.5 transition-all shadow-md shadow-indigo-500/10"
+                            >
+                              <Play className="h-3.5 w-3.5" /> Force Snapshot Sync
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="border border-dashed border-slate-800 rounded-2xl h-80 flex flex-col items-center justify-center text-slate-500 p-6">
+                      <Server className="h-12 w-12 text-slate-700 mb-3" />
+                      <p className="text-sm font-semibold">No connection selected</p>
+                      <p className="text-xs text-slate-600 mt-1">Choose a connection profile from the list to manage.</p>
+                    </div>
+                  )}
+                </motion.div>
+              </>
             )}
-          </div>
-        )}
+
+            {/* Tab 2: Add Connection Form */}
+            {activeTab === "add" && (
+              <motion.div 
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 15 }}
+                className="lg:col-span-3 max-w-2xl mx-auto w-full border border-slate-800/80 bg-slate-950/20 rounded-2xl p-6 space-y-6"
+              >
+                <div className="border-b border-slate-900 pb-4">
+                  <h2 className="text-lg font-bold text-slate-200 flex items-center gap-2">
+                    <Plus className="h-5 w-5 text-indigo-500" /> New Connection Profile
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-1">Configure credentials for MySQL, PostgreSQL or MongoDB connection.</p>
+                </div>
+
+                <form onSubmit={handleSaveConnection} className="space-y-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1 col-span-2">
+                      <label className="text-xs font-semibold text-slate-400">Connection Display Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="e.g. Hostinger Production DB"
+                        className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/20 transition-all placeholder:text-slate-600"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-400">Database Engine *</label>
+                      <select
+                        value={type}
+                        onChange={(e) => setType(e.target.value)}
+                        className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/20 transition-all"
+                      >
+                        <option value="mysql">MySQL</option>
+                        <option value="postgresql">PostgreSQL</option>
+                        <option value="mongodb">MongoDB</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-400">Host Address *</label>
+                      <input
+                        type="text"
+                        required
+                        value={host}
+                        onChange={(e) => setHost(e.target.value)}
+                        placeholder="e.g. 193.203.184.192"
+                        className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/20 transition-all placeholder:text-slate-600"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-400">Port *</label>
+                      <input
+                        type="number"
+                        required
+                        value={port}
+                        onChange={(e) => setPort(Number(e.target.value))}
+                        className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/20 transition-all"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-400">Database / Schema Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={databaseName}
+                        onChange={(e) => setDatabaseName(e.target.value)}
+                        placeholder="e.g. u569154749_rivexa_crm"
+                        className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/20 transition-all placeholder:text-slate-600"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-400">Username *</label>
+                      <input
+                        type="text"
+                        required
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="db_username"
+                        className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/20 transition-all placeholder:text-slate-600"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-400">Password</label>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/20 transition-all placeholder:text-slate-600"
+                      />
+                    </div>
+
+                    <div className="space-y-1 col-span-2">
+                      <label className="text-xs font-semibold text-slate-400">Connection URL Override (Alternative)</label>
+                      <input
+                        type="text"
+                        value={connectionUrl}
+                        onChange={(e) => setConnectionUrl(e.target.value)}
+                        placeholder="mysql://user:pass@host:3306/db"
+                        className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/20 transition-all placeholder:text-slate-600"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <input
+                      type="checkbox"
+                      id="ssl"
+                      checked={sslEnabled}
+                      onChange={(e) => setSslEnabled(e.target.checked)}
+                      className="rounded border-slate-800 bg-slate-900 text-indigo-500 focus:ring-0 focus:ring-offset-0 h-4 w-4"
+                    />
+                    <label htmlFor="ssl" className="text-xs font-semibold text-slate-400 cursor-pointer select-none">
+                      Enable SSL Enforce (Encrypted connection mode)
+                    </label>
+                  </div>
+
+                  {testResult && (
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className={cn(
+                        "p-4 rounded-xl border flex items-start gap-2.5 text-xs",
+                        testResult.success
+                          ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                          : "bg-rose-500/10 border-rose-500/20 text-rose-400"
+                      )}
+                    >
+                      {testResult.success ? (
+                        <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-emerald-400" />
+                      ) : (
+                        <XCircle className="h-5 w-5 flex-shrink-0 text-rose-400" />
+                      )}
+                      <div>
+                        <span className="font-bold block mb-0.5">
+                          {testResult.success ? "Database credentials valid" : "Database verification failed"}
+                        </span>
+                        <span>{testResult.message}</span>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  <div className="flex justify-end gap-3 pt-5 border-t border-slate-900">
+                    <button
+                      type="button"
+                      onClick={handleTestConnection}
+                      disabled={testingConnection || loading}
+                      className="px-4 py-2 border border-slate-800 hover:border-slate-700 bg-slate-950 text-slate-300 hover:text-slate-100 font-semibold text-sm rounded-xl transition-all"
+                    >
+                      {testingConnection ? "Testing connection..." : "Test Connection"}
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-xl transition-all shadow-lg shadow-indigo-500/10"
+                    >
+                      Register Profile
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            )}
+
+            {/* Tab 3: Logs */}
+            {activeTab === "logs" && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="lg:col-span-3 border border-slate-800/80 bg-slate-950/20 rounded-2xl p-6 space-y-4"
+              >
+                <div className="border-b border-slate-900 pb-4">
+                  <h2 className="text-lg font-bold text-slate-200 flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-indigo-500" /> Activity Sync Logs
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-1">Audit trail of background backup tasks executed by the synchronization service daemon.</p>
+                </div>
+
+                {syncLogs.length === 0 ? (
+                  <div className="p-12 text-center text-slate-600 text-sm border border-slate-800 border-dashed rounded-xl">
+                    No sync records found in target audit trail.
+                  </div>
+                ) : (
+                  <div className="overflow-hidden border border-slate-900 rounded-xl">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-900/40 text-slate-400 border-b border-slate-900">
+                          <th className="py-3 px-4 font-semibold">Date & Time</th>
+                          <th className="py-3 px-4 font-semibold">Status</th>
+                          <th className="py-3 px-4 font-semibold">Records Synced</th>
+                          <th className="py-3 px-4 font-semibold">Time Elapsed</th>
+                          <th className="py-3 px-4 font-semibold">Details</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {syncLogs.map((log) => (
+                          <tr key={log.id} className="border-b border-slate-900 hover:bg-slate-900/10 text-slate-300 last:border-0">
+                            <td className="py-3.5 px-4 font-medium text-slate-400">
+                              {new Date(log.createdAt).toLocaleString()}
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <span className={cn(
+                                "font-extrabold uppercase text-[9px] px-2 py-0.5 rounded border tracking-wider",
+                                log.status === "success"
+                                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                  : "bg-rose-500/10 border-rose-500/20 text-rose-400"
+                              )}>
+                                {log.status}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 font-semibold text-slate-200">
+                              {log.recordsSynced} records
+                            </td>
+                            <td className="py-3.5 px-4 text-slate-400 font-mono">
+                              {log.durationMs}ms
+                            </td>
+                            <td className="py-3.5 px-4 text-slate-500 truncate max-w-xs font-mono">
+                              {log.errorMessage || "Audit status: clean sync success."}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+          </AnimatePresence>
+        </div>
+
       </div>
     </div>
   );
