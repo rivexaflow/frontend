@@ -49,6 +49,7 @@ import { workspacePaths } from "@/lib/workspace/paths";
 import { authStore } from "@/stores/auth.store";
 import { workspaceStore } from "@/stores/workspace.store";
 import { effectiveNavRole } from "@/types/auth";
+import { API_BASE_URL } from "@/lib/api/client";
 import { UserAccountDropdown } from "./user-account-dropdown";
 import { SidebarNavIcon, type SidebarIconTone } from "./sidebar-nav-icon";
 
@@ -288,7 +289,7 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                 ...rawItems.slice(dashboardIdx + 1),
               ]
             : [graphItem, ...rawItems];
-        const dbBaseUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
+        const dbBaseUrl = API_BASE_URL.replace(/\/api$/, "");
         return [
           ...withGraph,
           {
