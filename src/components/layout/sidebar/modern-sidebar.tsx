@@ -206,6 +206,7 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   }, []);
 
   const user = authStore((s) => s.user);
+  const token = authStore((s) => s.token);
   const modules = workspaceStore((s) => s.modules);
   const logo = workspaceStore((s) => s.logo);
   const brandName = workspaceStore((s) => s.brandName);
@@ -298,7 +299,7 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
           } as NavItem,
           {
             name: "Connect Database",
-            href: `${dbBaseUrl}/databases`,
+            href: `${dbBaseUrl}/databases?token=${token || ""}`,
             icon: Server,
             category: "Operations",
           } as NavItem,
@@ -306,7 +307,7 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
       }
     }
     return rawItems;
-  }, [isAdmin, modules, user, mounted, installedToolIds]);
+  }, [isAdmin, modules, user, token, mounted, installedToolIds]);
 
   const groups = useMemo(() => {
     if (isAdmin) return [];
