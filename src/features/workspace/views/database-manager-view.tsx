@@ -11,18 +11,14 @@ import {
   Clock, 
   Activity, 
   Plus, 
-  Trash2,
   RefreshCw,
   HardDrive,
   ShieldCheck,
-  Cpu,
-  Info,
-  ExternalLink,
-  Lock,
-  Unlock
+  Cpu
 } from "lucide-react";
 import { apiClient } from "@/lib/api/client";
 import { useHrCompanyId } from "@/features/workspace/hooks/use-hr-company-id";
+import { workspaceStore } from "@/stores/workspace.store";
 import { cn } from "@/lib/utils/cn";
 
 interface Connection {
@@ -48,8 +44,26 @@ interface SyncLog {
   createdAt: string;
 }
 
+function hexToRgb(hex: string): string {
+  hex = hex.replace(/^#/, "");
+  if (hex.length === 3) {
+    hex = hex.split("").map(char => char + char).join("");
+  }
+  const num = parseInt(hex, 16);
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  return `${r}, ${g}, ${b}`;
+}
+
 export function DatabaseManagerView() {
   const companyId = useHrCompanyId();
+  
+  // Dynamic Workspace Theme
+  const themeConfig = workspaceStore((s) => s.themeConfig);
+  const primaryColor = themeConfig?.primaryColor || "#191970";
+  const primaryRgb = hexToRgb(primaryColor);
+
   const [connections, setConnections] = useState<Connection[]>([]);
   const [activeTab, setActiveTab] = useState<"list" | "add" | "logs">("list");
   const [selectedConnection, setSelectedConnection] = useState<Connection | null>(null);
@@ -77,7 +91,6 @@ export function DatabaseManagerView() {
       const res = await apiClient.get(`/database-connections?companyId=${companyId}`);
       if (res.data && res.data.data) {
         setConnections(res.data.data);
-        // Auto select first connection if none selected
         if (res.data.data.length > 0 && !selectedConnection) {
           setSelectedConnection(res.data.data[0]);
         }
@@ -163,7 +176,6 @@ export function DatabaseManagerView() {
         connectionUrl: connectionUrl || null,
         sslEnabled
       });
-      // Reset form
       setName("");
       setPassword("");
       setConnectionUrl("");
@@ -182,7 +194,6 @@ export function DatabaseManagerView() {
     try {
       await apiClient.post(`/database-connections/${id}/role`, { role });
       fetchConnections();
-      // Update selected connection view
       if (selectedConnection && selectedConnection.id === id) {
         setSelectedConnection(prev => prev ? { ...prev, role } : null);
       }
@@ -207,7 +218,6 @@ export function DatabaseManagerView() {
     }
   };
 
-  // Compute stat metrics for the cards
   const primaryDb = connections.find(c => c.role === "primary");
   const backupDb = connections.find(c => c.role === "backup");
 
@@ -219,11 +229,11 @@ export function DatabaseManagerView() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-900 pb-6">
           <div>
             <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-indigo-500 animate-pulse" />
-              <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">System Operations</span>
+              <span className="h-2.5 w-2.5 rounded-full animate-pulse" style={{ backgroundColor: primaryColor }} />
+              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: primaryColor }}>System Operations</span>
             </div>
             <h1 className="text-3xl font-bold tracking-tight text-white mt-1 flex items-center gap-2.5">
-              <Database className="h-8 w-8 text-indigo-500" />
+              <Database className="h-8 w-8" style={{ color: primaryColor }} />
               Database Manager
             </h1>
             <p className="text-sm text-slate-400 mt-1.5 max-w-2xl">
@@ -246,7 +256,7 @@ export function DatabaseManagerView() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Card 1: Primary DB Status */}
           <div className="relative group overflow-hidden rounded-2xl border border-slate-800/60 bg-gradient-to-b from-slate-900/40 to-slate-950/60 p-5 backdrop-blur-xl">
-            <div className="absolute top-0 right-0 h-24 w-24 bg-emerald-500/10 rounded-full blur-2xl" />
+            <div className="absolute top-0 right-0 h-24 w-24 rounded-full blur-2xl" style={{ backgroundColor: `rgba(${primaryRgb}, 0.1)` }} />
             <div className="flex items-start justify-between">
               <div className="space-y-1.5">
                 <span className="text-xs font-semibold text-slate-500 block uppercase">Primary database</span>
@@ -257,8 +267,8 @@ export function DatabaseManagerView() {
                   {primaryDb ? `Engine: ${primaryDb.type.toUpperCase()}` : "Using central schema"}
                 </span>
               </div>
-              <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-                <ShieldCheck className="h-5 w-5 text-emerald-400" />
+              <div className="h-10 w-10 rounded-xl flex items-center justify-center border" style={{ backgroundColor: `rgba(${primaryRgb}, 0.1)`, borderColor: `rgba(${primaryRgb}, 0.2)` }}>
+                <ShieldCheck className="h-5 w-5" style={{ color: primaryColor }} />
               </div>
             </div>
             <div className="mt-4 flex items-center gap-2 text-xs">
@@ -274,7 +284,7 @@ export function DatabaseManagerView() {
 
           {/* Card 2: Backup DB Status */}
           <div className="relative group overflow-hidden rounded-2xl border border-slate-800/60 bg-gradient-to-b from-slate-900/40 to-slate-950/60 p-5 backdrop-blur-xl">
-            <div className="absolute top-0 right-0 h-24 w-24 bg-indigo-500/10 rounded-full blur-2xl" />
+            <div className="absolute top-0 right-0 h-24 w-24 rounded-full blur-2xl" style={{ backgroundColor: `rgba(${primaryRgb}, 0.1)` }} />
             <div className="flex items-start justify-between">
               <div className="space-y-1.5">
                 <span className="text-xs font-semibold text-slate-500 block uppercase">Backup targets</span>
@@ -285,8 +295,8 @@ export function DatabaseManagerView() {
                   {backupDb ? `Type: ${backupDb.type.toUpperCase()}` : "Manual replication only"}
                 </span>
               </div>
-              <div className="h-10 w-10 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
-                <HardDrive className="h-5 w-5 text-indigo-400" />
+              <div className="h-10 w-10 rounded-xl flex items-center justify-center border" style={{ backgroundColor: `rgba(${primaryRgb}, 0.1)`, borderColor: `rgba(${primaryRgb}, 0.2)` }}>
+                <HardDrive className="h-5 w-5" style={{ color: primaryColor }} />
               </div>
             </div>
             <div className="mt-4 flex items-center gap-2 text-xs">
@@ -302,7 +312,7 @@ export function DatabaseManagerView() {
 
           {/* Card 3: Operations latency */}
           <div className="relative group overflow-hidden rounded-2xl border border-slate-800/60 bg-gradient-to-b from-slate-900/40 to-slate-950/60 p-5 backdrop-blur-xl">
-            <div className="absolute top-0 right-0 h-24 w-24 bg-cyan-500/10 rounded-full blur-2xl" />
+            <div className="absolute top-0 right-0 h-24 w-24 rounded-full blur-2xl" style={{ backgroundColor: `rgba(${primaryRgb}, 0.1)` }} />
             <div className="flex items-start justify-between">
               <div className="space-y-1.5">
                 <span className="text-xs font-semibold text-slate-500 block uppercase">Performance metrics</span>
@@ -313,12 +323,12 @@ export function DatabaseManagerView() {
                   Average Query Latency: ~14ms
                 </span>
               </div>
-              <div className="h-10 w-10 rounded-xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
-                <Cpu className="h-5 w-5 text-cyan-400" />
+              <div className="h-10 w-10 rounded-xl flex items-center justify-center border" style={{ backgroundColor: `rgba(${primaryRgb}, 0.1)`, borderColor: `rgba(${primaryRgb}, 0.2)` }}>
+                <Cpu className="h-5 w-5" style={{ color: primaryColor }} />
               </div>
             </div>
             <div className="mt-4 flex items-center gap-2 text-xs">
-              <span className="h-2 w-2 rounded-full bg-cyan-400" />
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: primaryColor }} />
               <span className="text-slate-500 font-medium">Connections pool optimized</span>
             </div>
           </div>
@@ -330,11 +340,12 @@ export function DatabaseManagerView() {
             onClick={() => setActiveTab("list")}
             className={cn(
               "pb-3 text-sm font-semibold transition-all relative",
-              activeTab === "list" ? "text-indigo-400" : "text-slate-500 hover:text-slate-300"
+              activeTab === "list" ? "text-slate-100" : "text-slate-500 hover:text-slate-300"
             )}
+            style={{ color: activeTab === "list" ? primaryColor : undefined }}
           >
             {activeTab === "list" && (
-              <motion.span layoutId="activeTabUnderline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500" />
+              <motion.span layoutId="activeTabUnderline" className="absolute bottom-0 left-0 right-0 h-0.5" style={{ backgroundColor: primaryColor }} />
             )}
             Connections Profile
           </button>
@@ -342,11 +353,12 @@ export function DatabaseManagerView() {
             onClick={() => setActiveTab("add")}
             className={cn(
               "pb-3 text-sm font-semibold transition-all relative flex items-center gap-1",
-              activeTab === "add" ? "text-indigo-400" : "text-slate-500 hover:text-slate-300"
+              activeTab === "add" ? "text-slate-100" : "text-slate-500 hover:text-slate-300"
             )}
+            style={{ color: activeTab === "add" ? primaryColor : undefined }}
           >
             {activeTab === "add" && (
-              <motion.span layoutId="activeTabUnderline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500" />
+              <motion.span layoutId="activeTabUnderline" className="absolute bottom-0 left-0 right-0 h-0.5" style={{ backgroundColor: primaryColor }} />
             )}
             <Plus className="h-4 w-4" /> Add Connection
           </button>
@@ -354,11 +366,12 @@ export function DatabaseManagerView() {
             onClick={() => setActiveTab("logs")}
             className={cn(
               "pb-3 text-sm font-semibold transition-all relative",
-              activeTab === "logs" ? "text-indigo-400" : "text-slate-500 hover:text-slate-300"
+              activeTab === "logs" ? "text-slate-100" : "text-slate-500 hover:text-slate-300"
             )}
+            style={{ color: activeTab === "logs" ? primaryColor : undefined }}
           >
             {activeTab === "logs" && (
-              <motion.span layoutId="activeTabUnderline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500" />
+              <motion.span layoutId="activeTabUnderline" className="absolute bottom-0 left-0 right-0 h-0.5" style={{ backgroundColor: primaryColor }} />
             )}
             Sync logs
           </button>
@@ -386,61 +399,71 @@ export function DatabaseManagerView() {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {connections.map((conn) => (
-                        <div
-                          key={conn.id}
-                          onClick={() => {
-                            setSelectedConnection(conn);
-                            setTestResult(null);
-                          }}
-                          className={cn(
-                            "p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 group",
-                            selectedConnection?.id === conn.id
-                              ? "border-indigo-500/60 bg-indigo-500/5 shadow-md shadow-indigo-500/5"
-                              : "border-slate-800/80 bg-slate-950/30 hover:border-slate-700/80"
-                          )}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className={cn(
-                              "h-10 w-10 rounded-lg flex items-center justify-center font-bold text-sm select-none",
-                              conn.type === "mysql" && "bg-cyan-500/10 text-cyan-400 border border-cyan-500/10",
-                              conn.type === "mongodb" && "bg-emerald-500/10 text-emerald-400 border border-emerald-500/10",
-                              conn.type === "postgresql" && "bg-indigo-500/10 text-indigo-400 border border-indigo-500/10"
-                            )}>
-                              {conn.type === "mysql" && "My"}
-                              {conn.type === "postgresql" && "Pg"}
-                              {conn.type === "mongodb" && "Mg"}
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-semibold text-sm text-slate-200 group-hover:text-slate-100 transition-colors">
-                                  {conn.name}
-                                </span>
-                                {conn.role !== "none" && (
-                                  <span className={cn(
-                                    "text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase border",
-                                    conn.role === "primary" 
-                                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" 
-                                      : "bg-indigo-500/10 border-indigo-500/20 text-indigo-400"
-                                  )}>
-                                    {conn.role}
-                                  </span>
-                                )}
+                      {connections.map((conn) => {
+                        const isActive = selectedConnection?.id === conn.id;
+                        return (
+                          <div
+                            key={conn.id}
+                            onClick={() => {
+                              setSelectedConnection(conn);
+                              setTestResult(null);
+                            }}
+                            className={cn(
+                              "p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 group",
+                              isActive
+                                ? "shadow-md"
+                                : "border-slate-800/80 bg-slate-950/30 hover:border-slate-700/80"
+                            )}
+                            style={{
+                              borderColor: isActive ? primaryColor : undefined,
+                              backgroundColor: isActive ? `rgba(${primaryRgb}, 0.05)` : undefined,
+                              boxShadow: isActive ? `0 4px 12px rgba(${primaryRgb}, 0.05)` : undefined
+                            }}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={cn(
+                                "h-10 w-10 rounded-lg flex items-center justify-center font-bold text-sm select-none border",
+                                conn.type === "mysql" && "bg-cyan-500/10 text-cyan-400 border-cyan-500/10",
+                                conn.type === "mongodb" && "bg-emerald-500/10 text-emerald-400 border-emerald-500/10",
+                                conn.type === "postgresql" && "bg-indigo-500/10 text-indigo-400 border-indigo-500/10"
+                              )}>
+                                {conn.type === "mysql" && "My"}
+                                {conn.type === "postgresql" && "Pg"}
+                                {conn.type === "mongodb" && "Mg"}
                               </div>
-                              <span className="text-[11px] text-slate-500 block mt-0.5">
-                                {conn.host}:{conn.port} • {conn.databaseName}
-                              </span>
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-semibold text-sm text-slate-200 group-hover:text-slate-100 transition-colors">
+                                    {conn.name}
+                                  </span>
+                                  {conn.role !== "none" && (
+                                    <span 
+                                      className="text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase border"
+                                      style={{
+                                        backgroundColor: conn.role === "primary" ? `rgba(16, 185, 129, 0.1)` : `rgba(${primaryRgb}, 0.1)`,
+                                        borderColor: conn.role === "primary" ? `rgba(16, 185, 129, 0.2)` : `rgba(${primaryRgb}, 0.2)`,
+                                        color: conn.role === "primary" ? "#10b981" : primaryColor
+                                      }}
+                                    >
+                                      {conn.role}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[11px] text-slate-500 block mt-0.5">
+                                  {conn.host}:{conn.port} • {conn.databaseName}
+                                </span>
+                              </div>
                             </div>
+                            
+                            <span className={cn(
+                              "h-2 w-2 rounded-full",
+                              conn.status === "connected" && "bg-emerald-400 shadow-md shadow-emerald-400/50",
+                              conn.status === "disconnected" && "bg-slate-600",
+                              conn.status === "error" && "bg-rose-500 shadow-md shadow-rose-500/50"
+                            )} />
                           </div>
-                          
-                          <span className={cn(
-                            "h-2 w-2 rounded-full",
-                            conn.status === "connected" && "bg-emerald-400 shadow-md shadow-emerald-400/50",
-                            conn.status === "disconnected" && "bg-slate-600",
-                            conn.status === "error" && "bg-rose-500 shadow-md shadow-rose-500/50"
-                          )} />
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </motion.div>
@@ -487,6 +510,11 @@ export function DatabaseManagerView() {
                                 ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20 cursor-default"
                                 : "bg-slate-950 hover:bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700"
                             )}
+                            style={{
+                              backgroundColor: selectedConnection.role === "backup" ? `rgba(${primaryRgb}, 0.1)` : undefined,
+                              color: selectedConnection.role === "backup" ? primaryColor : undefined,
+                              borderColor: selectedConnection.role === "backup" ? `rgba(${primaryRgb}, 0.2)` : undefined
+                            }}
                           >
                             Set Backup
                           </button>
@@ -505,7 +533,7 @@ export function DatabaseManagerView() {
                         </div>
                         <div className="space-y-1">
                           <span className="text-slate-500 block text-xs font-medium uppercase tracking-wider">Database / Schema</span>
-                          <span className="font-semibold text-indigo-400">{selectedConnection.databaseName}</span>
+                          <span className="font-semibold" style={{ color: primaryColor }}>{selectedConnection.databaseName}</span>
                         </div>
                         <div className="space-y-1">
                           <span className="text-slate-500 block text-xs font-medium uppercase tracking-wider">Status Connection</span>
@@ -528,9 +556,9 @@ export function DatabaseManagerView() {
 
                       {/* Sync scheduler detail panel */}
                       {selectedConnection.role === "backup" && (
-                        <div className="rounded-xl border border-indigo-500/10 bg-indigo-500/5 p-4 space-y-4">
+                        <div className="rounded-xl border p-4 space-y-4" style={{ backgroundColor: `rgba(${primaryRgb}, 0.05)`, borderColor: `rgba(${primaryRgb}, 0.1)` }}>
                           <div className="flex items-center gap-2">
-                            <Clock className="h-5 w-5 text-indigo-400" />
+                            <Clock className="h-5 w-5" style={{ color: primaryColor }} />
                             <div>
                               <h4 className="font-semibold text-slate-200 text-sm">Backup Scheduler</h4>
                               <p className="text-xs text-slate-400 mt-0.5">
@@ -539,16 +567,17 @@ export function DatabaseManagerView() {
                             </div>
                           </div>
                           
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-t border-slate-900 pt-3 gap-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-t border-slate-900/60 pt-3 gap-2">
                             <span className="text-xs text-slate-500">
-                              Schedule Frequency: <strong className="text-indigo-400 uppercase ml-1">{selectedConnection.syncSchedule || "None"}</strong>
+                              Schedule Frequency: <strong className="uppercase ml-1" style={{ color: primaryColor }}>{selectedConnection.syncSchedule || "None"}</strong>
                             </span>
                             <button
                               onClick={() => handleTriggerSync(selectedConnection.id)}
                               disabled={loading}
-                              className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-lg flex items-center gap-1.5 transition-all shadow-md shadow-indigo-500/10"
+                              className="px-3.5 py-1.5 text-white font-semibold text-xs rounded-lg flex items-center gap-1.5 transition-all shadow-md"
+                              style={{ backgroundColor: primaryColor, boxShadow: `0 4px 12px rgba(${primaryRgb}, 0.15)` }}
                             >
-                              <Play className="h-3.5 w-3.5" /> Force Snapshot Sync
+                              <Play className="h-3.5 w-3.5 text-white" /> Force Snapshot Sync
                             </button>
                           </div>
                         </div>
@@ -575,7 +604,7 @@ export function DatabaseManagerView() {
               >
                 <div className="border-b border-slate-900 pb-4">
                   <h2 className="text-lg font-bold text-slate-200 flex items-center gap-2">
-                    <Plus className="h-5 w-5 text-indigo-500" /> New Connection Profile
+                    <Plus className="h-5 w-5" style={{ color: primaryColor }} /> New Connection Profile
                   </h2>
                   <p className="text-xs text-slate-500 mt-1">Configure credentials for MySQL, PostgreSQL or MongoDB connection.</p>
                 </div>
@@ -590,7 +619,8 @@ export function DatabaseManagerView() {
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="e.g. Hostinger Production DB"
-                        className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/20 transition-all placeholder:text-slate-600"
+                        className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none transition-all placeholder:text-slate-600"
+                        style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
                       />
                     </div>
 
@@ -599,7 +629,7 @@ export function DatabaseManagerView() {
                       <select
                         value={type}
                         onChange={(e) => setType(e.target.value)}
-                        className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/20 transition-all"
+                        className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none transition-all"
                       >
                         <option value="mysql">MySQL</option>
                         <option value="postgresql">PostgreSQL</option>
@@ -615,7 +645,7 @@ export function DatabaseManagerView() {
                         value={host}
                         onChange={(e) => setHost(e.target.value)}
                         placeholder="e.g. 193.203.184.192"
-                        className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/20 transition-all placeholder:text-slate-600"
+                        className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none transition-all placeholder:text-slate-600"
                       />
                     </div>
 
@@ -626,7 +656,7 @@ export function DatabaseManagerView() {
                         required
                         value={port}
                         onChange={(e) => setPort(Number(e.target.value))}
-                        className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/20 transition-all"
+                        className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none transition-all"
                       />
                     </div>
 
@@ -638,7 +668,7 @@ export function DatabaseManagerView() {
                         value={databaseName}
                         onChange={(e) => setDatabaseName(e.target.value)}
                         placeholder="e.g. u569154749_rivexa_crm"
-                        className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/20 transition-all placeholder:text-slate-600"
+                        className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none transition-all placeholder:text-slate-600"
                       />
                     </div>
 
@@ -650,7 +680,7 @@ export function DatabaseManagerView() {
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         placeholder="db_username"
-                        className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/20 transition-all placeholder:text-slate-600"
+                        className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none transition-all placeholder:text-slate-600"
                       />
                     </div>
 
@@ -661,7 +691,7 @@ export function DatabaseManagerView() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/20 transition-all placeholder:text-slate-600"
+                        className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none transition-all placeholder:text-slate-600"
                       />
                     </div>
 
@@ -672,7 +702,7 @@ export function DatabaseManagerView() {
                         value={connectionUrl}
                         onChange={(e) => setConnectionUrl(e.target.value)}
                         placeholder="mysql://user:pass@host:3306/db"
-                        className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/20 transition-all placeholder:text-slate-600"
+                        className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none transition-all placeholder:text-slate-600"
                       />
                     </div>
                   </div>
@@ -684,6 +714,7 @@ export function DatabaseManagerView() {
                       checked={sslEnabled}
                       onChange={(e) => setSslEnabled(e.target.checked)}
                       className="rounded border-slate-800 bg-slate-900 text-indigo-500 focus:ring-0 focus:ring-offset-0 h-4 w-4"
+                      style={{ color: primaryColor }}
                     />
                     <label htmlFor="ssl" className="text-xs font-semibold text-slate-400 cursor-pointer select-none">
                       Enable SSL Enforce (Encrypted connection mode)
@@ -727,7 +758,8 @@ export function DatabaseManagerView() {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-xl transition-all shadow-lg shadow-indigo-500/10"
+                      className="px-4 py-2 text-white font-semibold text-sm rounded-xl transition-all shadow-lg"
+                      style={{ backgroundColor: primaryColor, boxShadow: `0 4px 12px rgba(${primaryRgb}, 0.15)` }}
                     >
                       Register Profile
                     </button>
@@ -746,7 +778,7 @@ export function DatabaseManagerView() {
               >
                 <div className="border-b border-slate-900 pb-4">
                   <h2 className="text-lg font-bold text-slate-200 flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-indigo-500" /> Activity Sync Logs
+                    <Activity className="h-5 w-5" style={{ color: primaryColor }} /> Activity Sync Logs
                   </h2>
                   <p className="text-xs text-slate-500 mt-1">Audit trail of background backup tasks executed by the synchronization service daemon.</p>
                 </div>
