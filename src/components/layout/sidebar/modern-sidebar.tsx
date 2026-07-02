@@ -300,7 +300,7 @@ export function ModernSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
           } as NavItem,
           {
             name: "Connect Database",
-            href: `${dbBaseUrl}/databases?token=${token || ""}`,
+            href: "/databases",
             icon: Server,
             category: "Operations",
           } as NavItem,
