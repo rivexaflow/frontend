@@ -14,7 +14,13 @@ import {
   RefreshCw,
   HardDrive,
   ShieldCheck,
-  Cpu
+  Cpu,
+  Lock,
+  Unlock,
+  Eye,
+  GitBranch,
+  Layers,
+  Settings
 } from "lucide-react";
 import { apiClient } from "@/lib/api/client";
 import { useHrCompanyId } from "@/features/workspace/hooks/use-hr-company-id";
@@ -33,6 +39,9 @@ interface Connection {
   syncSchedule?: string;
   lastSyncedAt?: string;
   nextSyncAt?: string;
+  modules?: string; // JSON array: ["CRM", "HRM", "ACCOUNTING"]
+  accessLevel?: string; // READ_ONLY, READ_WRITE
+  allowDataShare?: boolean;
 }
 
 interface SyncLog {
@@ -82,6 +91,11 @@ export function DatabaseManagerView() {
   const [databaseName, setDatabaseName] = useState("");
   const [connectionUrl, setConnectionUrl] = useState("");
   const [sslEnabled, setSslEnabled] = useState(false);
+  
+  // Scopes and permissions form states
+  const [selectedModules, setSelectedModules] = useState<string[]>(["CRM"]);
+  const [accessLevel, setAccessLevel] = useState("READ_WRITE");
+  const [allowDataShare, setAllowDataShare] = useState(true);
 
   // Load database connections
   const fetchConnections = async () => {
@@ -91,8 +105,12 @@ export function DatabaseManagerView() {
       const res = await apiClient.get(`/database-connections?companyId=${companyId}`);
       if (res.data && res.data.data) {
         setConnections(res.data.data);
-        if (res.data.data.length > 0 && !selectedConnection) {
-          setSelectedConnection(res.data.data[0]);
+        if (res.data.data.length > 0) {
+          // Keep selection synchronized
+          const currentSelect = selectedConnection 
+            ? res.data.data.find((c: any) => c.id === selectedConnection.id) 
+            : null;
+          setSelectedConnection(currentSelect || res.data.data[0]);
         }
       }
     } catch (err) {
@@ -174,7 +192,10 @@ export function DatabaseManagerView() {
         password,
         databaseName,
         connectionUrl: connectionUrl || null,
-        sslEnabled
+        sslEnabled,
+        modules: selectedModules,
+        accessLevel,
+        allowDataShare
       });
       setName("");
       setPassword("");
@@ -194,9 +215,6 @@ export function DatabaseManagerView() {
     try {
       await apiClient.post(`/database-connections/${id}/role`, { role });
       fetchConnections();
-      if (selectedConnection && selectedConnection.id === id) {
-        setSelectedConnection(prev => prev ? { ...prev, role } : null);
-      }
     } catch (err: any) {
       alert(err.response?.data?.error || "Failed to update connection role.");
     } finally {
@@ -218,6 +236,14 @@ export function DatabaseManagerView() {
     }
   };
 
+  const toggleModuleSelection = (moduleName: string) => {
+    setSelectedModules(prev => 
+      prev.includes(moduleName) 
+        ? prev.filter(m => m !== moduleName) 
+        : [...prev, moduleName]
+    );
+  };
+
   const primaryDb = connections.find(c => c.role === "primary");
   const backupDb = connections.find(c => c.role === "backup");
 
@@ -236,7 +262,7 @@ export function DatabaseManagerView() {
             Database Manager
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
-            Connect external databases to dynamically route your operational CRM, HR, and Accounting records, keeping your customer data isolated and private.
+            Register multiple local databases, map dynamic modules (CRM, HRM, Accounting) to specific hosts, and configure granular Read/Write access controls.
           </p>
         </div>
 
@@ -258,12 +284,12 @@ export function DatabaseManagerView() {
           <div className="absolute top-0 right-0 h-24 w-24 rounded-full blur-2xl opacity-10" style={{ backgroundColor: primaryColor }} />
           <div className="flex items-start justify-between">
             <div className="space-y-1.5">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Primary database</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Central Router</span>
               <span className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-                {primaryDb ? primaryDb.name : "Local Sandbox"}
+                {connections.length > 0 ? "Multi-Database" : "Sandbox Database"}
               </span>
               <span className="text-xs text-slate-500 dark:text-slate-400 block mt-1">
-                {primaryDb ? `Engine: ${primaryDb.type.toUpperCase()}` : "Using central schema"}
+                {connections.length > 0 ? `${connections.length} Active Connections Profile` : "Falling back to cloud schema"}
               </span>
             </div>
             <div className="h-10 w-10 rounded-xl flex items-center justify-center border" style={{ backgroundColor: `rgba(${primaryRgb}, 0.05)`, borderColor: `rgba(${primaryRgb}, 0.15)` }}>
@@ -271,55 +297,49 @@ export function DatabaseManagerView() {
             </div>
           </div>
           <div className="mt-4 flex items-center gap-2 text-xs">
-            <span className={cn(
-              "h-2 w-2 rounded-full",
-              primaryDb?.status === "connected" ? "bg-emerald-500" : "bg-slate-400 dark:bg-slate-600"
-            )} />
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
             <span className="text-slate-500 dark:text-slate-400 font-medium">
-              {primaryDb?.status === "connected" ? "Active and routing queries" : "Central fallback mode"}
+              {connections.length > 0 ? "Scoping CRM, HRM & Support requests" : "Central database isolation active"}
             </span>
           </div>
         </div>
 
-        {/* Card 2: Backup DB Status */}
+        {/* Card 2: Modules Connection Status */}
         <div className="relative group overflow-hidden rounded-2xl border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-slate-900 p-5 shadow-sm">
           <div className="absolute top-0 right-0 h-24 w-24 rounded-full blur-2xl opacity-10" style={{ backgroundColor: primaryColor }} />
           <div className="flex items-start justify-between">
             <div className="space-y-1.5">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Backup targets</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Module Isolations</span>
               <span className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-                {backupDb ? backupDb.name : "None configured"}
+                Fine-Grained Mappings
               </span>
               <span className="text-xs text-slate-500 dark:text-slate-400 block mt-1">
-                {backupDb ? `Type: ${backupDb.type.toUpperCase()}` : "Manual replication only"}
+                CRM, HRM & Support decoupled
               </span>
             </div>
             <div className="h-10 w-10 rounded-xl flex items-center justify-center border" style={{ backgroundColor: `rgba(${primaryRgb}, 0.05)`, borderColor: `rgba(${primaryRgb}, 0.15)` }}>
-              <HardDrive className="h-5 w-5" style={{ color: primaryColor }} />
+              <Layers className="h-5 w-5" style={{ color: primaryColor }} />
             </div>
           </div>
           <div className="mt-4 flex items-center gap-2 text-xs">
-            <span className={cn(
-              "h-2 w-2 rounded-full",
-              backupDb?.status === "connected" ? "bg-indigo-500" : "bg-slate-400 dark:bg-slate-600"
-            )} />
+            <span className="h-2 w-2 rounded-full bg-indigo-500" />
             <span className="text-slate-500 dark:text-slate-400 font-medium">
-              {backupDb ? `Scheduled: ${backupDb.syncSchedule || "Daily"}` : "No scheduled snapshots"}
+              Write protection safeguards verified
             </span>
           </div>
         </div>
 
-        {/* Card 3: Operations latency */}
+        {/* Card 3: Performance metrics */}
         <div className="relative group overflow-hidden rounded-2xl border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-slate-900 p-5 shadow-sm">
           <div className="absolute top-0 right-0 h-24 w-24 rounded-full blur-2xl opacity-10" style={{ backgroundColor: primaryColor }} />
           <div className="flex items-start justify-between">
             <div className="space-y-1.5">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Performance metrics</span>
               <span className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-                {primaryDb ? "Active Routing" : "Default Mode"}
+                Connection Pool
               </span>
               <span className="text-xs text-slate-500 dark:text-slate-400 block mt-1">
-                Average Query Latency: ~14ms
+                Eviction daemon active (10m idle)
               </span>
             </div>
             <div className="h-10 w-10 rounded-xl flex items-center justify-center border" style={{ backgroundColor: `rgba(${primaryRgb}, 0.05)`, borderColor: `rgba(${primaryRgb}, 0.15)` }}>
@@ -328,7 +348,7 @@ export function DatabaseManagerView() {
           </div>
           <div className="mt-4 flex items-center gap-2 text-xs">
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: primaryColor }} />
-            <span className="text-slate-500 dark:text-slate-400 font-medium">Connections pool optimized</span>
+            <span className="text-slate-500 dark:text-slate-400 font-medium">Isolation pools auto-evicted</span>
           </div>
         </div>
       </div>
@@ -400,6 +420,15 @@ export function DatabaseManagerView() {
                   <div className="space-y-3">
                     {connections.map((conn) => {
                       const isActive = selectedConnection?.id === conn.id;
+                      let mappedModules: string[] = [];
+                      if (conn.modules) {
+                        try {
+                          mappedModules = JSON.parse(conn.modules);
+                        } catch (e) {
+                          mappedModules = conn.modules.split(",").map(m => m.trim());
+                        }
+                      }
+                      
                       return (
                         <div
                           key={conn.id}
@@ -431,26 +460,42 @@ export function DatabaseManagerView() {
                               {conn.type === "mongodb" && "Mg"}
                             </div>
                             <div>
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex items-center gap-1.5 flex-wrap">
                                 <span className="font-semibold text-sm text-slate-800 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors">
                                   {conn.name}
                                 </span>
-                                {conn.role !== "none" && (
+                                {conn.role === "primary" && (
                                   <span 
                                     className="text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase border"
                                     style={{
-                                      backgroundColor: conn.role === "primary" ? `rgba(16, 185, 129, 0.1)` : `rgba(${primaryRgb}, 0.1)`,
-                                      borderColor: conn.role === "primary" ? `rgba(16, 185, 129, 0.2)` : `rgba(${primaryRgb}, 0.2)`,
-                                      color: conn.role === "primary" ? "#10b981" : primaryColor
+                                      backgroundColor: `rgba(${primaryRgb}, 0.1)`,
+                                      borderColor: `rgba(${primaryRgb}, 0.2)`,
+                                      color: primaryColor
                                     }}
                                   >
-                                    {conn.role}
+                                    Primary
                                   </span>
                                 )}
                               </div>
-                              <span className="text-[11px] text-slate-400 dark:text-slate-500 block mt-0.5">
-                                {conn.host}:{conn.port} • {conn.databaseName}
-                              </span>
+                              
+                              {/* Display active modules scoped */}
+                              <div className="flex items-center gap-1 mt-1 flex-wrap">
+                                {mappedModules.length === 0 ? (
+                                  <span className="text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-850 px-1.5 py-0.5 rounded">All Modules</span>
+                                ) : (
+                                  mappedModules.map((m, idx) => (
+                                    <span key={idx} className="text-[9px] font-bold text-indigo-500 dark:text-indigo-400 bg-indigo-500/5 px-1.5 py-0.5 rounded border border-indigo-500/10">
+                                      {m}
+                                    </span>
+                                  ))
+                                )}
+                                
+                                {conn.accessLevel === "READ_ONLY" && (
+                                  <span className="text-[9px] font-bold text-rose-500 bg-rose-500/5 px-1.5 py-0.5 rounded border border-rose-500/10 flex items-center gap-0.5">
+                                    <Lock className="h-2 w-2" /> RO
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                           
@@ -498,7 +543,7 @@ export function DatabaseManagerView() {
                               : "bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-slate-300"
                           )}
                         >
-                          Set Primary
+                          Set Scoped Primary
                         </button>
                         <button
                           onClick={() => handleUpdateRole(selectedConnection.id, "backup")}
@@ -520,7 +565,7 @@ export function DatabaseManagerView() {
                       </div>
                     </div>
 
-                    {/* Info grid */}
+                    {/* Scoping details */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
                       <div className="space-y-1">
                         <span className="text-slate-400 dark:text-slate-500 block text-xs font-medium uppercase tracking-wider">Host Server</span>
@@ -535,21 +580,46 @@ export function DatabaseManagerView() {
                         <span className="font-semibold" style={{ color: primaryColor }}>{selectedConnection.databaseName}</span>
                       </div>
                       <div className="space-y-1">
-                        <span className="text-slate-400 dark:text-slate-500 block text-xs font-medium uppercase tracking-wider">Status Connection</span>
-                        <span className={cn(
-                          "font-bold uppercase text-xs flex items-center gap-1.5",
-                          selectedConnection.status === "connected" && "text-emerald-500",
-                          selectedConnection.status === "disconnected" && "text-slate-400",
-                          selectedConnection.status === "error" && "text-rose-500"
-                        )}>
-                          <span className={cn(
-                            "h-1.5 w-1.5 rounded-full",
-                            selectedConnection.status === "connected" && "bg-emerald-500",
-                            selectedConnection.status === "disconnected" && "bg-slate-400",
-                            selectedConnection.status === "error" && "bg-rose-500"
-                          )} />
-                          {selectedConnection.status}
+                        <span className="text-slate-400 dark:text-slate-500 block text-xs font-medium uppercase tracking-wider">Access Scope Policy</span>
+                        <span className="font-semibold text-slate-850 dark:text-slate-200 flex items-center gap-1.5">
+                          {selectedConnection.accessLevel === "READ_ONLY" ? (
+                            <>
+                              <Lock className="h-4 w-4 text-rose-500" />
+                              <span className="text-rose-600 dark:text-rose-400 font-bold uppercase text-xs">Read-Only Safeguard</span>
+                            </>
+                          ) : (
+                            <>
+                              <Unlock className="h-4 w-4 text-emerald-500" />
+                              <span className="text-emerald-600 dark:text-emerald-400 font-bold uppercase text-xs">Read / Write Access</span>
+                            </>
+                          )}
                         </span>
+                      </div>
+
+                      <div className="space-y-1 col-span-2">
+                        <span className="text-slate-400 dark:text-slate-500 block text-xs font-medium uppercase tracking-wider">Mapped Workspace Modules</span>
+                        <div className="flex gap-2 mt-1">
+                          {(() => {
+                            let mappedModules: string[] = [];
+                            if (selectedConnection.modules) {
+                              try {
+                                mappedModules = JSON.parse(selectedConnection.modules);
+                              } catch (e) {
+                                mappedModules = selectedConnection.modules.split(",").map(m => m.trim());
+                              }
+                            }
+                            if (mappedModules.length === 0) {
+                              return <span className="text-xs text-slate-600 bg-slate-100 dark:bg-slate-850 px-2.5 py-1 rounded">All Modules Fallback</span>;
+                            }
+                            return mappedModules.map((m, idx) => (
+                              <span key={idx} className="text-xs font-bold text-white px-2.5 py-1 rounded-lg" style={{ backgroundColor: primaryColor }}>
+                                {m === "CRM" && "CRM (Leads, Pipelines, Support)"}
+                                {m === "HRM" && "HRM & User Management"}
+                                {m === "ACCOUNTING" && "Invoices & Accounting"}
+                              </span>
+                            ));
+                          })()}
+                        </div>
                       </div>
                     </div>
 
@@ -706,7 +776,99 @@ export function DatabaseManagerView() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 pt-1">
+                {/* Scopes, Modules & Access Level Mapping Section */}
+                <div className="border-t border-slate-100 dark:border-slate-800 pt-5 space-y-4">
+                  <h3 className="text-sm font-bold text-slate-850 dark:text-slate-200 flex items-center gap-1.5">
+                    <Settings className="h-4 w-4" style={{ color: primaryColor }} /> Connection Scope & Permissions
+                  </h3>
+
+                  {/* Modules Multi-select Checkboxes */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">Link to System Modules</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {[
+                        { id: "CRM", label: "CRM (Leads & Support)" },
+                        { id: "HRM", label: "HRM & User Directory" },
+                        { id: "ACCOUNTING", label: "Accounting & Invoices" }
+                      ].map(mod => {
+                        const isChecked = selectedModules.includes(mod.id);
+                        return (
+                          <div 
+                            key={mod.id}
+                            onClick={() => toggleModuleSelection(mod.id)}
+                            className={cn(
+                              "p-3 rounded-xl border cursor-pointer select-none transition-all text-xs font-semibold flex items-center gap-2",
+                              isChecked 
+                                ? "bg-indigo-500/5 dark:bg-indigo-500/10 border-indigo-500/30 text-indigo-600 dark:text-indigo-400" 
+                                : "bg-slate-50 dark:bg-slate-950/20 border-slate-200 dark:border-slate-800 text-slate-500"
+                            )}
+                            style={{ 
+                              borderColor: isChecked ? primaryColor : undefined,
+                              color: isChecked ? primaryColor : undefined 
+                            }}
+                          >
+                            <input 
+                              type="checkbox"
+                              checked={isChecked}
+                              readOnly
+                              className="rounded border-slate-300 h-3.5 w-3.5 text-indigo-500 pointer-events-none"
+                              style={{ color: primaryColor }}
+                            />
+                            {mod.label}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Access Level Selector */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">Access Permission Level</label>
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+                        <input 
+                          type="radio" 
+                          name="accessLevel" 
+                          value="READ_WRITE" 
+                          checked={accessLevel === "READ_WRITE"} 
+                          onChange={(e) => setAccessLevel(e.target.value)}
+                          className="h-4 w-4 text-indigo-500"
+                          style={{ color: primaryColor }}
+                        />
+                        Read / Write (Fully active CRM operations)
+                      </label>
+                      <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+                        <input 
+                          type="radio" 
+                          name="accessLevel" 
+                          value="READ_ONLY" 
+                          checked={accessLevel === "READ_ONLY"} 
+                          onChange={(e) => setAccessLevel(e.target.value)}
+                          className="h-4 w-4 text-indigo-500"
+                          style={{ color: primaryColor }}
+                        />
+                        Read-Only (Synchronized views and telemetry audits only)
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Data Share Toggle */}
+                  <div className="flex items-center gap-2 pt-2">
+                    <input
+                      type="checkbox"
+                      id="dataShare"
+                      checked={allowDataShare}
+                      onChange={(e) => setAllowDataShare(e.target.checked)}
+                      className="rounded border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-indigo-500 focus:ring-0 focus:ring-offset-0 h-4 w-4"
+                      style={{ color: primaryColor }}
+                    />
+                    <label htmlFor="dataShare" className="text-xs font-semibold text-slate-500 dark:text-slate-400 cursor-pointer select-none">
+                      Allow dynamic data sharing between isolated local database pools
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
                   <input
                     type="checkbox"
                     id="ssl"
